@@ -163,14 +163,14 @@ export const tablesMetadata: TableMeta[] = [
         id: 'salesmanLeaveApplications',
         title: 'Leave Applications',
         icon: BandageIcon,
-        columns: ['id', 'leaveType', 'startDate', 'endDate', 'reason', 'status', 'salesmanName', 'salesmanEmail', 'approverName', 'createdAt'],
+        columns: ['id', 'leaveType', 'startDate', 'endDate', 'reason', 'status', 'appRole', 'salesmanName', 'salesmanEmail', 'approverName', 'createdAt'],
     },
     {
         id: 'geoTracking',
         title: 'Salesman GeoTracking',
         icon: MapPin,
         columns: [
-            'id', 'salesmanName', 'salesmanEmail',
+            'id', 'salesmanName', 'salesmanEmail', 'appRole',
             'journeyId', 'recordedAt', 'createdAt', 'latitude', 'longitude', 'totalDistanceTravelled',
             'siteName', 'checkInTime', 'checkOutTime', 'isActive', 'destLat', 'destLng'
         ],

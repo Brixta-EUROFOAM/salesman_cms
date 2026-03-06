@@ -26,7 +26,6 @@ import { IconCalendar } from '@tabler/icons-react';
 // Import the reusable DataTable
 import { DataTableReusable } from '@/components/data-table-reusable';
 import { RefreshDataButton } from '@/components/RefreshDataButton';
-import { cn } from '@/lib/utils';
 import { selectSalesmanLeaveApplicationSchema } from '../../../../drizzle/zodSchemas';
 
 const extendedSalesmanLeaveApplicationSchema = selectSalesmanLeaveApplicationSchema.extend({
@@ -37,6 +36,7 @@ const extendedSalesmanLeaveApplicationSchema = selectSalesmanLeaveApplicationSch
   region: z.string().nullable().optional().catch("N/A"),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+  appRole: z.string().nullable().optional(),
 });
 
 type SalesmanLeaveApplication = Omit<z.infer<typeof extendedSalesmanLeaveApplicationSchema>, 'id'> & { 
@@ -262,6 +262,7 @@ export default function SlmLeavesPage() {
 
   const salesmanLeaveColumns: ColumnDef<SalesmanLeaveApplication>[] = [
     { accessorKey: "salesmanName", header: "Salesman" },
+    { accessorKey: "appRole", header: "App Role",},
     { accessorKey: "leaveType", header: "Leave Type" },
     { accessorKey: "startDate", header: "Start Date" },
     { accessorKey: "endDate", header: "End Date" },

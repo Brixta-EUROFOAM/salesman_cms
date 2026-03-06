@@ -455,6 +455,7 @@ export const salesmanLeaveApplications = pgTable("salesman_leave_applications", 
 	reason: varchar({ length: 500 }).notNull(),
 	status: varchar({ length: 50 }).notNull(),
 	adminRemarks: varchar("admin_remarks", { length: 500 }),
+	appRole: varchar("app_role", { length: 50 }),
 	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
@@ -491,7 +492,7 @@ export const salesmanAttendance = pgTable("salesman_attendance", {
 	outTimeAltitude: numeric("out_time_altitude", { precision: 10, scale: 2 }),
 	createdAt: timestamp("created_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp("updated_at", { precision: 6, withTimezone: true, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	role: varchar({ length: 50 }).default('SALES'),
+	role: varchar({ length: 50 }),
 }, (table) => [
 	index("idx_salesman_attendance_user_id").using("btree", table.userId.asc().nullsLast().op("int4_ops")),
 	foreignKey({
@@ -893,6 +894,7 @@ export const journeys = pgTable("journeys", {
 	isSynced: boolean("is_synced").default(false),
 	taskId: varchar("task_id", { length: 255 }),
 	verifiedDealerId: integer("verified_dealer_id"),
+	appRole: varchar("app_role", { length: 50 }),
 }, (table) => [
 	index("idx_journeys_user_status").using("btree", table.userId.asc().nullsLast().op("int4_ops"), table.status.asc().nullsLast().op("int4_ops")),
 	foreignKey({
@@ -909,6 +911,7 @@ export const journeyOps = pgTable("journey_ops", {
 	userId: integer("user_id").notNull(),
 	type: text().notNull(),
 	payload: jsonb().notNull(),
+	appRole: varchar("app_role", { length: 50 }),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
 	index("idx_journey_ops_created").using("btree", table.createdAt.asc().nullsLast().op("timestamptz_ops")),

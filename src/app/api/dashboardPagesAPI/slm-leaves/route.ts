@@ -26,6 +26,7 @@ const frontendLeaveSchema = selectSalesmanLeaveApplicationSchema.extend({
   endDate: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  appRole: z.string().nullable().optional(),
 });
 
 type LeaveRow = InferSelectModel<typeof salesmanLeaveApplications> & {
@@ -123,6 +124,7 @@ async function getCachedLeaves(
       salesmanRole: row.userRole ?? '',
       area: row.userArea ?? '',
       region: row.userRegion ?? '',
+      appRole: row.appRole,
     };
   });
 

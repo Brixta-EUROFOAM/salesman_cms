@@ -47,6 +47,7 @@ const frontendTrackingSchema = selectJourneyOpsSchema.extend({
   isActive: z.boolean(),
   destLat: z.number().nullable(),
   destLng: z.number().nullable(),
+  appRole: z.string().nullable().optional(),
   
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -115,6 +116,7 @@ async function getCachedTracking(companyId: number, startDateParam: string | nul
       salesmanRole: row.userRole ?? '',
       area: row.userArea ?? '',
       region: row.userRegion ?? '',
+      appRole: row.appRole || payload.appRole,
       
       latitude: Number(payload.latitude) || 0,
       longitude: Number(payload.longitude) || 0,

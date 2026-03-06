@@ -40,6 +40,7 @@ const extendedJourneyOpsSchema = selectJourneyOpsSchema.partial().extend({
   region: z.string().nullable().optional().catch("N/A"),
   employeeId: z.string().nullable().optional(),
   workosOrganizationId: z.string().nullable().optional(),
+  appRole: z.string().nullable().optional(),
 
   latitude: z.coerce.number().nullable().optional().catch(null),
   longitude: z.coerce.number().nullable().optional().catch(null),
@@ -274,6 +275,7 @@ export default function SalesmanGeoTrackingPage() {
       const checkIn = (track.displayCheckInTime || '').toString();
       const checkOut = (track.displayCheckOutTime || '').toString();
       const locationType = (track.locationType || '').toString();
+      const appSector = (track.appRole || '').toString();
 
       const matchesSearch =
         !lowerCaseSearch ||
@@ -282,7 +284,8 @@ export default function SalesmanGeoTrackingPage() {
         displayDate.toLowerCase().includes(lowerCaseSearch) ||
         checkIn.toLowerCase().includes(lowerCaseSearch) ||
         checkOut.toLowerCase().includes(lowerCaseSearch) ||
-        locationType.toLowerCase().includes(lowerCaseSearch);
+        locationType.toLowerCase().includes(lowerCaseSearch) ||
+        appSector.toLowerCase().includes(lowerCaseSearch);
 
       const reportRole = (track.salesmanRole || track.role || '').toString();
       const roleMatch = roleFilter === 'all' || reportRole.toLowerCase() === roleFilter.toLowerCase();
@@ -351,6 +354,7 @@ export default function SalesmanGeoTrackingPage() {
       header: 'Salesman',
       cell: ({ row }) => row.original.salesmanName ?? 'N/A',
     },
+    { accessorKey: "appRole", header: "App Role"},
     {
       accessorKey: 'displayDate',
       header: 'Date',

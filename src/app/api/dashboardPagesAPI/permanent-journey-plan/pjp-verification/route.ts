@@ -2,7 +2,6 @@
 import 'server-only';
 import { NextResponse, NextRequest, connection } from 'next/server';
 import { getTokenClaims } from '@workos-inc/authkit-nextjs';
-import { cacheTag, cacheLife } from 'next/cache';
 import { db } from '@/lib/drizzle';
 import { users, permanentJourneyPlans, dealers, technicalSites } from '../../../../../../drizzle';
 import { eq, and, or, asc, aliasedTable, getTableColumns } from 'drizzle-orm';
@@ -41,7 +40,7 @@ const frontendPJPSchema = selectPermanentJourneyPlanSchema.extend({
     noOfMasonPcSchemes: z.number().nullable().optional(),
 });
 
-// 2. Explicit type to survive Next.js 'use cache' boundary collapse
+// 2. Explicit type 
 type PendingPJPRow = InferSelectModel<typeof permanentJourneyPlans> & {
     salesmanFirstName: string | null;
     salesmanLastName: string | null;
@@ -56,12 +55,8 @@ type PendingPJPRow = InferSelectModel<typeof permanentJourneyPlans> & {
     siteName: string | null;
 };
 
-// 3. The Cached Function
-async function getCachedPendingPJPs(companyId: number) {
-    'use cache';
-    cacheLife('hours');
-    cacheTag(`pjp-verification-${companyId}`);
-
+// 3. The Function (Cache Removed)
+async function getPendingPJPs(companyId: number) {
     const createdByUsers = aliasedTable(users, 'createdByUsers');
 
     // Use getTableColumns and explicit typing to prevent `never[]`
@@ -148,7 +143,7 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        const formattedPlans = await getCachedPendingPJPs(currentUser.companyId);
+        const formattedPlans = await getPendingPJPs(currentUser.companyId);
 
         // Validate using the strictly extended schema, allowing loose pass-through if needed
         const validatedPlans = z.array(frontendPJPSchema.loose()).safeParse(formattedPlans);

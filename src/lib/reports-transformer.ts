@@ -591,6 +591,7 @@ export async function getFlattenedSalesmanLeaveApplication(companyId: number) {
     updatedAt: formatDateTimeIST(r.updatedAt),
     salesmanName: formatUserName({ firstName: r.userFirstName, lastName: r.userLastName, email: r.userEmail }),
     salesmanEmail: r.userEmail || '',
+    appSector: r.appRole,
   }));
 }
 
@@ -684,6 +685,7 @@ export async function getFlattenedGeoTracking(companyId: number) {
       userFirstName: users.firstName,
       userLastName: users.lastName,
       userEmail: users.email,
+      appRole: journeyOps.appRole,
     })
     .from(journeyOps)
     .leftJoin(users, eq(journeyOps.userId, users.id))
@@ -720,6 +722,7 @@ export async function getFlattenedGeoTracking(companyId: number) {
       isActive: Boolean(p.isActive),
       destLat: p.destLat ? Number(p.destLat) : null,
       destLng: p.destLng ? Number(p.destLng) : null,
+      appSector: op.appRole || p.appRole,
       createdAt: op.createdAt ? new Date(op.createdAt).toISOString() : '',
       updatedAt: op.createdAt ? new Date(op.createdAt).toISOString() : '',
     };
