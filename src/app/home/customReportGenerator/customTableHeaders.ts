@@ -198,6 +198,17 @@ export const tablesMetadata: TableMeta[] = [
             'id', 'itemName', 'pointCost', 'totalAvailableQuantity', 'stock', 'isActive', 'createdAt', 'updatedAt'
         ],
     },
+    {
+        id: 'rewardRedemptions',
+        title: 'Reward Redemptions',
+        icon: HandCoins,
+        columns: [
+            'id', 'masonId',  
+            'associatedUserName', 'associatedUserEmail', 'masonName',  
+            'rewardId',  'rewardName',  'quantity',  'status',  'pointsDebited', 
+            'deliveryName',  'deliveryPhone',  'deliveryAddress',  'fulfillmentNotes', 'createdAt', 'updatedAt'
+        ],
+    },
     // {
     //     id: 'giftAllocationLogs',
     //     title: 'Gift Allocation Logs',

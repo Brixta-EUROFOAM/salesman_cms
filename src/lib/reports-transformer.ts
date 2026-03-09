@@ -969,55 +969,6 @@ export async function getFlattenedSchemesOffers() {
   }));
 }
 
-export async function getFlattenedMasonsOnSchemes(companyId: number) {
-  const raw = await db
-    .select({
-      ...getTableColumns(masonOnScheme),
-      masonName: masonPcSide.name,
-      schemeName: schemesOffers.name,
-    })
-    .from(masonOnScheme)
-    .leftJoin(masonPcSide, eq(masonOnScheme.masonId, masonPcSide.id))
-    .leftJoin(users, eq(masonPcSide.userId, users.id))
-    .leftJoin(schemesOffers, eq(masonOnScheme.schemeId, schemesOffers.id))
-    .where(eq(users.companyId, companyId))
-    .orderBy(desc(masonOnScheme.enrolledAt));
-
-  return raw.map((r) => ({
-    masonId: r.masonId,
-    masonName: r.masonName || 'Unknown',
-    schemeId: r.schemeId,
-    schemeName: r.schemeName || 'Unknown',
-    enrolledAt: r.enrolledAt ? new Date(r.enrolledAt).toISOString() : null,
-    status: r.status ?? null,
-  }));
-}
-
-export async function getFlattenedMasonsOnMeetings(companyId: number) {
-  const raw = await db
-    .select({
-      ...getTableColumns(masonsOnMeetings),
-      masonName: masonPcSide.name,
-      meetingType: tsoMeetings.type,
-      meetingDate: tsoMeetings.date,
-    })
-    .from(masonsOnMeetings)
-    .leftJoin(masonPcSide, eq(masonsOnMeetings.masonId, masonPcSide.id))
-    .leftJoin(tsoMeetings, eq(masonsOnMeetings.meetingId, tsoMeetings.id))
-    .leftJoin(users, eq(tsoMeetings.createdByUserId, users.id))
-    .where(eq(users.companyId, companyId))
-    .orderBy(desc(masonsOnMeetings.attendedAt));
-
-  return raw.map((r) => ({
-    masonId: r.masonId,
-    masonName: r.masonName || 'Unknown',
-    meetingId: r.meetingId,
-    meetingType: r.meetingType || 'Unknown',
-    meetingDate: r.meetingDate ? new Date(r.meetingDate).toISOString().slice(0, 10) : '',
-    attendedAt: r.attendedAt ? new Date(r.attendedAt).toISOString() : '',
-  }));
-}
-
 export async function getFlattenedRewardCategories() {
   const raw = await db.select().from(rewardCategories).orderBy(rewardCategories.name);
   return raw.map((r) => ({
@@ -1139,6 +1090,9 @@ export async function getFlattenedRewardRedemptions(companyId: number) {
       ...getTableColumns(rewardRedemptions),
       masonName: masonPcSide.name,
       rewardName: rewards.itemName,
+      userFirstName: users.firstName,
+      userLastName: users.lastName,
+      userEmail: users.email,
     })
     .from(rewardRedemptions)
     .leftJoin(masonPcSide, eq(rewardRedemptions.masonId, masonPcSide.id))
@@ -1151,6 +1105,10 @@ export async function getFlattenedRewardRedemptions(companyId: number) {
     id: r.id,
     masonId: r.masonId,
     masonName: r.masonName || 'Unknown',
+    associatedUserName: r.userFirstName 
+        ? `${r.userFirstName} ${r.userLastName || ''}`.trim() 
+        : 'Unassigned',
+    associatedUserEmail: r.userEmail ?? 'N/A',
     rewardId: r.rewardId,
     rewardName: r.rewardName || 'Unknown',
     quantity: r.quantity,
@@ -1159,6 +1117,7 @@ export async function getFlattenedRewardRedemptions(companyId: number) {
     deliveryName: r.deliveryName ?? null,
     deliveryPhone: r.deliveryPhone ?? null,
     deliveryAddress: r.deliveryAddress ?? null,
+    fulfillmentNotes: r.fulfillmentNotes ?? null,
     createdAt: formatDateTimeIST(r.createdAt),
     updatedAt: formatDateTimeIST(r.updatedAt),
   }));
@@ -1302,8 +1261,6 @@ export const transformerMap = {
   giftAllocationLogs: getFlattenedGiftAllocationLogs,
   masonPCSide: getFlattenedMasonPCSide,
   schemesOffers: getFlattenedSchemesOffers,
-  masonsOnSchemes: getFlattenedMasonsOnSchemes,
-  masonsOnMeetings: getFlattenedMasonsOnMeetings,
   rewardCategories: getFlattenedRewardCategories,
   kycSubmissions: getFlattenedKYCSubmissions,
   tsoAssignments: getFlattenedTSOAssignments,
