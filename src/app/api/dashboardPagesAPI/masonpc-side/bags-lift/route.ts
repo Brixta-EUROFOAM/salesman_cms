@@ -28,6 +28,7 @@ async function getCachedBagLifts(
 ) {
   'use cache';
   cacheLife('minutes');
+  cacheTag(`bags-lift-${companyId}`); // generic tag for server actions
   
   const filterKey = `${search}-${status}-${area}-${region}-${fromDate}-${toDate}`;
   cacheTag(`bags-lift-${companyId}-${page}-${filterKey}`);
@@ -101,6 +102,7 @@ async function getCachedBagLifts(
     .from(bagLifts)
     .innerJoin(masonPcSide, eq(bagLifts.masonId, masonPcSide.id))
     .leftJoin(salesmen, eq(masonPcSide.userId, salesmen.id))
+    .leftJoin(dealers, eq(bagLifts.dealerId, dealers.id))
     .where(whereClause);
 
   const totalCount = Number(totalCountResult[0].count);

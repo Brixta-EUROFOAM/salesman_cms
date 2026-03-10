@@ -49,6 +49,7 @@ async function getCachedMasonPcRecords(
 ) {
   'use cache';
   cacheLife('minutes');
+  cacheTag(`mason-pc-${companyId}`); // generic tag for server actions
   
   const filterKey = `${search}-${kycStatusFilter}-${roleFilter}-${areaFilter}-${regionFilter}`;
   cacheTag(`mason-pc-${companyId}-${page}-${filterKey}`);

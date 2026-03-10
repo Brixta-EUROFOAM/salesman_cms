@@ -35,7 +35,7 @@ export async function refreshCompanyCache(cachePrefix: string) {
       : `${cachePrefix}-${currentUser.companyId}`;
     
     // Nuke the cache!
-    revalidateTag(targetTag, 'max');
+    revalidateTag(targetTag, {expire : 0});
     
     return { success: true, message: `Cache cleared for ${targetTag}` };
   } catch (error) {
