@@ -431,7 +431,7 @@ export default function TsoPerformanceMetricsPage() {
                                     <MetricProgressCard title="Dealer/Retailer" data={selectedMetric.metrics.dealerRetailer} colorClass="bg-amber-500" />
                                     <MetricProgressCard title="Influencer / Architect" data={selectedMetric.metrics.influencerVisits} colorClass="bg-emerald-500" />
                                     <MetricProgressCard title="Technical Meet / Canopy" data={selectedMetric.metrics.technicalMeet} colorClass="bg-purple-500" />
-                                    <MetricProgressCard title="Site Service (Slab)" data={selectedMetric.metrics.siteServiceSlab} colorClass="bg-indigo-500" />
+                                    <MetricProgressCard title="Site Service" data={selectedMetric.metrics.siteServiceSlab} colorClass="bg-indigo-500" />
                                 </div>
                             </div>
 
@@ -439,14 +439,14 @@ export default function TsoPerformanceMetricsPage() {
                                 <h3 className="text-sm font-bold text-muted-foreground mb-4 uppercase tracking-wider">Business Impact</h3>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <MetricProgressCard title="Site Conversions" data={selectedMetric.metrics.siteConversion} colorClass="bg-green-600" />
-                                    <MetricProgressCard title="Vol. Converted (MT)" data={selectedMetric.metrics.volumeConvertedMT} colorClass="bg-green-500" />
-                                    <MetricProgressCard title="Mason Enroll / Lift" data={selectedMetric.metrics.enrollmentLifting} colorClass="bg-orange-500" />
+                                    <MetricProgressCard title="Vol. Converted (Bags)" data={selectedMetric.metrics.volumeConvertedMT} colorClass="bg-green-500" />
+                                    {/* <MetricProgressCard title="Mason Enroll / Lift" data={selectedMetric.metrics.enrollmentLifting} colorClass="bg-orange-500" /> */}
                                 </div>
                             </div>
                         </div>
 
                         <DialogFooter className="p-4 bg-background border-t">
-                            <Button onClick={() => setIsViewModalOpen(false)}>Close Breakdown</Button>
+                            <Button onClick={() => setIsViewModalOpen(false)}>Close</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

@@ -23,7 +23,7 @@ export const TSO_AOP_TARGETS = {
   siteVisitOld: 80,
   dealerRetailer: 50,
   siteConversion: 20,
-  volumeConvertedMT: 100,
+  volumeConvertedMT: 2000, //2k bags = 1 mt
   influencerVisits: 10,
   enrollmentLifting: 100,
   siteServiceSlab: 5,
