@@ -1,9 +1,8 @@
 // src/app/home/customReportGenerator/page.tsx
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Download, ListFilter, Settings2, CheckSquare, XCircle, PlusCircle } from 'lucide-react';
+import { Download, ListFilter, Settings2, CheckSquare, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -26,7 +25,8 @@ import {
   type TableColumn,
   type ReportFormat
 } from './customTableHeaders';
-import { format as formatDate } from 'date-fns';
+import { format as formatDate, startOfMonth } from 'date-fns';
+import { DateRange } from "react-day-picker";
 
 // Helper to generate column definitions dynamically for the preview table
 function generateColumns(columns: TableColumn[]): ColumnDef<any, any>[] {
@@ -73,6 +73,7 @@ export default function CustomReportGeneratorPage() {
 
   // State for Filters & Styles
   const [filters, setFilters] = useState<FilterRule[]>([]);
+  const [tableDateRange, setTableDateRange] = useState<DateRange | undefined>({from: startOfMonth(new Date()),to: new Date(),});
 
   // Derived state for current table's columns based on reportColumns
   useEffect(() => {
@@ -123,6 +124,8 @@ export default function CustomReportGeneratorPage() {
         limit: 100,
         tableId,
         filters: currentFilters,
+        startDate: tableDateRange?.from,
+        endDate: tableDateRange?.to,
       };
 
       const res = await fetch(apiURI, {
@@ -257,6 +260,8 @@ export default function CustomReportGeneratorPage() {
         columns: reportColumns,
         format: format, // This refers to your 'xlsx' | 'csv' state
         filters: filters,
+        startDate: tableDateRange?.from,
+        endDate: tableDateRange?.to,
       };
 
       const res = await fetch(apiURI, {
@@ -489,8 +494,8 @@ export default function CustomReportGeneratorPage() {
             <DataFilter
               availableColumns={
                 selectedTable ? selectedTable.columns.map(col => (
-                    { table: selectedTableId, column: col }
-                  )) : []
+                  { table: selectedTableId, column: col }
+                )) : []
               }
               filters={filters}
               setFilters={setFilters}

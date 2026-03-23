@@ -313,18 +313,35 @@ export async function getFlattenedTechnicalVisitReports(companyId: number) {
   }));
 }
 
-export async function getFlattenedTsoPerformanceMetrics(companyId: number, startDate?: Date, endDate?: Date) {
-  
+export async function getFlattenedTsoPerformanceMetrics(
+  companyId: number,
+  startDate?: Date,
+  endDate?: Date
+) {
+
+  // Normalize to DATE STRINGS
+  let startStr: string;
+  let endStr: string;
+
+  if (!startDate || !endDate) {
+    const now = new Date();
+
+    startStr = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toLocaleDateString('en-CA'); // YYYY-MM-DD
+
+    endStr = now.toLocaleDateString('en-CA');
+  } else {
+    startStr = startDate.toLocaleDateString('en-CA');
+    endStr = endDate.toLocaleDateString('en-CA');
+  }
+
   // --- BUILD THE MEETINGS SUBQUERY ---
   const meetingFilters: (SQL | undefined)[] = [];
-  if (startDate && endDate) {
-    const startStr = startDate.toISOString().split('T')[0];
-    const endStr = endDate.toISOString().split('T')[0];
-    meetingFilters.push(and(
-      sql`${tsoMeetings.date} >= ${startStr}`,
-      sql`${tsoMeetings.date} <= ${endStr}`
-    ));
-  }
+
+  meetingFilters.push(and(
+    sql`${tsoMeetings.date} >= ${startStr}`,
+    sql`${tsoMeetings.date} <= ${endStr}`
+  ));
 
   const meetingsSq = db
     .select({
@@ -332,22 +349,20 @@ export async function getFlattenedTsoPerformanceMetrics(companyId: number, start
       meetCount: sql<number>`CAST(COUNT(${tsoMeetings.id}) AS INTEGER)`.as('meet_count'),
     })
     .from(tsoMeetings)
-    .where(meetingFilters.length > 0 ? and(...meetingFilters) : undefined)
+    .where(and(...meetingFilters))
     .groupBy(tsoMeetings.createdByUserId)
     .as('meetings_sq');
   // -----------------------------------
 
-  const filters: (SQL | undefined)[] = [eq(users.companyId, companyId)];
-
-  if (startDate && endDate) {
-    endDate.setHours(23, 59, 59, 999);
-    filters.push(
-      and(
-        sql`${technicalVisitReports.reportDate} >= ${startDate.toISOString()}`,
-        sql`${technicalVisitReports.reportDate} <= ${endDate.toISOString()}`
-      )
-    );
-  }
+  const endOfDay = new Date(endStr);
+  endOfDay.setHours(23, 59, 59, 999);
+  const filters: (SQL | undefined)[] = [
+    eq(users.companyId, companyId),
+    and(
+      sql`${technicalVisitReports.reportDate} >= ${startStr}`,
+      sql`${technicalVisitReports.reportDate} <= ${endOfDay.toISOString()}`
+    )
+  ];
 
   const rawData = await db
     .select({
@@ -376,14 +391,16 @@ export async function getFlattenedTsoPerformanceMetrics(companyId: number, start
   return rawData.map((r) => {
     const siteNew = r.siteVisitsNew || 0;
     const siteOld = r.siteVisitsOld || 0;
+    const dateRange = `${startStr} to ${endStr}`;
 
     return {
       userId: r.userId ?? null,
+      //dateRange,
       salesmanName: r.salesmanName || 'Unknown',
       region: r.region || '',
       area: r.area || '',
       totalVisits: r.totalVisits || 0,
-      siteVisits: siteNew + siteOld, 
+      siteVisits: siteNew + siteOld,
       dealerVisits: r.dealerVisits || 0,
       influencerVisits: r.influencerVisits || 0,
       siteVisitsNew: siteNew,
@@ -400,7 +417,7 @@ export async function getFlattenedTsoPerformanceMetrics(companyId: number, start
 export async function getFlattenedKamrupDvrs(companyId: number) {
   const subDealers = aliasedTable(dealers, 'subDealers');
   const kamrupAreaFilter = inArray(users.area, ['Kamrup-TSO', 'Kamrup TSO']);
-  
+
   const rawDvrs = await db
     .select({
       ...getTableColumns(dailyVisitReports),

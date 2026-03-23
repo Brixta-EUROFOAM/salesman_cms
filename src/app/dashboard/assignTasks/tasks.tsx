@@ -8,7 +8,7 @@ import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 
 // Icons
-import { Eye, MapPin, User, Calendar as CalendarIcon, Target, Route, Phone, ClipboardList, Clock, Hash, Loader2 } from 'lucide-react';
+import { Eye, MapPin, User, Calendar as CalendarIcon, Target, Route, Phone, ClipboardList, Clock, Hash, Loader2, Search } from 'lucide-react';
 import { IconCalendar } from "@tabler/icons-react";
 
 // Shadcn UI Components
@@ -223,26 +223,39 @@ export default function TasksListPage() {
         onSuccess={fetchTasks} 
       /> 
 
-      <div className="flex flex-wrap gap-4 p-5 rounded-xl bg-card border shadow-sm items-end mt-2">
-        <div className="flex flex-col space-y-1.5 w-full md:w-[220px]">
-          <Label className="text-xs font-bold text-muted-foreground uppercase">Search Tasks</Label>
-          <Input placeholder="Salesman or dealer..." value={tableSearchQuery} onChange={(e) => setTableSearchQuery(e.target.value)} />
+      {/* --- COHESIVE FILTER BAR UI --- */}
+      <div className="flex flex-wrap items-end gap-4 p-4 rounded-lg bg-card border shadow-sm">
+        
+        <div className="flex flex-col space-y-1 w-full sm:w-[250px] min-w-[150px]">
+          <label className="text-xs font-semibold text-muted-foreground uppercase">Search Tasks</label>
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Salesman or dealer..." 
+              value={tableSearchQuery} 
+              onChange={(e) => setTableSearchQuery(e.target.value)} 
+              className="pl-8 h-9 bg-background border-input"
+            />
+          </div>
         </div>
         
-        <div className="flex flex-col space-y-1.5 w-full sm:w-[260px]">
-          <Label className="text-xs font-bold text-muted-foreground uppercase">Filter by Date</Label>
+        <div className="flex flex-col space-y-1 w-full sm:w-[260px]">
+          <label className="text-xs font-semibold text-muted-foreground uppercase">Filter by Date</label>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal h-9 bg-background", !tableDateRange && "text-muted-foreground")}><IconCalendar className="mr-2 h-4 w-4" />{tableDateRange?.from ? (tableDateRange.to ? (<>{format(tableDateRange.from, "LLL dd, y")} - {format(tableDateRange.to, "LLL dd, y")}</>) : (format(tableDateRange.from, "LLL dd, y"))) : (<span>Select Date Range</span>)}</Button>
+              <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal h-9 bg-background", !tableDateRange && "text-muted-foreground")}>
+                <IconCalendar className="mr-2 h-4 w-4" />
+                {tableDateRange?.from ? (tableDateRange.to ? (<>{format(tableDateRange.from, "LLL dd, y")} - {format(tableDateRange.to, "LLL dd, y")}</>) : (format(tableDateRange.from, "LLL dd, y"))) : (<span>Select Date Range</span>)}
+              </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start"><Calendar mode="range" defaultMonth={tableDateRange?.from || new Date()} selected={tableDateRange} onSelect={setTableDateRange} numberOfMonths={2} /></PopoverContent>
           </Popover>
         </div>
         
-        <div className="flex flex-col space-y-1.5 w-[140px]">
-          <Label className="text-xs font-bold text-muted-foreground uppercase">Zone</Label>
+        <div className="flex flex-col space-y-1 w-[140px]">
+          <label className="text-xs font-semibold text-muted-foreground uppercase">Zone</label>
           <Select value={tableSelectedZone} onValueChange={(val) => { setTableSelectedZone(val); setTableSelectedArea("all"); }}>
-            <SelectTrigger className="bg-background"><SelectValue placeholder="All" /></SelectTrigger>
+            <SelectTrigger className="h-9 bg-background border-input"><SelectValue placeholder="All" /></SelectTrigger>
             <SelectContent>
                 <SelectItem value="all">All Zones</SelectItem>
                 {uniqueZones.map(z => (<SelectItem key={z} value={z}>{z}</SelectItem>))}
@@ -250,10 +263,10 @@ export default function TasksListPage() {
           </Select>
         </div>
         
-        <div className="flex flex-col space-y-1.5 w-[140px]">
-          <Label className="text-xs font-bold text-muted-foreground uppercase">Area</Label>
+        <div className="flex flex-col space-y-1 w-[140px]">
+          <label className="text-xs font-semibold text-muted-foreground uppercase">Area</label>
           <Select value={tableSelectedArea} onValueChange={setTableSelectedArea}>
-            <SelectTrigger className="bg-background"><SelectValue placeholder="All" /></SelectTrigger>
+            <SelectTrigger className="h-9 bg-background border-input"><SelectValue placeholder="All" /></SelectTrigger>
             <SelectContent>
                 <SelectItem value="all">All Areas</SelectItem>
                 {uniqueAreas.map(a => (<SelectItem key={a} value={a}>{a}</SelectItem>))}
@@ -261,10 +274,10 @@ export default function TasksListPage() {
           </Select>
         </div>
         
-        <div className="flex flex-col space-y-1.5 w-48">
-          <Label className="text-xs font-bold text-muted-foreground uppercase">Salesman</Label>
+        <div className="flex flex-col space-y-1 w-48">
+          <label className="text-xs font-semibold text-muted-foreground uppercase">Salesman</label>
           <Select value={tableSelectedSalesman} onValueChange={setTableSelectedSalesman}>
-            <SelectTrigger className="bg-background"><SelectValue placeholder="All" /></SelectTrigger>
+            <SelectTrigger className="h-9 bg-background border-input"><SelectValue placeholder="All" /></SelectTrigger>
             <SelectContent>
                 <SelectItem value="all">All Salesmen</SelectItem>
                 {salesmen.map(s => (<SelectItem key={s.id} value={s.id.toString()}>{`${s.firstName || ''} ${s.lastName || ''}`.trim() || s.email}</SelectItem>))}
@@ -272,10 +285,10 @@ export default function TasksListPage() {
           </Select>
         </div>
         
-        <div className="flex flex-col space-y-1.5 w-[140px]">
-          <Label className="text-xs font-bold text-muted-foreground uppercase">Status</Label>
+        <div className="flex flex-col space-y-1 w-[140px]">
+          <label className="text-xs font-semibold text-muted-foreground uppercase">Status</label>
           <Select value={tableSelectedStatus} onValueChange={setTableSelectedStatus}>
-            <SelectTrigger className="bg-background"><SelectValue placeholder="All" /></SelectTrigger>
+            <SelectTrigger className="h-9 bg-background border-input"><SelectValue placeholder="All" /></SelectTrigger>
             <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
                 {uniqueStatuses.map(st => (<SelectItem key={st} value={st}>{st}</SelectItem>))}
@@ -283,7 +296,20 @@ export default function TasksListPage() {
           </Select>
         </div>
         
-        <Button variant="ghost" className="text-muted-foreground" onClick={() => { setTableSearchQuery(""); setTableDateRange(undefined); setTableSelectedZone("all"); setTableSelectedArea("all"); setTableSelectedSalesman("all"); setTableSelectedStatus("all"); }}>Clear</Button>
+        <Button 
+          variant="ghost" 
+          className="mb-0.5 text-muted-foreground hover:text-destructive" 
+          onClick={() => { 
+            setTableSearchQuery(""); 
+            setTableDateRange(undefined); 
+            setTableSelectedZone("all"); 
+            setTableSelectedArea("all"); 
+            setTableSelectedSalesman("all"); 
+            setTableSelectedStatus("all"); 
+          }}
+        >
+          Clear Filters
+        </Button>
       </div>
 
       <div className="bg-card p-1 rounded-lg border mt-6 flex-1 shadow-sm">

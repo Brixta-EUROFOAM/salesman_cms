@@ -10,7 +10,6 @@ import {
     Search,
     Check,
     ClipboardCheck,
-    FilterX,
     Store,
     Route,
     Target,
@@ -395,62 +394,53 @@ export default function VerifyTasksPage() {
             <Card className="shadow-xl bg-card border-border">
                 <CardContent className="p-6">
 
-                    {/* --- FIXED FILTER SECTION WITH BORDERS --- */}
-                    <div className="flex flex-wrap gap-4 mb-8 p-4 rounded-xl border border-border items-end bg-secondary/10">
-                        <div className="space-y-1.5 flex flex-col w-full sm:w-[300px]">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Task Date Range</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        className={cn(
-                                            "w-full justify-start text-left font-bold h-10 border-input bg-background text-foreground",
-                                            !dateRange && "text-muted-foreground font-medium"
-                                        )}
-                                    >
-                                        <IconCalendar className="mr-2 h-4 w-4" />
-                                        {dateRange?.from ? (
-                                            dateRange.to ? (
-                                                <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</>
-                                            ) : (format(dateRange.from, "LLL dd, y"))
-                                        ) : (
-                                            <span>All Dates</span>
-                                        )}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0 border-border bg-card" align="start">
-                                    <Calendar
-                                        mode="range"
-                                        defaultMonth={dateRange?.from || new Date()}
-                                        selected={dateRange}
-                                        onSelect={setDateRange}
-                                        numberOfMonths={2}
-                                        className="bg-card text-foreground border-border"
-                                    />
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-
-                        <div className="space-y-1.5 flex flex-col">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Search Queue</Label>
+                    {/* --- COHESIVE FILTER BAR UI --- */}
+                    <div className="flex flex-wrap items-end gap-4 p-4 rounded-lg bg-card border shadow-sm mb-8">
+                        
+                        <div className="flex flex-col space-y-1 w-full sm:w-[250px] min-w-[150px]">
+                            <label className="text-xs font-semibold text-muted-foreground uppercase">Search Tasks</label>
                             <div className="relative">
-                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                                <Input
-                                    placeholder="Salesman, Area, Dealer..."
-                                    className="w-[250px] pl-9 border-input bg-background focus:border-primary transition-colors font-medium"
-                                    value={searchQuery}
-                                    onChange={e => setSearchQuery(e.target.value)}
+                                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input 
+                                    placeholder="Salesman, Area, Dealer..." 
+                                    value={searchQuery} 
+                                    onChange={(e) => setSearchQuery(e.target.value)} 
+                                    className="pl-8 h-9 bg-background border-input"
                                 />
                             </div>
                         </div>
 
-                        <div className="space-y-1.5 flex flex-col">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Salesman</Label>
+                        <div className="flex flex-col space-y-1 w-full sm:w-[260px]">
+                            <label className="text-xs font-semibold text-muted-foreground uppercase">Filter by Date</label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal h-9 bg-background", !dateRange && "text-muted-foreground")}>
+                                        <IconCalendar className="mr-2 h-4 w-4" />
+                                        {dateRange?.from ? (dateRange.to ? (<>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</>) : (format(dateRange.from, "LLL dd, y"))) : (<span>Select Date Range</span>)}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar mode="range" defaultMonth={dateRange?.from || new Date()} selected={dateRange} onSelect={setDateRange} numberOfMonths={2} />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+
+                        <div className="flex flex-col space-y-1 w-[140px]">
+                            <label className="text-xs font-semibold text-muted-foreground uppercase">Region</label>
+                            <Select value={selectedRegionFilter} onValueChange={setSelectedRegionFilter}>
+                                <SelectTrigger className="h-9 bg-background border-input"><SelectValue placeholder="All" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Regions</SelectItem>
+                                    {Zone.map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex flex-col space-y-1 w-48">
+                            <label className="text-xs font-semibold text-muted-foreground uppercase">Salesman</label>
                             <Select value={selectedSalesmanFilter} onValueChange={setSelectedSalesmanFilter}>
-                                <SelectTrigger className="w-[200px] border-input bg-background font-bold">
-                                    <SelectValue placeholder="All Salesmen" />
-                                </SelectTrigger>
-                                <SelectContent className="border-border bg-card font-medium">
+                                <SelectTrigger className="h-9 bg-background border-input"><SelectValue placeholder="All" /></SelectTrigger>
+                                <SelectContent>
                                     <SelectItem value="all">All Salesmen</SelectItem>
                                     {Array.from(new Set(pendingTasks.map(p => p.salesmanName)))
                                         .filter((name): name is string => Boolean(name))
@@ -462,25 +452,17 @@ export default function VerifyTasksPage() {
                             </Select>
                         </div>
 
-                        <div className="space-y-1.5 flex flex-col">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Region</Label>
-                            <Select value={selectedRegionFilter} onValueChange={setSelectedRegionFilter}>
-                                <SelectTrigger className="w-[200px] border-input bg-background font-bold">
-                                    <SelectValue placeholder="All Regions" />
-                                </SelectTrigger>
-                                <SelectContent className="border-border bg-card font-medium">
-                                    <SelectItem value="all">All Regions</SelectItem>
-                                    {Zone.map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <Button
-                            variant="ghost"
-                            className="text-muted-foreground hover:text-foreground hover:bg-secondary h-10 transition-all font-bold"
-                            onClick={() => { setSearchQuery(""); setSelectedSalesmanFilter("all"); setSelectedRegionFilter("all"); setDateRange(undefined); }}
+                        <Button 
+                            variant="ghost" 
+                            className="mb-0.5 text-muted-foreground hover:text-destructive" 
+                            onClick={() => { 
+                                setSearchQuery(""); 
+                                setSelectedSalesmanFilter("all"); 
+                                setSelectedRegionFilter("all"); 
+                                setDateRange(undefined); 
+                            }}
                         >
-                            <FilterX className="w-4 h-4 mr-2" /> Reset Filters
+                            Clear Filters
                         </Button>
                     </div>
 

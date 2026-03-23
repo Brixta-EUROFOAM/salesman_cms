@@ -95,7 +95,7 @@ async function getCachedTsoPerformanceMetrics(
 
   if (area) filters.push(eq(users.area, area));
   if (region) filters.push(eq(users.region, region));
-  
+
   if (startDate) {
     filters.push(gte(technicalVisitReports.reportDate, startDate));
   }
@@ -115,7 +115,7 @@ async function getCachedTsoPerformanceMetrics(
       region: users.region,
       area: users.area,
       totalVisits: sql<number>`CAST(COUNT(${technicalVisitReports.id}) AS INTEGER)`,
-      
+
       // Categorizing based on specific metrics
       siteVisitsNew: sql<number>`CAST(SUM(CASE WHEN ${technicalVisitReports.customerType} ILIKE '%Site%' AND ${technicalVisitReports.visitCategory} ILIKE '%New%' THEN 1 ELSE 0 END) AS INTEGER)`,
       siteVisitsOld: sql<number>`CAST(SUM(CASE WHEN ${technicalVisitReports.customerType} ILIKE '%Site%' AND ${technicalVisitReports.visitCategory} ILIKE '%Follow Up%' THEN 1 ELSE 0 END) AS INTEGER)`,
@@ -143,7 +143,7 @@ async function getCachedTsoPerformanceMetrics(
     .leftJoin(users, eq(technicalVisitReports.userId, users.id))
     .where(whereClause)
     .groupBy(users.id);
-    
+
   const totalCount = totalCountQuery.length;
 
   const calcPct = (mtd: number, aop: number) => aop > 0 ? Math.round((mtd / aop) * 100) : 0;
@@ -194,8 +194,21 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const area = searchParams.get('area');
     const region = searchParams.get('region');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
+
+    let startDate = searchParams.get('startDate');
+    let endDate = searchParams.get('endDate');
+
+    if (!startDate || !endDate) {
+      const now = new Date();
+      // 1st day of current month
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      // Last day of current month
+      const lastDay = new Date(); 
+      lastDay.setHours(23, 59, 59, 999);
+
+      startDate = startDate || firstDay.toISOString();
+      endDate = endDate || lastDay.toISOString();
+    }
 
     const result = await getCachedTsoPerformanceMetrics(
       currentUser.companyId, page, pageSize, search, area, region, startDate, endDate

@@ -7,7 +7,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { DateRange } from "react-day-picker";
-import { format } from "date-fns";
+import { format, startOfMonth } from "date-fns";
 
 import {
     Loader2, Search, Eye, MapPin, User,
@@ -141,7 +141,7 @@ export default function TsoPerformanceMetricsPage() {
     const [regionFilter, setRegionFilter] = useState('all');
     
     // --- DateRange State ---
-    const [tableDateRange, setTableDateRange] = useState<DateRange | undefined>();
+    const [tableDateRange, setTableDateRange] = useState<DateRange | undefined>({from: startOfMonth(new Date()), to: new Date() });
 
     // Location Data
     const [availableAreas, setAvailableAreas] = useState<string[]>([]);

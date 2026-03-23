@@ -120,7 +120,7 @@ export const tablesMetadata: TableMeta[] = [
     },
     {
         id: 'tsoPerformanceMetrics',
-        title: 'TSO Performance Metrics',
+        title: 'TSO Metrics (Current Month|1st -> today)',
         icon: Activity,
         columns: [
             'userId', 'salesmanName', 'region', 'area',
