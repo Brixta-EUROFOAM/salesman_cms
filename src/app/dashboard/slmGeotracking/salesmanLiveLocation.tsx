@@ -16,12 +16,10 @@ import { useUserLocations } from '@/components/reusable-user-locations';
 import { BASE_URL } from "@/lib/Reusable-constants";
 
 const roles = [
-  "senior-manager",
-  "manager",
-  "assistant-manager",
-  "senior-executive",
-  "executive",
-  "junior-executive",
+  'president', 'senior-general-manager', 'general-manager',
+  'assistant-sales-manager', 'area-sales-manager', 'regional-sales-manager',
+  'senior-manager', 'manager', 'assistant-manager',
+  'senior-executive','executive', 'junior-executive',
 ];
 
 // --- Zod Schema Validation ---
