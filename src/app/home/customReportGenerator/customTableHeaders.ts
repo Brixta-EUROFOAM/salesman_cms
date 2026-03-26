@@ -60,9 +60,8 @@ export const tablesMetadata: TableMeta[] = [
             'location', 'latitude', 'longitude', 'visitType', 'dealerTotalPotential', 'dealerBestPotential',
             'brandSelling', 'contactPerson', 'contactPersonPhoneNo', 'todayOrderMt',
             'todayCollectionRupees', 'overdueAmount', 'feedbacks',
-            'checkInTime', 'customerType', 'partyType', 'nameOfParty', 'contactNoOfParty', 'expectedActivationDate',
-            'timeSpentinLoc', 'checkOutTime', 'inTimeImageUrl', 'outTimeImageUrl',
-            'createdAt', 'updatedAt'
+            'customerType', 'partyType', 'nameOfParty', 'contactNoOfParty', 'expectedActivationDate',
+            'checkInTime', 'checkOutTime', 'timeSpentinLoc',
         ],
     },
     {
@@ -76,8 +75,7 @@ export const tablesMetadata: TableMeta[] = [
             'latitude', 'longitude', 'visitType', 'dealerTotalPotential', 'dealerBestPotential',
             'brandSelling', 'contactPerson', 'contactPersonPhoneNo', 'todayOrderMt',
             'todayCollectionRupees', 'overdueAmount', 'feedbacks',
-            'checkInTime', 'checkOutTime', 'timeSpentinLoc', 
-            'inTimeImageUrl', 'outTimeImageUrl', 'createdAt', 'updatedAt'
+            'checkInTime', 'checkOutTime', 'timeSpentinLoc',
         ],
     },
     {
@@ -140,7 +138,6 @@ export const tablesMetadata: TableMeta[] = [
             'stageOfConstruction', 'constructionStartDate', 'constructionEndDate',
             'convertedSite', 'firstVistDate', 'lastVisitDate', 'needFollowUp',
             'associatedSalesmen', 'associatedDealers', 'associatedMasons',
-            'createdAt', 'updatedAt'
         ],
     },
     {
