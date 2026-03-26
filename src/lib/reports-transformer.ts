@@ -360,7 +360,7 @@ export async function getFlattenedTsoPerformanceMetrics(
       dealerVisits: sql<number>`CAST(SUM(CASE WHEN ${technicalVisitReports.customerType} ILIKE '%Dealer%' THEN 1 ELSE 0 END) AS INTEGER)`,
       siteConversion: sql<number>`CAST(SUM(CASE WHEN ${technicalVisitReports.isConverted} = true THEN 1 ELSE 0 END) AS INTEGER)`,
       volumeConverted: sql<number>`CAST(SUM(CASE WHEN ${technicalVisitReports.isConverted} = true THEN ${technicalVisitReports.conversionQuantityValue} ELSE 0 END) AS NUMERIC)`,
-      influencerVisits: sql<number>`CAST(SUM(CASE WHEN ${technicalVisitReports.customerType} ILIKE '%Influencer%' OR ${technicalVisitReports.customerType} ILIKE '%Architect%' THEN 1 ELSE 0 END) AS INTEGER)`,
+      influencerVisits: sql<number>`CAST(SUM(CASE WHEN ${technicalVisitReports.customerType} ILIKE '%Influencer%' OR ${technicalVisitReports.customerType} ILIKE '%Architect%' OR ${technicalVisitReports.customerType} ILIKE '%Contractor%' THEN 1 ELSE 0 END) AS INTEGER)`,
       enrollmentLifting: sql<number>`CAST(SUM(CASE WHEN ${technicalVisitReports.isSchemeEnrolled} = true THEN 1 ELSE 0 END) AS INTEGER)`,
       siteServiceSlab: sql<number>`CAST(SUM(CASE WHEN ${technicalVisitReports.isTechService} = true AND ${technicalVisitReports.serviceType} ILIKE '%Slab%' THEN 1 ELSE 0 END) AS INTEGER)`,
       technicalMeet: sql<number>`CAST(COALESCE(MAX(${meetingsSq.meetCount}), 0) AS INTEGER)`,
