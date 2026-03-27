@@ -107,7 +107,7 @@ export default function CustomReportGeneratorPage() {
     return generateColumns(colsForCurrent);
   }, [reportColumns, selectedTableId]);
 
-  const fetchPreview = useCallback(async (columns: TableColumn[], currentFilters: FilterRule[]) => {
+  const fetchPreview = useCallback(async (columns: TableColumn[], currentFilters: FilterRule[], signal?: AbortSignal) => {
     if (columns.length === 0) {
       setPreviewData([]);
       return;
@@ -121,7 +121,7 @@ export default function CustomReportGeneratorPage() {
       const payload = {
         columns,
         format: 'json',
-        limit: 100,
+        limit: 500,
         tableId,
         filters: currentFilters,
         startDate: tableDateRange?.from,
@@ -132,6 +132,7 @@ export default function CustomReportGeneratorPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal
       });
 
       if (!res.ok) {
@@ -140,6 +141,8 @@ export default function CustomReportGeneratorPage() {
       }
 
       const json = await res.json();
+      if (signal?.aborted) return;
+
       const rows: Record<string, any>[] = json?.data || [];
       const flatKeys = columns.map(c => `${c.table}.${c.column}`);
 
@@ -156,16 +159,18 @@ export default function CustomReportGeneratorPage() {
       });
 
       setPreviewData(mapped);
-    } catch (err) {
+    } catch (err: any) {
+      if (err.name === 'AbortError' || signal?.aborted) return;
       console.error('Preview Fetch Error:', err);
       toast.error('Preview Failed', { description: 'Could not fetch preview for selected table.' });
       setPreviewData([]);
     } finally {
       setPreviewLoading(false);
     }
-  }, []);
+  }, [tableDateRange]);
 
   useEffect(() => {
+    const controller = new AbortController();
     const handler = setTimeout(() => {
       if (!selectedTableId) {
         setPreviewData([]);
@@ -177,9 +182,12 @@ export default function CustomReportGeneratorPage() {
         return;
       }
       // Pass filters to the fetch function
-      fetchPreview(columnsForCurrent, filters);
+      fetchPreview(columnsForCurrent, filters, controller.signal);
     }, 400); // Increased debounce slightly to 400ms to avoid spamming while typing
-    return () => clearTimeout(handler);
+    return () => {
+      clearTimeout(handler), 
+      controller.abort();
+    };
   }, [selectedTableId, reportColumns, filters, fetchPreview]);
 
   const handleTableChange = (tableId: string) => {

@@ -42,6 +42,29 @@ async function getAuthClaims() {
     return { claims, currentUser };
 }
 
+// Helper to safely parse dates, especially the en-IN DD/MM/YYYY format from the transformer
+function parseDateSafely(val: any): Date {
+    if (!val) return new Date(NaN);
+    
+    // 1. Try standard JS parsing first (handles "27 Mar 2026" from formatDateTimeIST)
+    let d = new Date(val);
+    if (!isNaN(d.getTime())) return d;
+    
+    // 2. Fallback for 'en-IN' DD/MM/YYYY format (handles "27/03/2026" from formatDateIST)
+    if (typeof val === 'string' && val.includes('/')) {
+        const parts = val.split('/');
+        if (parts.length === 3) {
+            // Rearrange DD/MM/YYYY to YYYY-MM-DD for standard ISO parsing
+            const day = parts[0].padStart(2, '0');
+            const month = parts[1].padStart(2, '0');
+            const year = parts[2];
+            return new Date(`${year}-${month}-${day}T00:00:00Z`);
+        }
+    }
+    
+    return new Date(NaN);
+}
+
 // --- Filtering Logic ---
 function applyFilters(rows: any[], filters: FilterRule[]): any[] {
     if (!filters || filters.length === 0) return rows;
@@ -49,8 +72,6 @@ function applyFilters(rows: any[], filters: FilterRule[]): any[] {
     return rows.filter(row => {
         // A row must satisfy ALL applicable filters (AND logic)
         return filters.every(filter => {
-            // 1. If the row does not contain the column being filtered, ignore this filter.
-            // Using 'in' safely checks the prototype chain as well.
             if (!(filter.column in row)) {
                 return true;
             }
@@ -59,24 +80,18 @@ function applyFilters(rows: any[], filters: FilterRule[]): any[] {
             const cellValueStr = String(rawValue ?? '').trim().toLowerCase();
             const filterValueStr = (filter.value ?? '').trim().toLowerCase();
 
-            // 2. If filter value is empty, it passes
             if (!filterValueStr) return true;
 
             // --- 3. Handle Date Ranges (Comma Separated) ---
-            // If the filter value comes from the new Range Picker, it looks like "start,end"
             if (filterValueStr.includes(',')) {
                 const [startStr, endStr] = filterValueStr.split(',');
 
-                // Attempt to parse dates
-                const cellDate = new Date(rawValue); // Use raw value for better date parsing
+                // USE THE NEW PARSER HERE
+                const cellDate = parseDateSafely(rawValue); 
                 const startDate = new Date(startStr);
-                // If end is missing (open-ended range), use max date
                 const endDate = endStr ? new Date(endStr) : new Date(8640000000000000);
 
-                // If valid dates, perform inclusive "Between" check
                 if (!isNaN(cellDate.getTime()) && !isNaN(startDate.getTime())) {
-                    // Set times to ensure inclusive boundaries work intuitively
-                    // (Optional: standardizing to midnight removes time-of-day issues)
                     return cellDate >= startDate && cellDate <= endDate;
                 }
             }
@@ -90,42 +105,36 @@ function applyFilters(rows: any[], filters: FilterRule[]): any[] {
                     return cellValueStr === filterValueStr;
 
                 case 'gt': {
-                    // A. Try Date Comparison first
-                    const cellDate = new Date(rawValue);
+                    // USE THE NEW PARSER HERE
+                    const cellDate = parseDateSafely(rawValue);
                     const filterDate = new Date(filterValueStr);
-                    // Check if both are valid dates AND the string actually looks like a date (has hyphens)
-                    // to prevent "2023" (number) being treated as a date (Jan 1 2023).
                     if (!isNaN(cellDate.getTime()) && !isNaN(filterDate.getTime()) && filterValueStr.includes('-')) {
                         return cellDate > filterDate;
                     }
 
-                    // B. Try Number Comparison
                     const numCell = parseFloat(cellValueStr);
                     const numFilter = parseFloat(filterValueStr);
                     if (!isNaN(numCell) && !isNaN(numFilter)) {
                         return numCell > numFilter;
                     }
 
-                    // C. String Comparison Fallback
                     return cellValueStr > filterValueStr;
                 }
 
                 case 'lt': {
-                    // A. Try Date Comparison
-                    const cellDate = new Date(rawValue);
+                    // USE THE NEW PARSER HERE
+                    const cellDate = parseDateSafely(rawValue);
                     const filterDate = new Date(filterValueStr);
                     if (!isNaN(cellDate.getTime()) && !isNaN(filterDate.getTime()) && filterValueStr.includes('-')) {
                         return cellDate < filterDate;
                     }
 
-                    // B. Try Number Comparison
                     const numCell = parseFloat(cellValueStr);
                     const numFilter = parseFloat(filterValueStr);
                     if (!isNaN(numCell) && !isNaN(numFilter)) {
                         return numCell < numFilter;
                     }
 
-                    // C. String Comparison Fallback
                     return cellValueStr < filterValueStr;
                 }
 
