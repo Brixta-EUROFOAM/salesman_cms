@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
             .select({
                 id: users.id,
                 email: users.email,
-                role: users.role,
                 companyId: users.companyId,
                 firstName: users.firstName,
                 lastName: users.lastName,
@@ -196,7 +195,6 @@ export async function GET(request: NextRequest) {
             .select({
                 id: users.id,
                 email: users.email,
-                role: users.role,
                 companyId: users.companyId,
                 firstName: users.firstName,
                 lastName: users.lastName,
@@ -221,7 +219,6 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({
                 currentUser: {
                     id: currentUser.id,
-                    role: currentUser.role,
                     firstName: currentUser.firstName,
                     lastName: currentUser.lastName,
                     companyName: currentUser.companyName,
@@ -244,7 +241,6 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
             users: companyUsers,
             currentUser: {
-                role: currentUser.role,
                 companyName: currentUser.companyName,
                 region: currentUser.region,
                 area: currentUser.area,

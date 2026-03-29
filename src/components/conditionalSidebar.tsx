@@ -29,7 +29,7 @@ export function ConditionalSidebar({ children }: ConditionalSidebarProps) {
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        const response = await fetch('/api/dashboardPagesAPI/users-and-team/users?current=true'); 
+        const response = await fetch('/api/dashboardPagesAPI/users-and-team/users?current=true', {cache: 'no-store'}); 
         if (response.ok) {
           const data = await response.json();
           setCurrentUser(data.currentUser);

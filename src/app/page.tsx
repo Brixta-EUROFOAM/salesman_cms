@@ -20,9 +20,9 @@ async function AuthBoundary() {
   await connection();
   const session = await verifySession();
 
-  // If the user is signed in, render the signed-in page.
-  if (!session || !session.userId) {
-    redirect('/dashboard'); // Redirect to the security gate
+  // If the user IS signed in, redirect them to their home base
+  if (session && session.userId) {
+    redirect('/home'); 
   }
 
   // If the user is not signed in, render the signed-out page.

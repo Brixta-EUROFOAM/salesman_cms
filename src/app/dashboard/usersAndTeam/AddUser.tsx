@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Zone } from '@/lib/Reusable-constants';
+import { Zone, JOB_ROLES, ORG_ROLES } from '@/lib/Reusable-constants';
 
 interface AddUserProps {
   onSuccess: (msg: string) => void;
@@ -29,18 +29,7 @@ interface AddUserProps {
   onRefresh: () => void;
 }
 
-const ORG_ROLES = [
-  'Admin', 'Manager', 'Assistant-Manager',  
-  'chief-managing-director', 'director', 'president', 
-  'senior-general-manager', 'general-manager', 'deputy-general-manager', 'assistant-general-manager',
-  'senior-regional-manager', 'regional-manager', 'deputy-manager', 'senior-area-manager', 'area-manager', 
-  'senior-executive', 'executive', 'junior-executive'
-];
 
-const JOB_ROLES = [
-  'Admin', 'Sales-Marketing', 'Technical-Sales', 'Reports-MIS', 'IT', 
-  'Accounting', 'Logistics', 'Human Resources', 'Factory-Operations'
-];
 
 export function AddUserDialog({ onSuccess, onError, onRefresh }: AddUserProps) {
   const [open, setOpen] = useState(false);

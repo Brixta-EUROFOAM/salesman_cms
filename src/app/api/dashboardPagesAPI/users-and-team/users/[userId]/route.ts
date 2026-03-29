@@ -45,7 +45,6 @@ export async function PUT(
     const adminUserResult = await db
       .select({
         id: users.id,
-        role: users.role,
         companyId: users.companyId,
         firstName: users.firstName,
         lastName: users.lastName,
@@ -232,7 +231,6 @@ export async function GET(
 
     const adminUserResult = await db
       .select({
-        role: users.role,
         companyId: users.companyId
       })
       .from(users)
@@ -247,7 +245,6 @@ export async function GET(
         email: users.email,
         firstName: users.firstName,
         lastName: users.lastName,
-        role: users.role,
         region: users.region,
         area: users.area,
         phoneNumber: users.phoneNumber,

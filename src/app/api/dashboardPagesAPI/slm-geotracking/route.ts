@@ -51,7 +51,7 @@ type TrackingRow = InferSelectModel<typeof journeyOps> & {
   userFirstName: string | null;
   userLastName: string | null;
   userEmail: string | null;
-  userRole: string | null;
+  userRole?: string | null;
   userArea: string | null;
   userRegion: string | null;
   userSalesmanLoginId: string | null;
@@ -86,7 +86,6 @@ async function getCachedTracking(companyId: number, startDateParam: string | nul
       userFirstName: users.firstName,
       userLastName: users.lastName,
       userEmail: users.email,
-      userRole: users.role,
       userArea: users.area,
       userRegion: users.region,
       userSalesmanLoginId: users.salesmanLoginId,

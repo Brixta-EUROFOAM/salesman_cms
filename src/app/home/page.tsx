@@ -20,7 +20,7 @@ export default function SignedInHomePage() {
 // 2. The Dynamic Content
 async function HomeContent() {
     await connection();
-    
+
     // Read your custom cookie
     const session = await verifySession();
 
@@ -39,12 +39,14 @@ async function HomeContent() {
                             <span className="text-xl font-bold text-foreground">Best Cement CMS</span>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <Link
-                                href="/account/logout"
-                                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
-                            >
-                                Log Out
-                            </Link>
+                            <form action="/api/auth/logout" method="POST">
+                                <button
+                                    type="submit"
+                                    className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
+                                >
+                                    Log Out
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>

@@ -31,12 +31,14 @@ export async function verifySession() {
   if (!token) return null;
 
   const payload = await decrypt(token);
+  //console.log("Decrypted paylod in auth.ts: ", payload);
   if (!payload) return null;
 
   return {
     userId: payload.userId as number,
     companyId: payload.companyId as number,
-    orgRole: payload.orgRole as string,
+    orgRole: (payload.orgRole as string) || '',
+    jobRoles: (payload.jobRoles as string[]) || [],
     permissions: (payload.permissions as string[]) || [], 
   };
 }

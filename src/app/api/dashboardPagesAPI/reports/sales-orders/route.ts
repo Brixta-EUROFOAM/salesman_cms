@@ -41,7 +41,7 @@ const frontendSalesOrderSchema = selectSalesOrderSchema.extend({
 type SalesOrderRow = InferSelectModel<typeof salesOrders> & {
   userFirstName: string | null;
   userLastName: string | null;
-  userRole: string | null;
+  userRole?: string | null;
   userEmail: string | null;
   dealerNameStr: string | null;
   dealerType: string | null;
@@ -89,7 +89,6 @@ async function getCachedSalesOrders(
       ...getTableColumns(salesOrders),
       userFirstName: users.firstName,
       userLastName: users.lastName,
-      userRole: users.role,
       userEmail: users.email,
       dealerNameStr: dealers.name,
       dealerType: dealers.type,

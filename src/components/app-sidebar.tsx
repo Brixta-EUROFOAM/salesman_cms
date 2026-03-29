@@ -126,8 +126,8 @@ const menuItems: MenuItem[] = [
     items: [
       {
         title: "Logout",
-        url: "/account/logout",
-        requiredPerm: ['logout']
+        url: "/api/auth/logout",
+        requiredPerm: 'logout'
       },
     ],
   },
@@ -158,6 +158,7 @@ export function AppSidebar({ userRole, permissions = [] }: Props) {
 
   // Filter based on the 'permissions' array from the DB
   const filterItems = useCallback((items: MenuItem[]): MenuItem[] => {
+    //console.log("My Current Permissions:", permissions);
     
     if (!permissions) return [];
 
@@ -174,7 +175,7 @@ export function AppSidebar({ userRole, permissions = [] }: Props) {
       const requiredArray = Array.isArray(requiredPerm) ? requiredPerm : [requiredPerm];
       
       // Now 'permissions' is correctly scoped from the props
-      const hasAllAccess = requiredArray.every(p => permissions.includes(p));
+      const hasAllAccess = requiredArray.some(p => permissions.includes(p));
 
       if (hasAllAccess) {
         if (item.items) {
@@ -263,7 +264,7 @@ export function AppSidebar({ userRole, permissions = [] }: Props) {
                           return (
                             <SidebarMenuSubItem key={subItem.title}>
                               {subItem.title === "Logout" ? (
-                                <form action="/account/logout" method="post" className="w-full">
+                                <form action="/api/auth/logout" method="post" className="w-full">
                                   <SidebarMenuSubButton asChild>
                                     <button
                                       type="submit"

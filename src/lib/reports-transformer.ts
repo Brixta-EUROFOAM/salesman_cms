@@ -881,7 +881,6 @@ export async function getFlattenedSalesOrders(companyId: number) {
       userFirstName: users.firstName,
       userLastName: users.lastName,
       userEmail: users.email,
-      userRole: users.role,
       dealerNameStr: dealers.name,
       dealerRegion: dealers.region,
       dealerArea: dealers.area,
@@ -910,7 +909,6 @@ export async function getFlattenedSalesOrders(companyId: number) {
       pjpId: o.pjpId ?? null,
       salesmanName: formatUserName({ firstName: o.userFirstName, lastName: o.userLastName, email: o.userEmail }) || o.userEmail || null,
       salesmanEmail: o.userEmail ?? null,
-      salesmanRole: o.userRole ?? null,
       dealerName: o.dealerNameStr ?? null,
       dealerRegion: o.dealerRegion ?? null,
       dealerArea: o.dealerArea ?? null,
@@ -1098,7 +1096,6 @@ export async function getFlattenedTSOMeeetings(companyId: number) {
       userFirstName: users.firstName,
       userLastName: users.lastName,
       userEmail: users.email,
-      userRole: users.role,
     })
     .from(tsoMeetings)
     .leftJoin(users, eq(tsoMeetings.createdByUserId, users.id))
@@ -1123,7 +1120,6 @@ export async function getFlattenedTSOMeeetings(companyId: number) {
     siteId: r.siteId ?? '',
     createdByUserName: formatUserName({ firstName: r.userFirstName, lastName: r.userLastName, email: r.userEmail }) || r.userEmail || '',
     createdByUserEmail: r.userEmail || '',
-    creatorRole: r.userRole ?? '',
     createdAt: formatDateTimeIST(r.createdAt),
     updatedAt: formatDateTimeIST(r.updatedAt),
   }));

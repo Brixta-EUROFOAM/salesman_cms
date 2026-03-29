@@ -42,7 +42,7 @@ type AttendanceRow = InferSelectModel<typeof salesmanAttendance> & {
   userFirstName: string | null;
   userLastName: string | null;
   userEmail: string | null;
-  userRole: string | null;
+  userRole?: string | null;
   userArea: string | null;
   userRegion: string | null;
 };
@@ -99,7 +99,6 @@ async function getCachedAttendance(
       userFirstName: users.firstName,
       userLastName: users.lastName,
       userEmail: users.email,
-      userRole: users.role,
       userArea: users.area,
       userRegion: users.region,
     })

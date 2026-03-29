@@ -29,3 +29,17 @@ export const TSO_AOP_TARGETS = {
   siteServiceSlab: 5,
   technicalMeet: 5,
 };
+
+export const ORG_ROLES = [
+  'Admin', 'Manager', 'Assistant-Manager',  
+  'chief-managing-director', 'director', 'president', 
+  'senior-general-manager', 'general-manager', 'deputy-general-manager', 'assistant-general-manager',
+  'senior-regional-manager', 'regional-manager', 'deputy-manager', 'senior-area-manager', 'area-manager', 
+  'senior-executive', 'executive', 'junior-executive'
+];
+
+export const JOB_ROLES = [
+  'Admin', 'Manager', 'Assistant-Manager',
+  'Sales-Marketing', 'Technical-Sales', 'Reports-MIS', 'IT', 
+  'Accounting', 'Logistics', 'Human Resources', 'Factory-Operations'
+];

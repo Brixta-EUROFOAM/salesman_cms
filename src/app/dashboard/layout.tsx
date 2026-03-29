@@ -8,24 +8,8 @@ import { eq } from 'drizzle-orm';
 import DashboardShell from '@/app/dashboard/dashboardShell';
 import { connection } from 'next/server';
 import { verifySession } from '@/lib/auth';
-
-const allowedAdminRoles = [
-  'president',
-  'senior-general-manager',
-  'general-manager',
-  'regional-sales-manager',
-  'area-sales-manager',
-  'senior-manager',
-  'manager',
-  'assistant-manager',
-  'Admin',
-];
-
-const allowedNonAdminRoles = [
-  'senior-executive',
-  'executive',
-  'junior-executive',
-];
+import { AlertCircle } from 'lucide-react';
+import { JOB_ROLES, ORG_ROLES } from '@/lib/Reusable-constants';
 
 export const metadata: Metadata = {
   icons: {
@@ -33,7 +17,7 @@ export const metadata: Metadata = {
   },
 };
 
-// 1. STATIC SHELL: This guarantees the build won't fail due to runtime data
+// 1. STATIC SHELL
 export default function DashboardLayout({
   children,
 }: {
@@ -46,29 +30,26 @@ export default function DashboardLayout({
   );
 }
 
-// 2. DYNAMIC LAYOUT: Handles custom JWT session and database checks
+// 2. DYNAMIC LAYOUT
 export async function AuthenticatedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   await connection();
-  
-  // 1. Verify custom session
+
   const session = await verifySession();
 
   if (!session || !session.userId) {
-    redirect('/login');
+    redirect('/');
   }
 
-  // 2. Fetch User directly from DB using their local integer ID
   const result = await db
     .select({
       id: users.id,
       email: users.email,
       firstName: users.firstName,
       lastName: users.lastName,
-      role: users.role,
       status: users.status,
       companyId: companies.id,
       companyName: companies.companyName,
@@ -81,46 +62,66 @@ export async function AuthenticatedLayout({
 
   const dbUser = result[0];
 
-  // If the user doesn't exist in the database, log them out.
-  if (!dbUser) {
-    redirect('/api/auth/logout');
-  }
+  if (!dbUser) redirect('/api/auth/logout');
+  if (!dbUser.companyId) redirect('/setup-company');
 
-  // Check for company access
-  if (!dbUser.companyId) {
-    console.error('User has no company access');
-    redirect('/setup-company');
-  }
+  // --- EXTRACT ROLES & PERMISSIONS ---
+  const finalOrgRole = session.orgRole || '';
+  const userJobRoles = session.jobRoles || [];
+  const userPerms = session.permissions || [];
 
-  const finalRole = dbUser.role;
-  const permissions: string[] = []; // We will map RBAC array here later
-  console.log('🎯 Final role being used:', finalRole);
+  console.log('🎯 Org Role:', finalOrgRole);
+  console.log('🎯 Job Roles:', userJobRoles);
+  console.log('🎯 Permissions:', userPerms);
 
-  // SAFETY CHECK: If they have NO valid role at all, block them.
-  if (!allowedAdminRoles.includes(finalRole) && !allowedNonAdminRoles.includes(finalRole)) {
+  // --- NEW STRICT SAFETY CHECK ---
+  const hasValidOrgRole = ORG_ROLES.includes(finalOrgRole);
+  const hasValidJobRole = userJobRoles.some(role => JOB_ROLES.includes(role));
+  const hasPermissions = userPerms.length > 0;
+
+  // The user must have either a valid Org Role OR a valid Job Role, AND they must have actual permissions assigned.
+  if ((!hasValidOrgRole && !hasValidJobRole) || !hasPermissions) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="text-center p-8 bg-white rounded-lg shadow-md">
-          <h1 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h1>
-          <p className="text-gray-600 mb-4">Your role ({finalRole}) does not have dashboard access.</p>
-          <a 
-             href="/api/auth/logout" 
-             className="inline-block px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-800 font-medium transition-colors"
-          >
-            Sign Out
-          </a>
+      <div className="flex h-screen items-center justify-center bg-background p-4">
+        <div className="text-center p-8 bg-card border border-border rounded-xl shadow-2xl max-w-md w-full">
+          <div className="flex justify-center mb-4">
+            <div className="bg-destructive/10 p-3 rounded-full">
+              <AlertCircle className="w-12 h-12 text-destructive" />
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
+          <p className="text-muted-foreground mb-8">
+            Your account does not have the necessary roles or permissions to view the data.
+          </p>
+
+          <form action="/api/auth/logout" method="post" className="w-full">
+            <button
+              type="submit"
+              className="w-full py-3 px-4 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-colors shadow-sm"
+            >
+              Return to Home Page
+            </button>
+          </form>
         </div>
       </div>
     );
   }
 
-  // Format data to match DashboardShellProps exactly
+  // Extract the JobRole & OrgRole of user
+  const primaryJob = userJobRoles.length > 0 ? userJobRoles[0] : '';
+
+  // Formats as "Manager:Technical-Sales" or just the Org role if no Job role exists
+  const primaryRoleDisplay = primaryJob && finalOrgRole ? `${finalOrgRole}:${primaryJob}`
+    : finalOrgRole || primaryJob || 'Team Member';
+
+  // Hydrate with 'READ' so the sidebar always renders tabs for authorized users
+  const hydratedPermissions = Array.from(new Set([...userPerms, 'READ']));
+
   const mappedUser = {
     id: dbUser.id,
     email: dbUser.email,
     firstName: dbUser.firstName,
     lastName: dbUser.lastName,
-    role: dbUser.role,
     company: {
       id: dbUser.companyId!,
       companyName: dbUser.companyName!,
@@ -132,8 +133,8 @@ export async function AuthenticatedLayout({
     <DashboardShell
       user={mappedUser}
       company={mappedUser.company}
-      role={finalRole}
-      permissions={permissions}
+      role={primaryRoleDisplay}
+      permissions={hydratedPermissions}
     >
       {children}
     </DashboardShell>

@@ -46,7 +46,7 @@ type DVRRow = InferSelectModel<typeof dailyVisitReports> & {
   userFirstName: string | null;
   userLastName: string | null;
   userEmail: string | null;
-  userRole: string | null;
+  userRole?: string | null;
   userArea: string | null;
   userRegion: string | null;
   dealerNameStr: string | null;
@@ -118,7 +118,6 @@ async function getCachedDailyVisitReports(
       userFirstName: users.firstName,
       userLastName: users.lastName,
       userEmail: users.email,
-      userRole: users.role,
       userArea: users.area,
       userRegion: users.region,
       dealerNameStr: dealers.name,

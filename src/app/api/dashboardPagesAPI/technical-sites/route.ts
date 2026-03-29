@@ -114,7 +114,6 @@ async function getCachedTechnicalSites(
             id: users.id,
             firstName: users.firstName,
             lastName: users.lastName,
-            role: users.role,
             phoneNumber: users.phoneNumber
         })
             .from(siteAssociatedUsers)

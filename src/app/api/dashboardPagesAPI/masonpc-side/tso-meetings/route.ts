@@ -58,7 +58,6 @@ async function getCachedTsoMeetings(
       creator: {
         firstName: users.firstName,
         lastName: users.lastName,
-        role: users.role,
         area: users.area,
         region: users.region
       }
@@ -84,7 +83,6 @@ async function getCachedTsoMeetings(
     ...meeting,
     totalExpenses: meeting.totalExpenses ? Number(meeting.totalExpenses) : null,
     creatorName: `${creator.firstName ?? ''} ${creator.lastName ?? ''}`.trim() || 'Unknown',
-    role: creator.role ?? '',
     area: creator.area ?? '',
     region: creator.region ?? '',
     createdAt: meeting.createdAt ?? null,

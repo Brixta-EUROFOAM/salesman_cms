@@ -34,7 +34,6 @@ export async function GET() {
         firstName: users.firstName,
         lastName: users.lastName,
         email: users.email,
-        role: users.role,
         companyId: users.companyId,
       })
       .from(users)

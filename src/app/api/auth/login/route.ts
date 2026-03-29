@@ -34,18 +34,40 @@ export async function POST(request: NextRequest) {
     // Since we know the user is valid now, we fetch their assigned Job Roles and the associated CRUD permissions
     const userRolesResult = await db
       .select({
+        orgRole: roles.orgRole,
         jobRole: roles.jobRole,
-        permissions: roles.grantedPerms 
+        rawPermissions: roles.grantedPerms 
       })
       .from(userRoles)
       .leftJoin(roles, eq(userRoles.roleId, roles.id))
       .where(eq(userRoles.userId, user.id));
 
-    // Map names and flatten all permission arrays into one unique list for the JWT
-    const jobRoleNames = userRolesResult.map(r => r.jobRole).filter(Boolean) as string[];
-    const allPerms = Array.from(
-      new Set(userRolesResult.flatMap(r => r.permissions || []))
-    );
+    // Debugging: What exactly did the DB return?
+    console.log("Raw DB Result:", JSON.stringify(userRolesResult, null, 2));
+
+    const orgRolesList = userRolesResult.map(r => r.orgRole).filter(Boolean) as string[];
+    const primaryOrgRole = orgRolesList.length > 0 ? orgRolesList[0] : '';
+    const jobRoleNames = Array.from(new Set(userRolesResult.map(r => r.jobRole).filter(Boolean))) as string[];
+    
+    // Safely extract and flatten the permissions
+    let extractedPerms: string[] = [];
+    userRolesResult.forEach(row => {
+        if (Array.isArray(row.rawPermissions)) {
+            extractedPerms.push(...row.rawPermissions);
+        } else if (typeof row.rawPermissions === 'string') {
+            // In case the DB returns a stringified array like '["READ", "WRITE"]'
+            try {
+                const parsed = JSON.parse(row.rawPermissions);
+                if (Array.isArray(parsed)) extractedPerms.push(...parsed);
+            } catch (e) {
+                console.error("Failed to parse permissions string:", row.rawPermissions);
+            }
+        }
+    });
+
+    // Create unique set
+    const allPerms = Array.from(new Set(extractedPerms));
+    console.log("Final Permissions for JWT:", allPerms);
 
     // 4. Update Status if needed
     if (user.status !== 'active') {
@@ -56,7 +78,7 @@ export async function POST(request: NextRequest) {
     const sessionData = {
       userId: user.id,
       email: user.email,
-      orgRole: user.role,           // e.g., 'executive'
+      orgRole: primaryOrgRole,           // e.g., 'executive'
       jobRoles: jobRoleNames,        // e.g., ['Sales-Marketing', 'Technical-Sales']
       permissions: allPerms,         // e.g., ['READ', 'WRITE', 'UPDATE']
       companyId: user.companyId,

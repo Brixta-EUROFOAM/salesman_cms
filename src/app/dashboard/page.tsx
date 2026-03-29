@@ -2,7 +2,7 @@
 import { Suspense } from 'react';
 import { verifySession } from '@/lib/auth';
 import { db } from '@/lib/drizzle';
-import { users } from '../../../drizzle'; 
+import { users } from '../../../drizzle';
 import { eq } from 'drizzle-orm';
 import DashboardGraphs from './dashboardGraphs';
 import SimpleWelcomePage from '@/app/dashboard/welcome/page';
@@ -29,35 +29,36 @@ export default function DashboardPage() {
 // 2. The Dynamic Content (Runs at request-time)
 async function DashboardContent() {
   await connection();
-  
+
   // Custom JWT Check
   const session = await verifySession();
-  
+
   if (!session || !session.userId) {
-    redirect('/login');
+    redirect('/');
   }
 
   // Look up user by your local integer ID now, instead of WorkOS string ID
   const result = await db
-    .select({ role: users.role, firstName: users.firstName })
+    .select({
+      firstName: users.firstName
+    })
     .from(users)
     .where(eq(users.id, session.userId))
     .limit(1);
 
   const dbUser = result[0];
-  
+
   if (!dbUser) {
     redirect('/login');
   }
 
-  const userRole = dbUser.role || '';
-
   // CONDITIONAL RENDER
+  const userRole = session.orgRole || '';
   if (allowedNonAdminRoles.includes(userRole)) {
     return <SimpleWelcomePage firstName={dbUser.firstName || 'Team Member'} />;
   }
 
   console.log('DashboardPage: Rendering DashboardGraphs...');
-  
+
   return <DashboardGraphs />;
 }

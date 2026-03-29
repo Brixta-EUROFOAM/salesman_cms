@@ -48,7 +48,7 @@ const frontendTechnicalReportSchema = selectTechnicalVisitReportSchema.extend({
 type TechnicalReportRow = InferSelectModel<typeof technicalVisitReports> & {
   userFirstName: string | null;
   userLastName: string | null;
-  userRole: string | null;
+  userRole?: string | null;
   userEmail: string | null;
   userArea: string | null;
   userRegion: string | null;
@@ -96,7 +96,6 @@ async function getCachedTechnicalVisitReports(
       ...getTableColumns(technicalVisitReports),
       userFirstName: users.firstName,
       userLastName: users.lastName,
-      userRole: users.role,
       userEmail: users.email,
       userArea: users.area,
       userRegion: users.region,

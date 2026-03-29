@@ -7,7 +7,6 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar";
-import { WorkOSRole } from '@/lib/permissions';
 
 interface Company {
   id: number;
@@ -20,7 +19,7 @@ interface User {
   email: string;
   firstName: string | null;
   lastName: string | null;
-  role: string;
+  role?: string;
   company: Company;
 }
 
@@ -35,11 +34,11 @@ interface HomeShellProps {
 export default function HomeShell({
   children,
   role,
+  permissions = [],
 }: HomeShellProps) {
   return (
     <SidebarProvider>
-      <AppSidebar userRole={role as WorkOSRole} />
-      {/* exact same inset + padding rhythm as dashboardShell */}
+      <AppSidebar userRole={role || ''} permissions={permissions} />
       <SidebarInset className="pl-4 pt-4 md:pl-6 md:pt-6">
         <SiteHeader />
         <div className="flex flex-1 flex-col">

@@ -77,7 +77,6 @@ async function getCachedMasonPcRecords(
       ...getTableColumns(masonPcSide),
       userFirstName: users.firstName,
       userLastName: users.lastName,
-      userRole: users.role,
       userArea: users.area,
       userRegion: users.region,
       dealerNameStr: dealers.name
@@ -148,7 +147,6 @@ async function getCachedMasonPcRecords(
     return {
       ...record,
       salesmanName: `${record.userFirstName || ''} ${record.userLastName || ''}`.trim() || 'N/A',
-      role: record.userRole ?? 'N/A',
       area: record.userArea ?? 'N/A',
       region: record.userRegion ?? 'N/A',
       dealerName: record.dealerNameStr ?? null,
