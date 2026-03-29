@@ -41,14 +41,14 @@ export async function POST(request: NextRequest) {
         // --- 2. PARSE REQUEST DATA ---
         const body = await request.json();
         const {
-            email, firstName, lastName, phoneNumber, role, jobRole, orgRole, region, area,
+            email, firstName, lastName, phoneNumber, jobRole, orgRole, region, area,
             isDashboardUser, isSalesAppUser, isTechnicalRole, isAdminAppUser
         } = body;
 
         // jobRole is likely an array now based on your multi-role requirement
         const jobRolesArray = Array.isArray(jobRole) ? jobRole : [jobRole].filter(Boolean);
 
-        if (!email || !firstName || (!orgRole && !role)) {
+        if (!email || !firstName || (!orgRole && !jobRole)) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
                 firstName,
                 lastName,
                 phoneNumber,
-                role: orgRole || role,
+                role: orgRole || jobRole,
                 region,
                 area,
                 companyId: adminUser.companyId,
@@ -84,7 +84,16 @@ export async function POST(request: NextRequest) {
 
             // Credential Generation Logic
             if (newUserData.isDashboardUser) {
-                const dashPassword = generateRandomPassword();
+                const emailLocalPart = email.split('@')[0];
+                let dashPassword = "";
+
+                // if email is user.abc@mail.com, pass is user@123
+                if (emailLocalPart.includes('.')) {
+                    dashPassword = emailLocalPart.split('.')[0] + '@123';
+                    // if email is userabc@mail.com, pass is userab@123
+                } else {
+                    dashPassword = emailLocalPart.substring(0, 6) + '@123';
+                }
                 newUserData.dashboardLoginId = email;
                 newUserData.dashboardHashedPassword = dashPassword;
             }
@@ -119,7 +128,12 @@ export async function POST(request: NextRequest) {
                 const dbRoles = await tx
                     .select({ id: rolesTable.id })
                     .from(rolesTable)
-                    .where(inArray(rolesTable.jobRole, jobRolesArray));
+                    .where(
+                        and(
+                            eq(rolesTable.orgRole, newUserData.role),
+                            inArray(rolesTable.jobRole, jobRolesArray)
+                        )
+                    );
 
                 if (dbRoles.length > 0) {
                     const roleLinks = dbRoles.map(r => ({
@@ -131,7 +145,7 @@ export async function POST(request: NextRequest) {
             }
 
             // Prepare Email Payload
-            const safeOrgRole = (orgRole || role || '').replace(/-/g, ' ');
+            const safeOrgRole = (orgRole || '').replace(/-/g, ' ');
             const safeJobRole = jobRolesArray.join(', ').replace(/-/g, ' ');
             const displayRole = safeJobRole ? `${safeOrgRole} (${safeJobRole})` : safeOrgRole;
 
@@ -237,9 +251,34 @@ export async function GET(request: NextRequest) {
             .from(users)
             .where(eq(users.companyId, currentUser.companyId))
             .orderBy(desc(users.createdAt));
+            
+        // 2. Extract IDs to fetch their linked job roles
+        const userIds = companyUsers.map(u => u.id);
+        let allUserRoles: any[] = [];
+        
+        // 3. Query the user_roles linking table and join with roles table
+        if (userIds.length > 0) {
+            allUserRoles = await db
+                .select({
+                    userId: userRoles.userId,
+                    jobRole: rolesTable.jobRole
+                })
+                .from(userRoles)
+                .innerJoin(rolesTable, eq(userRoles.roleId, rolesTable.id))
+                .where(inArray(userRoles.userId, userIds));
+        }
+
+        // 4. Attach the array of job roles to each respective user object
+        const formattedUsers = companyUsers.map(u => ({
+            ...u,
+            jobRoles: allUserRoles
+                .filter(ur => ur.userId === u.id)
+                .map(ur => ur.jobRole)
+                .filter(Boolean)
+        }));
 
         return NextResponse.json({
-            users: companyUsers,
+            users: formattedUsers,
             currentUser: {
                 companyName: currentUser.companyName,
                 region: currentUser.region,

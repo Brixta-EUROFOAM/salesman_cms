@@ -1,12 +1,9 @@
 // src/app/dashboard/masonpcSide/page.tsx
 import { Suspense } from 'react';
-import { db } from '@/lib/drizzle';
-import { users } from '../../../../drizzle';
-import { eq } from 'drizzle-orm';
 import { MasonPcTabs } from './tabsLoader';
-import { hasPermission, WorkOSRole } from '@/lib/permissions';
 import { connection } from 'next/server';
-import { verifySession } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { verifySession, hasPermission } from '@/lib/auth';
 
 export default function MasonPcPage() {
   return (
@@ -24,38 +21,24 @@ export default function MasonPcPage() {
   );
 }
 
-async function getCurrentUserRole(): Promise<WorkOSRole | null> {
-
-  const session = await verifySession();
-  if (!session || !session.userId) {
-    return null;
-  }
-
-  const result = await db
-    .select({ role: users.role })
-    .from(users)
-    .where(eq(users.id, session.userId))
-    .limit(1);
-
-  const user = result[0];
-
-  return (user?.role as WorkOSRole) ?? null;
-
-}
 
 // The page component is now an 'async' function
 export async function MasonPcDynamicContent() {
   await connection();
-  const userRole = await getCurrentUserRole();
-  const roleToCheck = userRole ?? 'junior-executive'; // Default to lowest role
 
-  // Assumes permission strings match this 'masonpcSide.tabName' format
-  const canSeeMasonPc = hasPermission(roleToCheck, 'masonpcSide.masonpc');
-  const canSeeTsoMeetings = hasPermission(roleToCheck, 'masonpcSide.tsoMeetings');
-  const canSeeSchemesOffers = hasPermission(roleToCheck, 'masonpcSide.schemesOffers');
-  const canSeeBagsLift = hasPermission(roleToCheck, 'masonpcSide.bagsLift');
-  const canSeePointsLedger = hasPermission(roleToCheck, 'masonpcSide.pointsLedger');
-  const canSeeRewardsRedemption = hasPermission(roleToCheck, 'masonpcSide.rewardsRedemption');
+  const session = await verifySession();
+  if (!session || !session.userId) {
+    redirect('/');
+  }
+
+  const userPerms = session.permissions || [];
+
+  const canSeeMasonPc = hasPermission(userPerms, ['READ', 'UPDATE', 'ALL_ACCESS']);
+  const canSeeBagsLift = hasPermission(userPerms, ['READ', 'UPDATE', 'ALL_ACCESS']);
+  const canSeeTsoMeetings = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
+  const canSeeSchemesOffers = hasPermission(userPerms, ['READ', 'UPDATE', 'WRITE', 'ALL_ACCESS']);
+  const canSeePointsLedger = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
+  const canSeeRewardsRedemption = hasPermission(userPerms, ['READ', 'UPDATE', 'ALL_ACCESS']);
 
   // Check if the user can see any of the tabs
   const canSeeAnything = canSeeMasonPc || canSeeTsoMeetings || canSeeSchemesOffers || canSeeBagsLift || canSeePointsLedger || canSeeRewardsRedemption;

@@ -64,7 +64,7 @@ export async function PUT(
     }
 
     const {
-      role, orgRole, jobRole, area, region, phoneNumber, clearDevice,
+      orgRole, jobRole, area, region, phoneNumber, clearDevice,
       isDashboardUser, isSalesAppUser, isTechnical, isAdminAppUser,
       ...standardData
     } = parsedBody.data;
@@ -83,7 +83,7 @@ export async function PUT(
 
       const drizzleUpdateData: any = {
         ...standardData,
-        role: orgRole || role || targetUser.role,
+        role: orgRole || jobRole,
         area: area !== undefined ? area : targetUser.area,
         region: region !== undefined ? region : targetUser.region,
         phoneNumber: phoneNumber !== undefined ? phoneNumber : targetUser.phoneNumber,
@@ -102,7 +102,18 @@ export async function PUT(
 
       // --- LOGIC A: Dashboard User Upgrade ---
       if (isDashboardUser === true && !targetUser.dashboardHashedPassword) {
-        const dashPassword = generateRandomPassword();
+        const emailToUse = standardData.email || targetUser.email || "";
+        const emailLocalPart = emailToUse.split('@')[0];
+        let dashPassword = "";
+
+        // if email is user.abc@mail.com, pass is user@123
+        if (emailLocalPart.includes('.')) {
+          dashPassword = emailLocalPart.split('.')[0] + '@123';
+          // if email is userabc@mail.com, pass is userab@123
+        } else {
+          dashPassword = emailLocalPart.substring(0, 6) + '@123';
+        }
+
         drizzleUpdateData.isDashboardUser = true;
         drizzleUpdateData.dashboardLoginId = standardData.email || targetUser.email;
         drizzleUpdateData.dashboardHashedPassword = dashPassword;
@@ -174,13 +185,24 @@ export async function PUT(
       }
 
       // 1. Sync Job Roles in user_roles table
+      // 1. Sync Job Roles in user_roles table STRICTLY matching the active orgRole
       if (jobRole !== undefined) {
         // Delete existing links
         await tx.delete(userRoles).where(eq(userRoles.userId, targetUserLocalId));
 
-        // Insert new links
+        // Insert new links securely with orgRole requirement
         if (jobRolesArray.length > 0) {
-          const dbRoles = await tx.select({ id: rolesTable.id }).from(rolesTable).where(inArray(rolesTable.jobRole, jobRolesArray));
+          const resolvedOrgRole = orgRole || '';
+          
+          const dbRoles = await tx.select({ id: rolesTable.id })
+             .from(rolesTable)
+             .where(
+                and(
+                    eq(rolesTable.orgRole, resolvedOrgRole),
+                    inArray(rolesTable.jobRole, jobRolesArray)
+                )
+             );
+
           if (dbRoles.length > 0) {
             await tx.insert(userRoles).values(dbRoles.map(r => ({ userId: targetUserLocalId, roleId: r.id })));
           }
@@ -191,7 +213,7 @@ export async function PUT(
       const updated = await tx.update(users).set(drizzleUpdateData).where(eq(users.id, targetUserLocalId)).returning();
 
       // Format display role for email
-      const safeOrgRole = (orgRole || role || targetUser.role || '').replace(/-/g, ' ');
+      const safeOrgRole = (orgRole || '').replace(/-/g, ' ');
       const safeJobRole = jobRolesArray.length > 0 ? jobRolesArray.join(', ').replace(/-/g, ' ') : '';
       payload.role = safeJobRole ? `${safeOrgRole} (${safeJobRole})` : safeOrgRole;
 
@@ -256,7 +278,6 @@ export async function GET(
         isAdminAppUser: users.isAdminAppUser,
 
         deviceId: users.deviceId,
-        workosUserId: users.workosUserId,
         status: users.status,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,

@@ -6,7 +6,7 @@ import { RESEND_API_KEY } from "@/lib/Reusable-constants";
 const resend = new Resend(RESEND_API_KEY);
 
 export function generateRandomPassword(length: number = 8): string {
-    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let password = "";
     for (let i = 0; i < length; i++) {
         password += charset.charAt(Math.floor(Math.random() * charset.length));

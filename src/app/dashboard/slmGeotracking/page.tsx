@@ -1,12 +1,9 @@
 // src/app/dashboard/slmGeotracking/page.tsx
 import { Suspense } from 'react';
-import { db } from '@/lib/drizzle';
-import { users } from '../../../../drizzle';
-import { eq } from 'drizzle-orm';
 import { GeotrackingTabs } from './tabsLoader';
-import { hasPermission, WorkOSRole } from '@/lib/permissions';
 import { connection } from 'next/server';
-import { verifySession } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { verifySession, hasPermission } from '@/lib/auth';
 
 export default function GeotrackingPage() {
   return (
@@ -24,33 +21,19 @@ export default function GeotrackingPage() {
   );
 }
 
-async function getCurrentUserRole(): Promise<WorkOSRole | null> {
+export async function GeotrackingDynamicContent() {
+  await connection();
 
   const session = await verifySession();
   if (!session || !session.userId) {
-    return null;
+    redirect('/');
   }
 
-  const result = await db
-    .select({ role: users.role })
-    .from(users)
-    .where(eq(users.id, session.userId))
-    .limit(1);
-
-  const user = result[0];
-
-  return (user?.role as WorkOSRole) ?? null;
-
-}
-
-export async function GeotrackingDynamicContent() {
-  await connection();
-  const userRole = await getCurrentUserRole();
-  const roleToCheck = userRole ?? 'junior-executive'; // Default to lowest role
+  const userPerms = session.permissions || [];
 
   // --- PERMISSION CHECKS ---
-  const canSeeGeotracking = hasPermission(roleToCheck, 'salesmanGeotracking.slmGeotracking');
-  const canSeeLiveLocation = hasPermission(roleToCheck, 'salesmanGeotracking.salesmanLiveLocation');
+  const canSeeGeotracking = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
+  const canSeeLiveLocation = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
 
   // If user has NEITHER, show access denied
   if (!canSeeGeotracking && !canSeeLiveLocation) {

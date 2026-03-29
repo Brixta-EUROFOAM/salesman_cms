@@ -40,8 +40,8 @@ This folder contains all the application's backend API logic, implemented as Nex
 #### Core Security Principle
 
 Every single API route in this folder follows a critical, multi-tenant security pattern:
-1.  **Authentication:** The first step in every handler is to call `getTokenClaims()` from WorkOS AuthKit. This validates the user's session cookie.
-2.  **Authorization (Tenancy):** If the claims are valid, the user's `companyId` is fetched from the database (using the `workosUserId` from the claims).
+1.  **Authentication:** The first step in every handler is to call `verifySession()` from lib/auth.ts. This validates the user's session cookie.
+2.  **Authorization (Tenancy):** If the claims are valid, the user's `companyId` is fetched from the database.
 3.  **Data Isolation:** This `companyId` is **always** used as a `where` filter in every Prisma database query (e.g., `prisma.user.findMany({ where: { companyId: user.companyId } })`). This is the core of the multi-tenancy and makes it *impossible* for one company to access another company's data.
 
 #### `src/app/api/me/route.ts`
@@ -52,7 +52,7 @@ Every single API route in this folder follows a critical, multi-tenant security 
     1.  **`GET` Handler:** Defines a `GET` function.
     2.  **Get Claims:** Calls `getTokenClaims()` to securely read the user's session cookie.
     3.  **Authorize:** If `claims` or `claims.sub` (the WorkOS User ID) are missing, it returns a 401 Unauthorized error.
-    4.  **Database Fetch:** It uses the `claims.sub` to query the database: `prisma.user.findUnique({ where: { workosUserId: claims.sub } })`. This links the WorkOS-authenticated user to your internal database user.
+    4.  **Database Fetch:** It uses the `claims.sub` to query the database. This links the WorkOS-authenticated user to your internal database user.
     5.  **Return Data:** It returns the found `currentUser` object (id, email, role, companyId) as JSON. This is what the main `dashboardShell.tsx` component calls to get all its data.
 
 #### `src/app/api/dashboardPagesAPI/users-and-team/users/`

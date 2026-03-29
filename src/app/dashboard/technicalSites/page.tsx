@@ -1,12 +1,9 @@
 // src/app/dashboard/technicalSites/page.tsx
 import { Suspense } from 'react';
-import { db } from '@/lib/drizzle';
-import { users } from '../../../../drizzle';
-import { eq } from 'drizzle-orm';
 import { TechnicalSitesTabs } from './tabsLoader';
-import { hasPermission, WorkOSRole } from '@/lib/permissions';
 import { connection } from 'next/server';
-import { verifySession } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { verifySession, hasPermission } from '@/lib/auth';
 
 export default function TechnicalSitesPage() {
   return (
@@ -24,31 +21,17 @@ export default function TechnicalSitesPage() {
   );
 }
 
-async function getCurrentUserRole(): Promise<WorkOSRole | null> {
+export async function TechnicalSitesDynamicContent() {
+  await connection();
 
   const session = await verifySession();
   if (!session || !session.userId) {
-    return null;
+    redirect('/');
   }
 
-  const result = await db
-    .select({ role: users.role })
-    .from(users)
-    .where(eq(users.id, sessionStorage.usderId))
-    .limit(1);
+  const userPerms = session.permissions || [];
 
-  const user = result[0];
-
-  return (user?.role as WorkOSRole) ?? null;
-
-}
-
-export async function TechnicalSitesDynamicContent() {
-  await connection();
-  const userRole = await getCurrentUserRole();
-  const roleToCheck = userRole ?? 'junior-executive';
-
-  const canViewSites = hasPermission(roleToCheck, 'technicalSites.listSites');
+  const canViewSites = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
 
   if (!canViewSites) {
     return (

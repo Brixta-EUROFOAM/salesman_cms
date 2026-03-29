@@ -1,12 +1,9 @@
 // src/app/dashboard/reports/page.tsx
 import { Suspense } from 'react';
-import { db } from '@/lib/drizzle';
-import { users } from '../../../../drizzle';
-import { eq } from 'drizzle-orm';
 import { ReportsTabs } from './tabsLoader';
-import { hasPermission, WorkOSRole } from '@/lib/permissions';
 import { connection } from 'next/server';
-import { verifySession } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { verifySession, hasPermission } from '@/lib/auth';
 
 export default function ReportsPage() {
   return (
@@ -24,37 +21,24 @@ export default function ReportsPage() {
   );
 }
 
-async function getCurrentUserRole(): Promise<WorkOSRole | null> {
-
-  const session = await verifySession();
-  if (!session || !session.userId) {
-    return null;
-  }
-
-  const result = await db
-    .select({ role: users.role })
-    .from(users)
-    .where(eq(users.id, session.userId))
-    .limit(1);
-
-  const user = result[0];
-
-  return (user?.role as WorkOSRole) ?? null;
-
-}
-
 // The page component is now an 'async' function
 export async function ReportsDynamicContent() {
   await connection();
-  const userRole = await getCurrentUserRole();
-  const roleToCheck = userRole ?? 'junior-executive'; // Default to lowest role
 
-  const canSeeDVR = hasPermission(roleToCheck, 'reports.dailyVisitReports');
-  const canSeeTVR = hasPermission(roleToCheck, 'reports.technicalVisitReports');
-  const canSeeDvrTvr = hasPermission(roleToCheck, 'reports.dvrAndTvr');
-  const canSeeSalesOrders = hasPermission(roleToCheck, 'reports.salesOrders');
-  const canSeeCompetition = hasPermission(roleToCheck, 'reports.competitionReports');
-  const canSeeTsoPerformanceMetrics = hasPermission(roleToCheck, 'reports.tsoPerformanceMetrics');
+  const session = await verifySession();
+  if (!session || !session.userId) {
+    redirect('/');
+  }
+
+  const userPerms = session.permissions || [];
+
+  const canSeeDVR = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
+  const canSeeTVR = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
+  const canSeeDvrTvr = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
+  const canSeeSalesOrders = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
+  const canSeeCompetition = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
+  const canSeeTsoPerformanceMetrics = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
+
   const canSeeAnyReport = canSeeDVR || canSeeTVR || canSeeSalesOrders || canSeeCompetition || canSeeTsoPerformanceMetrics;
 
   // 3. Handle users who can't see anything

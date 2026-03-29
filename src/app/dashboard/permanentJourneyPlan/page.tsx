@@ -1,12 +1,9 @@
 // src/app/dashboard/permanentJourneyPlan/page.tsx
 import { Suspense } from 'react';
-import { db } from '@/lib/drizzle';
-import { users } from '../../../../drizzle';
-import { eq } from 'drizzle-orm';
 import { PermanentJourneyPlanTabs } from './tabsLoader';
-import { hasPermission, WorkOSRole } from '@/lib/permissions';
 import { connection } from 'next/server';
-import { verifySession } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { verifySession, hasPermission } from '@/lib/auth';
 
 export default function PermanentJourneyPlanPage() {
   return (
@@ -24,33 +21,19 @@ export default function PermanentJourneyPlanPage() {
   );
 }
 
-async function getCurrentUserRole(): Promise<WorkOSRole | null> {
-
-  const session = await verifySession();
-  if (!session || !session.userId) {
-    return null;
-  }
-
-  const result = await db
-    .select({ role: users.role })
-    .from(users)
-    .where(eq(users.id, session.userId))
-    .limit(1);
-
-  const user = result[0];
-
-  return (user?.role as WorkOSRole) ?? null;
-
-}
-
 // The page component is now an 'async' function
 export async function PermanentJourneyPlanDynamicContent() {
   await connection();
-  const userRole = await getCurrentUserRole();
-  const roleToCheck = userRole ?? 'junior-executive'; // Default to lowest role
 
-  const canSeePjpList = hasPermission(roleToCheck, 'permanentJourneyPlan.pjpList');
-  const canSeePjpVerify = hasPermission(roleToCheck, 'permanentJourneyPlan.pjpVerify');
+  const session = await verifySession();
+  if (!session || !session.userId) {
+    redirect('/');
+  }
+
+  const userPerms = session.permissions || [];
+
+  const canSeePjpList = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
+  const canSeePjpVerify = hasPermission(userPerms, ['READ', 'UPDATE', 'ALL_ACCESS']);
 
   // 3. Handle users who can't see anything
   if (!canSeePjpList && !canSeePjpVerify) {

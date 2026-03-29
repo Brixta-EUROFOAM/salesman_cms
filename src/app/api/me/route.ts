@@ -47,7 +47,14 @@ export async function GET() {
     }
 
     // 3. Validate response data
-    const validatedUser = currentUserSchema.parse(currentUser);
+    // Combine the DB user data with the role stored securely in our JWT session
+    const userToValidate = {
+        ...currentUser,
+        role: session.orgRole || '', // Inject the role here so Zod is happy
+    };
+
+    // 3. Validate response data
+    const validatedUser = currentUserSchema.parse(userToValidate);
 
     // 4. Return the validated user object
     return NextResponse.json(validatedUser, { status: 200 });

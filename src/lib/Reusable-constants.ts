@@ -2,6 +2,7 @@
 
 export const BASE_URL = process.env.NEXT_PUBLIC_APP_URL;
 export const RESEND_API_KEY = process.env.RESEND_MAIL_API;
+export const JWT_KEY = process.env.JWT_SECRET;
 
 export const brands = [
   "Star", "Amrit", "Dalmia", 
@@ -30,7 +31,7 @@ export const TSO_AOP_TARGETS = {
   technicalMeet: 5,
 };
 
-export const ORG_ROLES = [
+export const ORG_ROLES = [ //fixed
   'Admin', 'Manager', 'Assistant-Manager',  
   'chief-managing-director', 'director', 'president', 
   'senior-general-manager', 'general-manager', 'deputy-general-manager', 'assistant-general-manager',
@@ -38,7 +39,7 @@ export const ORG_ROLES = [
   'senior-executive', 'executive', 'junior-executive'
 ];
 
-export const JOB_ROLES = [
+export const JOB_ROLES = [ //can be multiple per ORG_ROLE
   'Admin', 'Manager', 'Assistant-Manager',
   'Sales-Marketing', 'Technical-Sales', 'Reports-MIS', 'IT', 
   'Accounting', 'Logistics', 'Human Resources', 'Factory-Operations'

@@ -2,11 +2,12 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Edit, UserCheck, UserX, Loader2, Search, Smartphone } from 'lucide-react';
+import { Edit, UserCheck, UserX, Loader2, Search, Smartphone, Copy, Check, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { MultiSelect } from '@/components/multi-select';
 import {
   Select,
   SelectContent,
@@ -28,12 +29,12 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useUserLocations } from '@/components/reusable-user-locations';
 
 import { DataTableReusable } from '@/components/data-table-reusable';
 import { ColumnDef } from '@tanstack/react-table';
-import { Zone } from '@/lib/Reusable-constants';
+import { Zone, ORG_ROLES, JOB_ROLES } from '@/lib/Reusable-constants';
 import { AddUserDialog } from './AddUser';
 
 interface User {
@@ -43,9 +44,9 @@ interface User {
   lastName: string | null;
   phoneNumber: string | null;
   role: string;
+  jobRoles?: string[];
   region: string | null;
   area: string | null;
-  workosUserId: string | null;
   inviteToken: string | null;
   status: string | null;
   createdAt: string;
@@ -70,24 +71,22 @@ interface AdminUser {
   lastName: string | null;
   role: string;
   company: Company;
-  workosUserId: string | null;
 }
 
 interface Props {
   adminUser: AdminUser;
 }
 
-const ORG_ROLES = [
-  'Admin', 'chief-managing-director', 'director', 'president', 
-  'senior-general-manager', 'general-manager', 'deputy-general-manager', 'assistant-general-manager',
-  'senior-regional-manager', 'regional-manager', 'deputy-manager', 'senior-area-manager', 'area-manager', 
-  'senior-executive', 'executive', 'junior-executive'
-];
-
-const JOB_ROLES = [
-  'Admin', 'System-Admin', 'Sales-Marketing', 'Technical-Sales', 
-  'Reports-MIS', 'IT', 'Accounting', 'Logistics', 'Human Resources', 'Factory-Operations'
-];
+interface GeneratedCredentials {
+  dashboardEmail?: string;
+  dashboardPassword?: string;
+  salesmanId?: string;
+  salesmanPassword?: string;
+  techId?: string;
+  techPassword?: string;
+  adminId?: string;
+  adminPassword?: string;
+}
 
 const renderSelectFilter = (
   label: string,
@@ -133,7 +132,11 @@ export default function UsersManagement({ adminUser }: Props) {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const { locations, loading: locationsLoading, error: locationsError } = useUserLocations();
+  const { loading: locationsLoading, error: locationsError } = useUserLocations();
+
+  // Credentials Success View State for Edit
+  const [updatedCredentials, setUpdatedCredentials] = useState<GeneratedCredentials | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // --- Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -146,7 +149,7 @@ export default function UsersManagement({ adminUser }: Props) {
     lastName: '',
     phoneNumber: '',
     orgRole: 'junior-executive',
-    jobRole: 'Sales-Marketing',
+    jobRole: [] as string[],
     region: '',
     area: '',
     isDashboardUser: false,
@@ -160,7 +163,7 @@ export default function UsersManagement({ adminUser }: Props) {
   }, []);
 
   const apiURI = `/api/dashboardPagesAPI/users-and-team/users`;
-  
+
   const fetchUsers = async () => {
     try {
       const response = await fetch(apiURI);
@@ -208,6 +211,26 @@ export default function UsersManagement({ adminUser }: Props) {
     }
   };
 
+  const handleCopy = () => {
+    if (!updatedCredentials) return;
+    let text = "User Credentials (Update):\n";
+    if (updatedCredentials.dashboardEmail) text += `\n[Web Dashboard]\nID: ${updatedCredentials.dashboardEmail}\nPassword: ${updatedCredentials.dashboardPassword}\n`;
+    if (updatedCredentials.salesmanId) text += `\n[Sales App]\nID: ${updatedCredentials.salesmanId}\nPassword: ${updatedCredentials.salesmanPassword}\n`;
+    if (updatedCredentials.techId) text += `\n[Technical App]\nID: ${updatedCredentials.techId}\nPassword: ${updatedCredentials.techPassword}\n`;
+    if (updatedCredentials.adminId) text += `\n[Admin App]\nID: ${updatedCredentials.adminId}\nPassword: ${updatedCredentials.adminPassword}\n`;
+
+    navigator.clipboard.writeText(text.trim());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDoneUpdate = () => {
+    setEditingUser(null);
+    resetForm();
+    setUpdatedCredentials(null);
+    setSuccess('User updated successfully');
+  };
+
   const handleClearDeviceId = async (userId: number) => {
     if (!confirm("Are you sure you want to clear this user's device lock?")) return;
 
@@ -236,13 +259,14 @@ export default function UsersManagement({ adminUser }: Props) {
 
   const startEdit = (user: User) => {
     setEditingUser(user);
+    setUpdatedCredentials(null);
     setFormData({
       email: user.email,
       firstName: user.firstName || '',
       lastName: user.lastName || '',
       phoneNumber: user.phoneNumber || '',
-      orgRole: user.role || 'junior-executive', // Fallback to raw role if orgRole doesn't exist uniquely yet
-      jobRole: 'Sales-Marketing', // Default fallback
+      orgRole: user.role || 'junior-executive', 
+      jobRole: user.jobRoles || [],
       region: user.region || '',
       area: user.area || '',
       isDashboardUser: user.isDashboardUser || false,
@@ -259,7 +283,7 @@ export default function UsersManagement({ adminUser }: Props) {
       lastName: '',
       phoneNumber: '',
       orgRole: 'junior-executive',
-      jobRole: 'Sales-Marketing',
+      jobRole: [] as string[],
       region: '',
       area: '',
       isDashboardUser: false,
@@ -351,7 +375,7 @@ export default function UsersManagement({ adminUser }: Props) {
       enableSorting: false,
       cell: ({ row }) => {
         const user = row.original;
-        
+
         // Purely local check using our new flags
         const isAppOnly = !user.isDashboardUser && (user.isSalesAppUser || user.isTechnicalRole || user.isAdminAppUser);
         const isActive = isUserEffectivelyActive(user);
@@ -436,8 +460,8 @@ export default function UsersManagement({ adminUser }: Props) {
             </p>
           </div>
           <div className="flex space-x-3">
-            
-            <AddUserDialog 
+
+            <AddUserDialog
               onSuccess={(msg) => { setSuccess(msg); setError(''); }}
               onError={(msg) => { setError(msg); setSuccess(''); }}
               onRefresh={fetchUsers}
@@ -448,188 +472,265 @@ export default function UsersManagement({ adminUser }: Props) {
                 <DialogHeader>
                   <DialogTitle>Edit User</DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleUpdateUser} className="space-y-5 pt-4">
-                  
-                  {/* Identity Section */}
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-semibold border-b pb-1">Identity Details</h4>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-email">Email Address</Label>
-                      <Input
-                        id="edit-email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        required
-                        disabled
-                      />
+                {updatedCredentials ? (
+                  // --- SUCCESS CREDENTIALS VIEW ---
+                  <div className="space-y-4 py-4">
+                    <Alert className="bg-emerald-50 border-emerald-200 text-emerald-900">
+                      <KeyRound className="h-4 w-4 text-emerald-600" />
+                      <AlertTitle className="text-emerald-800 font-bold">Access Granted!</AlertTitle>
+                      <AlertDescription className="text-emerald-700">
+                        New credentials have been provisioned based on the updated role access.
+                      </AlertDescription>
+                    </Alert>
+
+                    <div className="bg-slate-50 border rounded-md p-4 space-y-4 font-mono text-sm max-h-[40vh] overflow-y-auto">
+                      {updatedCredentials.dashboardEmail && (
+                        <div>
+                          <h5 className="font-bold text-slate-700 border-b pb-1 mb-2">Web Dashboard</h5>
+                          <div className="flex justify-between items-center pb-1">
+                            <span className="text-slate-500">Email/ID:</span>
+                            <span className="font-bold text-slate-900">{updatedCredentials.dashboardEmail}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-500">Password:</span>
+                            <span className="font-bold text-blue-600">{updatedCredentials.dashboardPassword}</span>
+                          </div>
+                        </div>
+                      )}
+                      {updatedCredentials.salesmanId && (
+                        <div>
+                          <h5 className="font-bold text-slate-700 border-b pb-1 mb-2">Sales App</h5>
+                          <div className="flex justify-between items-center pb-1">
+                            <span className="text-slate-500">Login ID:</span>
+                            <span className="font-bold text-slate-900">{updatedCredentials.salesmanId}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-500">Password:</span>
+                            <span className="font-bold text-blue-600">{updatedCredentials.salesmanPassword}</span>
+                          </div>
+                        </div>
+                      )}
+                      {updatedCredentials.techId && (
+                        <div>
+                          <h5 className="font-bold text-slate-700 border-b pb-1 mb-2">Technical App</h5>
+                          <div className="flex justify-between items-center pb-1">
+                            <span className="text-slate-500">Login ID:</span>
+                            <span className="font-bold text-slate-900">{updatedCredentials.techId}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-500">Password:</span>
+                            <span className="font-bold text-blue-600">{updatedCredentials.techPassword}</span>
+                          </div>
+                        </div>
+                      )}
+                      {updatedCredentials.adminId && (
+                        <div>
+                          <h5 className="font-bold text-slate-700 border-b pb-1 mb-2">Admin App</h5>
+                          <div className="flex justify-between items-center pb-1">
+                            <span className="text-slate-500">Login ID:</span>
+                            <span className="font-bold text-slate-900">{updatedCredentials.adminId}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-500">Password:</span>
+                            <span className="font-bold text-blue-600">{updatedCredentials.adminPassword}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-firstName">First Name</Label>
-                        <Input
-                          id="edit-firstName"
-                          value={formData.firstName}
-                          onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-lastName">Last Name</Label>
-                        <Input
-                          id="edit-lastName"
-                          value={formData.lastName}
-                          onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-phoneNumber">Phone Number</Label>
-                      <Input
-                        id="edit-phoneNumber"
-                        type="tel"
-                        value={formData.phoneNumber}
-                        onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                      />
+
+                    <div className="flex flex-col space-y-2 pt-2">
+                      <Button type="button" variant="outline" className="w-full gap-2 border-slate-300" onClick={handleCopy}>
+                        {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                        {copied ? 'Copied!' : 'Copy Credentials'}
+                      </Button>
+                      <Button type="button" className="w-full" onClick={handleDoneUpdate}>
+                        Done
+                      </Button>
                     </div>
                   </div>
+                ) : (
+                  // --- EDIT FORM VIEW ---
+                  <form onSubmit={handleUpdateUser} className="space-y-5 pt-4">
 
-                  {/* Role & Territory Section */}
-                  <div className="space-y-4 pt-2">
-                    <h4 className="text-sm font-semibold border-b pb-1">Role & Territory</h4>
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Identity Section */}
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-semibold border-b pb-1">Identity Details</h4>
                       <div className="space-y-2">
-                        <Label>Organization Role</Label>
-                        <Select value={formData.orgRole} onValueChange={(v) => setFormData({ ...formData, orgRole: v })}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {ORG_ROLES.map(role => (
-                              <SelectItem key={role} value={role}>{role.replace(/-/g, ' ')}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Job Role</Label>
-                        <Select value={formData.jobRole} onValueChange={(v) => setFormData({ ...formData, jobRole: v })}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {JOB_ROLES.map(role => (
-                              <SelectItem key={role} value={role}>{role.replace(/-/g, ' ')}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Region (Zone)</Label>
-                        <Select value={formData.region} onValueChange={(v) => setFormData({ ...formData, region: v })}>
-                          <SelectTrigger><SelectValue placeholder="Select Region" /></SelectTrigger>
-                          <SelectContent>
-                            {Zone.map((zone) => (
-                              <SelectItem key={zone} value={zone}>{zone}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Area</Label>
+                        <Label htmlFor="edit-email">Email Address</Label>
                         <Input
-                          value={formData.area}
-                          onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-                          placeholder="e.g. Central"
+                          id="edit-email"
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          required
+                          disabled
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-firstName">First Name</Label>
+                          <Input
+                            id="edit-firstName"
+                            value={formData.firstName}
+                            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-lastName">Last Name</Label>
+                          <Input
+                            id="edit-lastName"
+                            value={formData.lastName}
+                            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-phoneNumber">Phone Number</Label>
+                        <Input
+                          id="edit-phoneNumber"
+                          type="tel"
+                          value={formData.phoneNumber}
+                          onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                         />
                       </div>
                     </div>
-                  </div>
 
-                  {/* Access Control Section */}
-                  <div className="space-y-4 pt-2">
-                    <h4 className="text-sm font-semibold border-b pb-1 text-primary">Platform Access Permissions</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-muted/30 p-4 rounded-md border">
+                    {/* Role & Territory Section */}
+                    <div className="space-y-4 pt-2">
+                      <h4 className="text-sm font-semibold border-b pb-1">Role & Territory</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Organization Role</Label>
+                          <Select value={formData.orgRole} onValueChange={(v) => setFormData({ ...formData, orgRole: v })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {ORG_ROLES.map(role => (
+                                <SelectItem key={role} value={role}>{role.replace(/-/g, ' ')}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2 flex flex-col justify-end">
+                          <Label className="mb-2">Job Roles</Label>
+                          <MultiSelect
+                            options={JOB_ROLES.map(role => ({ label: role.replace(/-/g, ' '), value: role }))}
+                            selectedValues={formData.jobRole}
+                            onValueChange={(vals) => setFormData({ ...formData, jobRole: vals })}
+                            placeholder="Select Job Roles..."
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Region (Zone)</Label>
+                          <Select value={formData.region} onValueChange={(v) => setFormData({ ...formData, region: v })}>
+                            <SelectTrigger><SelectValue placeholder="Select Region" /></SelectTrigger>
+                            <SelectContent>
+                              {Zone.map((zone) => (
+                                <SelectItem key={zone} value={zone}>{zone}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Area</Label>
+                          <Input
+                            value={formData.area}
+                            onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+                            placeholder="e.g. Central"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Access Control Section */}
+                    <div className="space-y-4 pt-2">
+                      <h4 className="text-sm font-semibold border-b pb-1 text-primary">Platform Access Permissions</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-muted/30 p-4 rounded-md border">
                         <div className="flex items-center space-x-3">
                           <Checkbox
-                              id="edit-acc-dashboard"
-                              checked={formData.isDashboardUser}
-                              onCheckedChange={(c) => setFormData({ ...formData, isDashboardUser: !!c })}
+                            id="edit-acc-dashboard"
+                            checked={formData.isDashboardUser}
+                            onCheckedChange={(c) => setFormData({ ...formData, isDashboardUser: !!c })}
                           />
                           <Label htmlFor="edit-acc-dashboard" className="cursor-pointer">Web Dashboard Access</Label>
                         </div>
                         <div className="flex items-center space-x-3">
                           <Checkbox
-                              id="edit-acc-sales"
-                              checked={formData.isSalesAppUser}
-                              onCheckedChange={(c) => setFormData({ ...formData, isSalesAppUser: !!c })}
+                            id="edit-acc-sales"
+                            checked={formData.isSalesAppUser}
+                            onCheckedChange={(c) => setFormData({ ...formData, isSalesAppUser: !!c })}
                           />
                           <Label htmlFor="edit-acc-sales" className="cursor-pointer">Sales App Access</Label>
                         </div>
                         <div className="flex items-center space-x-3">
                           <Checkbox
-                              id="edit-acc-tech"
-                              checked={formData.isTechnical}
-                              onCheckedChange={(c) => setFormData({ ...formData, isTechnical: !!c })}
+                            id="edit-acc-tech"
+                            checked={formData.isTechnical}
+                            onCheckedChange={(c) => setFormData({ ...formData, isTechnical: !!c })}
                           />
                           <Label htmlFor="edit-acc-tech" className="cursor-pointer">Technical App Access</Label>
                         </div>
                         <div className="flex items-center space-x-3">
                           <Checkbox
-                              id="edit-acc-admin"
-                              checked={formData.isAdminAppUser}
-                              onCheckedChange={(c) => setFormData({ ...formData, isAdminAppUser: !!c })}
+                            id="edit-acc-admin"
+                            checked={formData.isAdminAppUser}
+                            onCheckedChange={(c) => setFormData({ ...formData, isAdminAppUser: !!c })}
                           />
                           <Label htmlFor="edit-acc-admin" className="cursor-pointer">Admin App Access</Label>
                         </div>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground italic">
-                      * Checking an access box for the first time will automatically generate credentials and email the user.
-                    </p>
-                  </div>
-
-                  {/* --- Device ID Section --- */}
-                  <div className="space-y-2 pt-2 border-t">
-                    <Label className="text-sm font-semibold">Device ID Management</Label>
-                    <div className="flex items-center justify-between p-3 rounded-md bg-muted/50 border">
-                      <div className="flex flex-col">
-                        <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Registered Device ID</span>
-                        <span className="text-sm font-mono">
-                          {editingUser?.deviceId || "No device registered"}
-                        </span>
                       </div>
-                      {editingUser?.deviceId && (
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleClearDeviceId(editingUser.id)}
-                          disabled={loading}
-                        >
-                          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Clear Device ID"}
-                        </Button>
-                      )}
+                      <p className="text-[10px] text-muted-foreground italic">
+                        * Checking an access box for the first time will automatically generate credentials and email the user.
+                      </p>
                     </div>
-                    <p className="text-[10px] text-muted-foreground italic">
-                      * Clearing the device ID allows the user to bind a new device on their next login attempt.
-                    </p>
-                  </div>
-                  
-                  <div className="flex space-x-2 pt-4">
-                    <Button type="submit" disabled={loading} className="flex-1">
-                      {loading ? 'Updating...' : 'Update User'}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setEditingUser(null);
-                        resetForm();
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
+
+                    {/* --- Device ID Section --- */}
+                    <div className="space-y-2 pt-2 border-t">
+                      <Label className="text-sm font-semibold">Device ID Management</Label>
+                      <div className="flex items-center justify-between p-3 rounded-md bg-muted/50 border">
+                        <div className="flex flex-col">
+                          <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Registered Device ID</span>
+                          <span className="text-sm font-mono">
+                            {editingUser?.deviceId || "No device registered"}
+                          </span>
+                        </div>
+                        {editingUser?.deviceId && (
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleClearDeviceId(editingUser.id)}
+                            disabled={loading}
+                          >
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Clear Device ID"}
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground italic">
+                        * Clearing the device ID allows the user to bind a new device on their next login attempt.
+                      </p>
+                    </div>
+
+                    <div className="flex space-x-2 pt-4">
+                      <Button type="submit" disabled={loading} className="flex-1">
+                        {loading ? 'Updating...' : 'Update User'}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingUser(null);
+                          resetForm();
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                )}
               </DialogContent>
             </Dialog>
           </div>

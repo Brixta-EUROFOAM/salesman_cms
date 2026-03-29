@@ -1,12 +1,9 @@
 // src/app/dashboard/usersAndTeam/page.tsx
 import { Suspense } from 'react';
-import { db } from '@/lib/drizzle';
-import { users, companies } from '../../../../drizzle';
-import { eq } from 'drizzle-orm';
 import { UsersAndTeamTabs } from './tabsLoader';
-import { hasPermission, WorkOSRole } from '@/lib/permissions';
 import { connection } from 'next/server';
-import { verifySession } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { verifySession, hasPermission } from '@/lib/auth';
 
 export default function UsersAndTeamPage() {
   return (
@@ -24,43 +21,31 @@ export default function UsersAndTeamPage() {
   );
 }
 
-async function getAdminUser() {
-  const session = await verifySession();
-  if (!session || !session.userId) {
-    return null;
-  }
-
-  const result = await db
-    .select({
-      user: users,
-      company: companies,
-    })
-    .from(users)
-    .leftJoin(companies, eq(users.companyId, companies.id))
-    .where(eq(users.id, session.userId))
-    .limit(1);
-
-  if (result.length === 0) {
-    return null;
-  }
-
-  // Reconstruct the nested object shape that Prisma normally returns
-  const dbUser = result[0].user;
-  const dbCompany = result[0].company;
-
-  return {
-    ...dbUser,
-    company: dbCompany,
-  };
-}
-
 export async function UsersAndTeamDynamicContent() {
   await connection();
-  const adminUser = await getAdminUser();
-  const roleToCheck = (adminUser?.role as WorkOSRole) ?? 'junior-executive';
 
-  const canSeeUsers = hasPermission(roleToCheck, 'usersAndTeam.userManagement');
-  const canSeeTeamView = hasPermission(roleToCheck, 'usersAndTeam.teamOverview');
+  const session = await verifySession();
+  if (!session || !session.userId) {
+    redirect('/');
+  }
+
+  const userPerms = session.permissions || [];
+  
+  const adminUser = {
+    id: session.userId,
+    company: {
+      id: session.companyId,
+      companyName: session.companyName,
+    },
+    orgRole: session.orgRole,
+    jobRole: session.jobRoles,
+    firstName: session.firstName,
+    lastName: session.lastName,
+    email: session.email
+  };
+
+  const canSeeUsers = hasPermission(userPerms, ['READ', 'UPDATE', 'WRITE', 'ALL_ACCESS']);
+  const canSeeTeamView = hasPermission(userPerms, ['READ', 'UPDATE', 'WRITE', 'ALL_ACCESS']);
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-6">
