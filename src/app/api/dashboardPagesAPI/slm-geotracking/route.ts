@@ -9,7 +9,6 @@ import type { InferSelectModel } from 'drizzle-orm';
 import { z } from 'zod';
 import { selectJourneyOpsSchema } from '../../../../../drizzle/zodSchemas';
 import { verifySession } from '@/lib/auth';
-import { setEngine } from 'crypto';
 
 const frontendTrackingSchema = selectJourneyOpsSchema.extend({
   id: z.string(),

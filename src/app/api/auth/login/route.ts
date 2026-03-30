@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       .select({
         orgRole: roles.orgRole,
         jobRole: roles.jobRole,
-        rawPermissions: roles.grantedPerms 
+        rawPermissions: roles.grantedPerms
       })
       .from(userRoles)
       .leftJoin(roles, eq(userRoles.roleId, roles.id))
@@ -48,26 +48,26 @@ export async function POST(request: NextRequest) {
     const orgRolesList = userRolesResult.map(r => r.orgRole).filter(Boolean) as string[];
     const primaryOrgRole = orgRolesList.length > 0 ? orgRolesList[0] : '';
     const jobRoleNames = Array.from(new Set(userRolesResult.map(r => r.jobRole).filter(Boolean))) as string[];
-    
+
     // Safely extract and flatten the permissions
     let extractedPerms: string[] = [];
     userRolesResult.forEach(row => {
-        if (Array.isArray(row.rawPermissions)) {
-            extractedPerms.push(...row.rawPermissions);
-        } else if (typeof row.rawPermissions === 'string') {
-            // In case the DB returns a stringified array like '["READ", "WRITE"]'
-            try {
-                const parsed = JSON.parse(row.rawPermissions);
-                if (Array.isArray(parsed)) extractedPerms.push(...parsed);
-            } catch (e) {
-                console.error("Failed to parse permissions string:", row.rawPermissions);
-            }
+      if (Array.isArray(row.rawPermissions)) {
+        extractedPerms.push(...row.rawPermissions);
+      } else if (typeof row.rawPermissions === 'string') {
+        // In case the DB returns a stringified array like '["READ", "WRITE"]'
+        try {
+          const parsed = JSON.parse(row.rawPermissions);
+          if (Array.isArray(parsed)) extractedPerms.push(...parsed);
+        } catch (e) {
+          console.error("Failed to parse permissions string:", row.rawPermissions);
         }
+      }
     });
 
     // Create unique set
     const allPerms = Array.from(new Set(extractedPerms));
-    console.log("Final Permissions for JWT:", allPerms);
+    //console.log("Final Permissions for JWT:", allPerms);
 
     // 4. Update Status if needed
     if (user.status !== 'active') {
@@ -96,7 +96,13 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
 
-    return NextResponse.json({ message: 'Login successful', redirect: '/home' }, { status: 200 });
+    return NextResponse.json({
+      message: 'Login successful',
+      user: {
+        isDashboardUser: user.isDashboardUser,
+        isAdminAppUser: user.isAdminAppUser
+      }
+    }, { status: 200 });
 
   } catch (error) {
     console.error('Login error:', error);

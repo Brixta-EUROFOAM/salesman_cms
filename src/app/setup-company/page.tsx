@@ -6,19 +6,11 @@ import SetupCompanyForm from './setupCompanyForm';
 export default async function SetupCompanyPage() {
   const session = await verifySession();
 
-  // If there's no session at all, they haven't even done basic signup
-  if (!session) {
-    redirect('/login'); 
-  }
-
-  // If they are already linked to a company, they shouldn't be here
-  if (session.companyId) {
+  // If they are already linked to a company, they shouldn't be here. Send them to dashboard.
+  if (session && session.companyId) {
     redirect('/home');
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <SetupCompanyForm />
-    </div>
-  );
+  // Anyone else (signed out, brand new users) can see this page
+  return <SetupCompanyForm />;
 }

@@ -50,6 +50,7 @@ export function ConditionalSidebar({ children }: ConditionalSidebarProps) {
                     || pathname === '/' 
                     //|| pathname === '/home/cemtemChat'
                     || pathname.startsWith('/auth')
+                    || pathname.startsWith('/setup-company')
                     || pathname.startsWith('/dashboard')
                     || pathname.startsWith('/home')
                     || pathname.startsWith('/login'); 

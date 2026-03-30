@@ -1,129 +1,172 @@
+// src/app/home/signedOutHomePage.tsx
 'use client';
 
-//import Link from 'next/link';
-import { Bot, BarChart3, Users, Zap, LogIn } from 'lucide-react';
-import { Button } from '@/components/ui/button'; // Assuming this is still used for the Button component
+import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Loader2, ArrowRight, ShieldCheck, MapPin, BarChart3 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function SignedOutHomePage() {
-  const handleLogin = () => {
-    // This is the correct way to handle a client-side login redirect
-    window.location.href = `/login`;
-    //window.location.href = `/login/magicAuth`;
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Invalid credentials');
+      }
+
+      toast.success('Welcome back!');
+      
+      if (data.user.isAdminAppUser || data.user.isDashboardUser) {
+        router.push('/dashboard'); // Adjust to your main signed-in route
+      } else {
+        router.push('/home');
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Navigation Header */}
-      <nav className="border-b border-border bg-card">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center space-x-3">
-              <Image
-                src="/bestcement.webp"
-                alt='Best Cement Logo'
-                width={32}  // 32px
-                height={32} // 32px
-                className="rounded-lg object-cover" // Keeps it rounded
-              />
-              <span className="text-xl font-bold text-foreground">Best Cement CMS</span>
-            </div>
-            {/* The login button from the old design */}
-            <Button
-              onClick={handleLogin}
-              className="bg-foreground text-background px-4 py-2 rounded-md hover:bg-(--primary-hover) transition-opacity"
-            >
-              Sign/Log In
-            </Button>
-          </div>
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-background">
+      
+      {/* LEFT PANE: Info (Takes up ~75% space) */}
+      <div className="flex-1 bg-slate-900 bg-linear-to-br from-slate-900 to-slate-950 text-white relative flex flex-col justify-between p-8 lg:p-16 overflow-hidden">
+        {/* Subtle Background Pattern */}
+        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay pointer-events-none"></div>
+        
+        {/* Header */}
+        <div className="relative z-10 flex items-center space-x-3">
+          <Image
+            src="/bestcement.webp"
+            alt="Best Cement Logo"
+            width={48}
+            height={48}
+            className="rounded-lg shadow-lg"
+          />
+          <span className="text-2xl font-bold tracking-tight">Best Cement CMS</span>
         </div>
-      </nav>
 
-      {/* Hero Section */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="py-20 text-center">
-          <div className="space-y-8">
-            {/* Main Heading */}
-            <div className="space-y-4">
-              <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-primary">
-                Company
-                <br />
-                Management System
-              </h1>
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                Your centralized management system. To get started, please log in or sign up.
-              </p>
+        {/* Catchy Hero Content */}
+        <div className="relative z-10 max-w-3xl my-12 lg:my-0">
+          <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6">
+            Command Your <br className="hidden md:block" /> Field Operations.
+          </h1>
+          <p className="text-zinc-400 text-lg md:text-xl leading-relaxed mb-10 max-w-2xl">
+            Streamline daily journeys, track live field attendance, and analyze market trends across your entire network from a single, unified command center.
+          </p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="flex items-start space-x-3">
+              <div className="p-2 bg-primary/20 rounded-lg"><MapPin className="w-5 h-5 text-primary" /></div>
+              <div>
+                <h3 className="font-semibold text-zinc-200">Live Territory Tracking</h3>
+                <p className="text-sm text-zinc-500 mt-1">Monitor real-time movements and verify PJP executions automatically.</p>
+              </div>
             </div>
-
-            {/* CTA Button */}
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button
-                  onClick={handleLogin}
-                  className="inline-flex items-center px-8 py-4 bg-foreground text-background rounded-md font-medium text-lg hover:bg-(--primary-hover) transition-opacity"
-                >
-                  <LogIn className="w-5 h-5 mr-2" />
-                  Get Started
-                </Button>
+            <div className="flex items-start space-x-3">
+              <div className="p-2 bg-emerald-500/20 rounded-lg"><BarChart3 className="w-5 h-5 text-emerald-400" /></div>
+              <div>
+                <h3 className="font-semibold text-zinc-200">Market Analytics</h3>
+                <p className="text-sm text-zinc-500 mt-1">Generate custom reports on sales, competition, and dealer performance.</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Features Section */}
-        <div className="py-20">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-foreground mb-4">Intelligent Business Management</h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Harness the power of AI-driven insights and automation for your company operations
+        {/* Footer */}
+        <div className="relative z-10 text-sm text-zinc-600 font-medium">
+          <span suppressHydrationWarning>© {new Date().getFullYear()}</span> Made By Brixta. All rights reserved.
+        </div>
+      </div>
+
+      {/* RIGHT PANE: Login Form (Fixed Width ~25%) */}
+      <div className="w-full lg:w-[400px] xl:w-[480px] shrink-0 bg-card flex flex-col justify-center p-8 sm:p-12 border-l border-border relative z-20 shadow-2xl lg:shadow-none">
+        <div className="w-full space-y-8">
+          
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">Log In</h2>
+            <p className="text-muted-foreground text-sm">
+              Enter your credentials to access the dashboard.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Feature 1 */}
-            <div className="bg-card border border-border rounded-lg p-6 hover:border-primary/50 transition-colors">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                <BarChart3 className="w-6 h-6 text-primary" />
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email or Login ID</Label>
+              <Input
+                id="email"
+                type="text"
+                placeholder="user@email.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+                className="h-11 bg-background"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                {/* <Link href="#" className="text-xs text-primary hover:underline">
+                  Forgot password?
+                </Link> */}
               </div>
-              <h3 className="text-xl font-semibold text-card-foreground mb-2">Smart Analytics</h3>
-              <p className="text-muted-foreground">
-                CemTemBot AI Chat-powered insights to optimize your business performance and decision-making
-              </p>
+              <Input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
+                className="h-11 bg-background"
+              />
             </div>
 
-            {/* Feature 2 */}
-            <div className="bg-card border border-border rounded-lg p-6 hover:border-primary/50 transition-colors">
-              <div className="w-12 h-12 bg-chart-2/10 rounded-lg flex items-center justify-center mb-4">
-                <Users className="w-6 h-6 text-chart-2" />
-              </div>
-              <h3 className="text-xl font-semibold text-card-foreground mb-2">Team Management</h3>
-              <p className="text-muted-foreground">
-                Comprehensive tools for organizing teams, roles, and permissions across your organization
-              </p>
-            </div>
+            <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={loading}>
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Login'}
+            </Button>
+          </form>
 
-            {/* Feature 3 */}
-            <div className="bg-card border border-border rounded-lg p-6 hover:border-primary/50 transition-colors">
-              <div className="w-12 h-12 bg-chart-3/10 rounded-lg flex items-center justify-center mb-4">
-                <Zap className="w-6 h-6 text-chart-3" />
-              </div>
-              <h3 className="text-xl font-semibold text-card-foreground mb-2">AI Automation</h3>
-              <p className="text-muted-foreground">
-                Automate routine tasks and workflows with CemTemBot's intelligent processing capabilities
-              </p>
-            </div>
-          </div>
+          {/* New Company Registration Link --- 
+              Multi tenancy does not work in tables with no company id fkey : Fix later
+          */}
+          {/* <div className="pt-6 border-t border-border mt-8 text-center space-y-4">
+            <p className="text-sm text-muted-foreground">
+              New here? SETUP a Company Profile NOW!
+            </p>
+            <Link href="/setup-company" className="block">
+              <Button variant="outline" className="w-full h-11 group border-dashed hover:border-primary/50 hover:bg-primary/5 transition-all">
+                Register New Company 
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform text-primary" />
+              </Button>
+            </Link>
+          </div> */}
         </div>
-      </main>
+      </div>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-12">
-        <div className="text-center">
-          <p className="text-muted-foreground">
-            © 2025 Made By Brixta
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }
