@@ -1,20 +1,16 @@
 // src/app/dashboard/permanentJourneyPlan/pjpVerify.tsx
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { set, z } from 'zod';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { z } from 'zod';
 import { toast } from 'sonner';
 import { ColumnDef } from '@tanstack/react-table';
 import {
   Loader2,
   Search,
   Check,
-  X,
-  Eye,
   ChevronsUpDown,
-  MapPin,
   ClipboardCheck,
-  Calendar as CalendarIcon,
   FilterX,
   Store,
   HardHat
@@ -55,7 +51,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 

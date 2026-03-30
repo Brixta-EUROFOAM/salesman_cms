@@ -1,7 +1,7 @@
 // app/dashboard/scoresAndRatings/salesmanRatings.tsx
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { ColumnDef, createColumnHelper } from '@tanstack/react-table';
@@ -24,10 +24,7 @@ const extendedSalesmanRatingSchema = selectRatingSchema.partial().extend({
   salesPersonName: z.string().optional().catch("Unknown"),
   area: z.string().nullable().optional().catch("N/A"),
   region: z.string().nullable().optional().catch("N/A"),
-  // Safely coerce rating from string to number
   rating: z.coerce.number().optional().catch(0),
-  // Joined relational field for filtering
-  salesmanRole: z.string().nullable().optional().catch("N/A"),
 });
 
 // Enforce that `id` is strictly a string for DataTableReusable
@@ -35,17 +32,12 @@ type SalesmanRating = Omit<z.infer<typeof extendedSalesmanRatingSchema>, 'id'> &
   id: string 
 };
 
-
 // --- CONSTANTS AND TYPES ---
 const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-locations`;
-const ROLES_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-roles`;
 
 interface LocationsResponse {
   areas: string[];
   regions: string[];
-}
-interface RolesResponse {
-  roles: string[];
 }
 
 // Column helper to define the columns for the data table
@@ -123,20 +115,16 @@ export default function SalesmanRatings() {
 
   // --- Filter States ---
   const [searchQuery, setSearchQuery] = useState(''); // Salesman Name search
-  const [roleFilter, setRoleFilter] = useState('all');
   const [areaFilter, setAreaFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('all');
 
   // --- Filter Options States ---
-  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [availableAreas, setAvailableAreas] = useState<string[]>([]);
   const [availableRegions, setAvailableRegions] = useState<string[]>([]);
 
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
-  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
 
   const [locationError, setLocationError] = useState<string | null>(null);
-  const [roleError, setRoleError] = useState<string | null>(null);
 
 
   // --- Data Fetching Functions ---
@@ -194,29 +182,11 @@ export default function SalesmanRatings() {
     }
   }, []);
 
-  const fetchRoles = useCallback(async () => {
-    setIsLoadingRoles(true);
-    setRoleError(null);
-    try {
-      const response = await fetch(ROLES_API_ENDPOINT);
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-      const data: RolesResponse = await response.json();
-      setAvailableRoles(data.roles && Array.isArray(data.roles) ? data.roles.filter(Boolean) : []);
-    } catch (err: any) {
-      console.error('Failed to fetch filter roles:', err);
-      setRoleError('Failed to load Role filters.');
-    } finally {
-      setIsLoadingRoles(false);
-    }
-  }, []);
-
-
   // Initial data loads
   useEffect(() => {
     fetchData();
     fetchLocations();
-    fetchRoles();
-  }, [fetchData, fetchLocations, fetchRoles]);
+  }, [fetchData, fetchLocations]);
 
 
   // --- Filtering Logic
@@ -228,10 +198,6 @@ export default function SalesmanRatings() {
       const searchMatch = !lowerCaseSearch ||
         (rating.salesPersonName || '').toLowerCase().includes(lowerCaseSearch);
 
-      // 2. Role Filter
-      const roleMatch = roleFilter === 'all' ||
-        (rating.salesmanRole || '').toLowerCase() === roleFilter.toLowerCase();
-
       // 3. Area Filter 
       const areaMatch = areaFilter === 'all' ||
         (rating.area || '').toLowerCase() === areaFilter.toLowerCase();
@@ -241,9 +207,9 @@ export default function SalesmanRatings() {
         (rating.region || '').toLowerCase() === regionFilter.toLowerCase();
 
       // Combine all conditions
-      return searchMatch && roleMatch && areaMatch && regionMatch;
+      return searchMatch && areaMatch && regionMatch;
     });
-  }, [data, searchQuery, roleFilter, areaFilter, regionFilter]);
+  }, [data, searchQuery, areaFilter, regionFilter]);
 
   return (
     <>
@@ -270,13 +236,6 @@ export default function SalesmanRatings() {
             </div>
 
             {/* 2. Role Filter */}
-            {renderSelectFilter(
-              'Role',
-              roleFilter,
-              (v) => { setRoleFilter(v); },
-              availableRoles,
-              isLoadingRoles
-            )}
 
             {/* 3. Area Filter */}
             {renderSelectFilter(
@@ -297,7 +256,6 @@ export default function SalesmanRatings() {
             )}
 
             {locationError && <p className="text-xs text-red-500 w-full">Location Filter Error: {locationError}</p>}
-            {roleError && <p className="text-xs text-red-500 w-full">Role Filter Error: {roleError}</p>}
           </div>
           {/* --- End Filter Components --- */}
         </CardContent>

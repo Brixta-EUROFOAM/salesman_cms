@@ -6,17 +6,14 @@ import { useRouter } from 'next/navigation';
 import { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'sonner';
 import { z } from 'zod';
-
 import {
   Loader2,
   Search,
   Eye,
-  ExternalLink,
   MapPin,
   User,
   Calendar,
   Camera,
-  Image as ImageIcon,
   LogIn,
   LogOut,
 } from 'lucide-react';
@@ -48,7 +45,6 @@ const extendedDailyVisitReportSchema = selectDailyVisitReportSchema.extend({
   updatedAt: z.string().nullable().optional(),
   expectedActivationDate: z.string().nullable().optional(),
   salesmanName: z.string().optional().catch("Unknown"),
-  role: z.string().optional().catch("N/A"),
   area: z.string().optional().catch("N/A"),
   region: z.string().optional().catch("N/A"),
   dealerName: z.string().nullable().optional(),
@@ -234,25 +230,13 @@ export default function DailyVisitReportsPage() {
     } finally { setIsLoadingLocations(false); }
   }, []);
 
-  const fetchRoles = useCallback(async () => {
-    setIsLoadingRoles(true);
-    try {
-      const response = await fetch(ROLES_API_ENDPOINT);
-      if (response.ok) {
-        const data: RolesResponse = await response.json();
-        setAvailableRoles(data.roles || []);
-      }
-    } finally { setIsLoadingRoles(false); }
-  }, []);
-
   useEffect(() => {
     fetchReports();
   }, [fetchReports]);
 
   useEffect(() => {
     fetchLocations();
-    fetchRoles();
-  }, [fetchLocations, fetchRoles]);
+  }, [fetchLocations]);
 
   const isDealerVisit = (r: DailyVisitReport) => !!r.dealerType;
 
@@ -272,7 +256,6 @@ export default function DailyVisitReportsPage() {
       cell: ({ row }) => (
         <div className="flex flex-col">
           <span className="font-medium text-sm">{row.original.salesmanName}</span>
-          <span className="text-xs text-muted-foreground">{row.original.role}</span>
         </div>
       ),
     },
@@ -426,7 +409,6 @@ export default function DailyVisitReportsPage() {
             </div>
           </div>
           {renderSelectFilter('Customer Type', customerTypeFilter, setCustomerTypeFilter, CUSTOMER_TYPE_OPTIONS)}
-          {renderSelectFilter('Role', roleFilter, setRoleFilter, availableRoles, isLoadingRoles)}
           {renderSelectFilter('Area', areaFilter, setAreaFilter, availableAreas, isLoadingLocations)}
           {renderSelectFilter('Region', regionFilter, setRegionFilter, availableRegions, isLoadingLocations)}
           {renderSelectFilter('PJP Status', pjpStatusFilter, setPjpStatusFilter, PJP_STATUS_OPTIONS)}
@@ -437,7 +419,6 @@ export default function DailyVisitReportsPage() {
             onClick={() => {
               setSearchQuery('');
               setCustomerTypeFilter('all');
-              setRoleFilter('all');
               setAreaFilter('all');
               setRegionFilter('all');
               setPjpStatusFilter('all'); 
@@ -485,7 +466,7 @@ export default function DailyVisitReportsPage() {
               </DialogTitle>
               <DialogDescription className="mt-1 flex items-center gap-4 text-xs sm:text-sm">
                 <span className="flex items-center gap-1">
-                  <User className="w-3 h-3" /> {selectedReport.salesmanName} ({selectedReport.role})
+                  <User className="w-3 h-3" /> {selectedReport.salesmanName}
                 </span>
                 <span className="flex items-center gap-1">
                   <Calendar className="w-3 h-3" /> {selectedReport.reportDate}

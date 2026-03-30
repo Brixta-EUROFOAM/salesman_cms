@@ -1,7 +1,7 @@
 // src/app/dashboard/slmLeaves/page.tsx
 'use client';
 
-import * as React from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'sonner';
@@ -30,8 +30,6 @@ import { selectSalesmanLeaveApplicationSchema } from '../../../../drizzle/zodSch
 
 const extendedSalesmanLeaveApplicationSchema = selectSalesmanLeaveApplicationSchema.extend({
   salesmanName: z.string().optional().catch("Unknown"),
-  salesmanRole: z.string().optional().catch("N/A"),
-  role: z.string().optional().catch("N/A"), 
   area: z.string().nullable().optional().catch("N/A"),
   region: z.string().nullable().optional().catch("N/A"),
   startDate: z.string().optional(),
@@ -44,14 +42,10 @@ type SalesmanLeaveApplication = Omit<z.infer<typeof extendedSalesmanLeaveApplica
 };
 
 const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-locations`;
-const ROLES_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-roles`;
 
 interface LocationsResponse {
   areas: string[];
   regions: string[];
-}
-interface RolesResponse {
-  roles: string[];
 }
 
 export default function SlmLeavesPage() {
@@ -72,14 +66,11 @@ export default function SlmLeavesPage() {
   const [areaFilter, setAreaFilter] = React.useState('all');
   const [regionFilter, setRegionFilter] = React.useState('all');
 
-  const [availableRoles, setAvailableRoles] = React.useState<string[]>([]);
   const [availableAreas, setAvailableAreas] = React.useState<string[]>([]);
   const [availableRegions, setAvailableRegions] = React.useState<string[]>([]);
 
   const [isLoadingLocations, setIsLoadingLocations] = React.useState(true);
-  const [isLoadingRoles, setIsLoadingRoles] = React.useState(true);
   const [locationError, setLocationError] = React.useState<string | null>(null);
-  const [roleError, setRoleError] = React.useState<string | null>(null);
 
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [currentAction, setCurrentAction] = React.useState<{
@@ -119,22 +110,6 @@ export default function SlmLeavesPage() {
       setLocationError('Failed to load Area/Region filters.');
     } finally {
       setIsLoadingLocations(false);
-    }
-  }, []);
-
-  const fetchRoles = React.useCallback(async () => {
-    setIsLoadingRoles(true);
-    setRoleError(null);
-    try {
-      const response = await fetch(ROLES_API_ENDPOINT);
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-      const data: RolesResponse = await response.json();
-      setAvailableRoles(data.roles && Array.isArray(data.roles) ? data.roles.filter(Boolean) : []);
-    } catch (err: any) {
-      console.error('Failed to fetch filter roles:', err);
-      setRoleError('Failed to load Role filters.');
-    } finally {
-      setIsLoadingRoles(false);
     }
   }, []);
 
@@ -206,8 +181,7 @@ export default function SlmLeavesPage() {
 
   React.useEffect(() => {
     fetchLocations();
-    fetchRoles();
-  }, [fetchLocations, fetchRoles]);
+  }, [fetchLocations]);
 
   const handleLeaveAction = async (id: UniqueIdentifier, newStatus: "Approved" | "Rejected", remarks: string | null = null) => {
     try {
@@ -422,19 +396,6 @@ export default function SlmLeavesPage() {
             </div>
 
             <div className="flex flex-col space-y-1">
-              <label className="text-sm font-medium text-muted-foreground">Role</label>
-              <Select value={roleFilter} onValueChange={setRoleFilter} disabled={isLoadingRoles}>
-                <SelectTrigger className="h-9 bg-background">
-                  {isLoadingRoles ? <span className="text-muted-foreground">Loading…</span> : <SelectValue placeholder="All Roles" />}
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  {availableRoles.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col space-y-1">
               <label className="text-sm font-medium text-muted-foreground">Area</label>
               <Select value={areaFilter} onValueChange={setAreaFilter} disabled={isLoadingLocations}>
                 <SelectTrigger className="h-9 bg-background">
@@ -460,10 +421,9 @@ export default function SlmLeavesPage() {
               </Select>
             </div>
 
-            {(locationError || roleError) && (
+            {(locationError) && (
               <div className="sm:col-span-2 lg:col-span-4">
                 {locationError && <p className="text-xs text-red-500">Location Filter Error: {locationError}</p>}
-                {roleError && <p className="text-xs text-red-500">Role Filter Error: {roleError}</p>}
               </div>
             )}
           </div>

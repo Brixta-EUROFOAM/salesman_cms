@@ -34,7 +34,6 @@ import { selectTechnicalVisitReportSchema } from '../../../../drizzle/zodSchemas
 
 const extendedTechnicalVisitReportSchema = selectTechnicalVisitReportSchema.extend({
   salesmanName: z.string().optional().catch("Unknown"),
-  role: z.string().optional().catch("N/A"),
   date: z.string().optional(),
   timeSpentinLoc: z.string().nullable().optional(),
   latitude: z.coerce.number().nullable().optional().catch(null),
@@ -54,14 +53,10 @@ const extendedTechnicalVisitReportSchema = selectTechnicalVisitReportSchema.exte
 type TechnicalVisitReport = z.infer<typeof extendedTechnicalVisitReportSchema>;
 
 const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-locations`;
-const ROLES_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-roles`;
 
 interface LocationsResponse {
   areas: string[];
   regions: string[];
-}
-interface RolesResponse {
-  roles: string[];
 }
 
 const CUSTOMER_TYPE_OPTIONS = [
@@ -157,12 +152,9 @@ export default function TechnicalVisitReportsPage() {
   const [areaFilter, setAreaFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('all');
   const [customerTypeFilter, setCustomerTypeFilter] = useState('all');
-
-  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [availableAreas, setAvailableAreas] = useState<string[]>([]);
   const [availableRegions, setAvailableRegions] = useState<string[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
-  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
 
   const [page, setPage] = React.useState(0);
   const [pageSize] = React.useState(500); 
@@ -186,7 +178,6 @@ export default function TechnicalVisitReportsPage() {
       url.searchParams.append('pageSize', pageSize.toString());
 
       if (debouncedSearchQuery) url.searchParams.append('search', debouncedSearchQuery);
-      if (roleFilter !== 'all') url.searchParams.append('role', roleFilter);
       if (areaFilter !== 'all') url.searchParams.append('area', areaFilter);
       if (regionFilter !== 'all') url.searchParams.append('region', regionFilter);
       if (customerTypeFilter !== 'all') url.searchParams.append('customerType', customerTypeFilter);
@@ -235,25 +226,13 @@ export default function TechnicalVisitReportsPage() {
     } finally { setIsLoadingLocations(false); }
   }, []);
 
-  const fetchRoles = useCallback(async () => {
-    setIsLoadingRoles(true);
-    try {
-      const response = await fetch(ROLES_API_ENDPOINT);
-      if (response.ok) {
-        const data: RolesResponse = await response.json();
-        setAvailableRoles(data.roles || []);
-      }
-    } finally { setIsLoadingRoles(false); }
-  }, []);
-
   React.useEffect(() => {
     fetchTechnicalReports();
   }, [fetchTechnicalReports]);
 
   React.useEffect(() => {
     fetchLocations();
-    fetchRoles();
-  }, [fetchLocations, fetchRoles]);
+  }, [fetchLocations]);
 
   const isDealerVisit = (r: TechnicalVisitReport) => r.customerType?.includes('Dealer');
   const isIHBVisit = (r: TechnicalVisitReport) => r.customerType === 'IHB' || r.customerType === 'IHB/Site';
@@ -274,7 +253,6 @@ export default function TechnicalVisitReportsPage() {
       cell: ({ row }) => (
         <div className="flex flex-col">
           <span className="font-medium text-sm">{row.original.salesmanName}</span>
-          <span className="text-xs text-muted-foreground">{row.original.role}</span>
         </div>
       )
     },
@@ -512,7 +490,6 @@ export default function TechnicalVisitReportsPage() {
             </div>
           </div>
           {renderSelectFilter('Customer Type', customerTypeFilter, setCustomerTypeFilter, CUSTOMER_TYPE_OPTIONS)}
-          {renderSelectFilter('Role', roleFilter, setRoleFilter, availableRoles, isLoadingRoles)}
           {renderSelectFilter('Area', areaFilter, setAreaFilter, availableAreas, isLoadingLocations)}
           {renderSelectFilter('Region', regionFilter, setRegionFilter, availableRegions, isLoadingLocations)}
 
@@ -557,7 +534,7 @@ export default function TechnicalVisitReportsPage() {
                 </Badge>
               </DialogTitle>
               <DialogDescription className="mt-1 flex items-center gap-4 text-xs sm:text-sm">
-                <span className="flex items-center gap-1"><User className="w-3 h-3" /> {selectedReport.salesmanName} ({selectedReport.role})</span>
+                <span className="flex items-center gap-1"><User className="w-3 h-3" /> {selectedReport.salesmanName}</span>
                 <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {selectedReport.date}</span>
               </DialogDescription>
             </div>

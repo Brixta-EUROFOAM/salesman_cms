@@ -19,7 +19,6 @@ const getISTDateString = (date: string | Date | null) => {
 
 const frontendTechnicalReportSchema = selectTechnicalVisitReportSchema.extend({
   salesmanName: z.string(),
-  role: z.string(),
   area: z.string().nullable().optional(),
   region: z.string().nullable().optional(),
   date: z.string(),
@@ -48,7 +47,6 @@ const frontendTechnicalReportSchema = selectTechnicalVisitReportSchema.extend({
 type TechnicalReportRow = InferSelectModel<typeof technicalVisitReports> & {
   userFirstName: string | null;
   userLastName: string | null;
-  userRole?: string | null;
   userEmail: string | null;
   userArea: string | null;
   userRegion: string | null;
@@ -59,7 +57,6 @@ async function getCachedTechnicalVisitReports(
   page: number,
   pageSize: number,
   search: string | null,
-  role: string | null,
   area: string | null,
   region: string | null,
   customerType: string | null
@@ -68,7 +65,7 @@ async function getCachedTechnicalVisitReports(
   cacheLife('hours');
   cacheTag(`technical-visit-reports-${companyId}`);
 
-  const filterKey = `${search}-${role}-${area}-${region}-${customerType}`;
+  const filterKey = `${search}-${area}-${region}-${customerType}`;
   cacheTag(`technical-visit-reports-${companyId}-${page}-${filterKey}`);
 
   // Strictly type as SQL[] to prevent undefined errors in and()
@@ -84,7 +81,6 @@ async function getCachedTechnicalVisitReports(
     if (searchCondition) filters.push(searchCondition);
   }
 
-  if (role) filters.push(eq(users.role, role));
   if (area) filters.push(eq(users.area, area));
   if (region) filters.push(eq(users.region, region));
   if (customerType) filters.push(eq(technicalVisitReports.customerType, customerType));
@@ -127,7 +123,6 @@ async function getCachedTechnicalVisitReports(
     return {
       ...row,
       salesmanName,
-      role: row.userRole || 'Unknown',
       area: row.userArea || '',
       region: row.userRegion || '',
       latitude: toFloat(row.latitude),
@@ -175,7 +170,6 @@ export async function GET(request: NextRequest) {
     const pageSize = Math.min(Number(searchParams.get('pageSize') ?? 500), 500);
 
     const search = searchParams.get('search');
-    const role = searchParams.get('role');
     const area = searchParams.get('area');
     const region = searchParams.get('region');
     const customerType = searchParams.get('customerType');
@@ -185,7 +179,6 @@ export async function GET(request: NextRequest) {
       page,
       pageSize,
       search,
-      role,
       area,
       region,
       customerType

@@ -30,7 +30,6 @@ import {
 const MASON_PC_API_ENDPOINT = `/api/dashboardPagesAPI/masonpc-side/mason-pc`;
 const MASON_PC_ACTION_API_BASE = `/api/dashboardPagesAPI/masonpc-side/mason-pc`;
 const MASON_PC_FORM_OPTIONS = `/api/dashboardPagesAPI/masonpc-side/mason-pc/form-options`;
-const ROLES_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-roles`;
 const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-locations`;
 
 export type KycStatus = 'none' | 'pending' | 'verified' | 'rejected';
@@ -47,7 +46,6 @@ export interface MasonPcFullDetails {
   bagsLifted?: number | null;
   isReferred?: boolean | null;
   salesmanName?: string;
-  role?: string;
   area?: string;
   region?: string;
   userId?: number | null;
@@ -65,7 +63,6 @@ export interface MasonPcFullDetails {
   kycSubmittedAt?: string | null;
 }
 
-interface RolesResponse { roles: string[]; }
 interface LocationsResponse { areas: string[]; regions: string[]; }
 interface OptionItem { id: string | number; name: string; }
 
@@ -164,16 +161,12 @@ export default function MasonPcPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
   const [areaFilter, setAreaFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('all');
   const [kycStatusFilter, setKycStatusFilter] = useState<KycVerificationStatus | 'all'>('all');
 
-  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [availableAreas, setAvailableAreas] = useState<string[]>([]);
   const [availableRegions, setAvailableRegions] = useState<string[]>([]);
-
-  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
 
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -197,7 +190,7 @@ export default function MasonPcPage() {
 
   useEffect(() => {
     setPage(0);
-  }, [debouncedSearchQuery, roleFilter, areaFilter, regionFilter, kycStatusFilter]);
+  }, [debouncedSearchQuery, areaFilter, regionFilter, kycStatusFilter]);
 
   const fetchMasonPcRecords = React.useCallback(async () => {
     setIsLoading(true);
@@ -209,7 +202,6 @@ export default function MasonPcPage() {
 
       if (debouncedSearchQuery) url.searchParams.append('search', debouncedSearchQuery);
       if (kycStatusFilter && kycStatusFilter !== 'all') url.searchParams.set('kycStatus', kycStatusFilter);
-      if (roleFilter !== 'all') url.searchParams.append('role', roleFilter);
       if (areaFilter !== 'all') url.searchParams.append('area', areaFilter);
       if (regionFilter !== 'all') url.searchParams.append('region', regionFilter);
 
@@ -239,20 +231,7 @@ export default function MasonPcPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, pageSize, debouncedSearchQuery, kycStatusFilter, roleFilter, areaFilter, regionFilter]);
-
-  const fetchRoles = useCallback(async () => {
-    setIsLoadingRoles(true);
-    try {
-      const response = await fetch(ROLES_API_ENDPOINT);
-      if (response.ok) {
-        const data: RolesResponse = await response.json();
-        setAvailableRoles(data.roles && Array.isArray(data.roles) ? data.roles.filter(Boolean) : []);
-      }
-    } finally {
-      setIsLoadingRoles(false);
-    }
-  }, []);
+  }, [page, pageSize, debouncedSearchQuery, kycStatusFilter, areaFilter, regionFilter]);
 
   const fetchLocations = useCallback(async () => {
     setIsLoadingLocations(true);
@@ -287,10 +266,9 @@ export default function MasonPcPage() {
   }, [fetchMasonPcRecords]);
 
   React.useEffect(() => {
-    fetchRoles();
     fetchLocations();
     fetchDropdownData();
-  }, [fetchRoles, fetchLocations, fetchDropdownData]);
+  }, [ fetchLocations, fetchDropdownData]);
 
   const handleVerificationAction = async (id: string, action: 'VERIFIED' | 'REJECTED', remarks: string = '') => {
     setIsUpdatingId(id);
@@ -532,7 +510,6 @@ export default function MasonPcPage() {
           </div>
 
           {renderSelectFilter('KYC Status', kycStatusFilter, (v) => { setKycStatusFilter(v as KycVerificationStatus | 'all'); }, kycStatusOptions, false)}
-          {renderSelectFilter('Role', roleFilter, setRoleFilter, availableRoles, isLoadingRoles)}
           {renderSelectFilter('Area', areaFilter, setAreaFilter, availableAreas, isLoadingLocations)}
           {renderSelectFilter('Region', regionFilter, setRegionFilter, availableRegions, isLoadingLocations)}
 
@@ -541,7 +518,6 @@ export default function MasonPcPage() {
             onClick={() => {
               setSearchQuery('');
               setKycStatusFilter('all');
-              setRoleFilter('all');
               setAreaFilter('all');
               setRegionFilter('all');
             }}

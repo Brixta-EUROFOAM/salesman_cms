@@ -1,12 +1,12 @@
 // src/app/dashboard/teamOverview/tabsLoader.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Users, Network, MapPin } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 // Components
-import { TeamTabContent } from './teamOverview';
+import { TeamOverview } from './teamOverview';
 import UsersManagement from './userManagement';
 
 interface TabsProps {
@@ -36,7 +36,7 @@ export function UsersAndTeamTabs({ adminUser, canSeeUsers, canSeeTeamView }: Tab
 
       {canSeeTeamView && (
         <TabsContent value="team">
-          <TeamTabContent />
+          <TeamOverview />
         </TabsContent>
       )}
     </Tabs>

@@ -33,13 +33,12 @@ async function DealersDynamicContent() {
 
   const userPerms = session.permissions || [];
 
-  const canSeeAddAndListDealers = hasPermission(userPerms, ['READ', 'UPDATE', 'WRITE', 'ALL_ACCESS']);
   const canSeeListDealers = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
   const canSeeVerifyDealers = hasPermission(userPerms, ['READ', 'UPDATE', 'ALL_ACCESS']);
   const canSeeBrandMapping = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
   const canSeeListVerifiedDealers = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
 
-  const canSeeAnything = canSeeAddAndListDealers || canSeeListDealers || canSeeVerifyDealers || canSeeBrandMapping || canSeeListVerifiedDealers;
+  const canSeeAnything = canSeeListDealers || canSeeVerifyDealers || canSeeBrandMapping || canSeeListVerifiedDealers;
 
   // Handle users who can't see anything
   if (!canSeeAnything) {

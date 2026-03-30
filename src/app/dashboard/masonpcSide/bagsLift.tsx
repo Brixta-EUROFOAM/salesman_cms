@@ -6,9 +6,9 @@ import { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import {
-  IndianRupee, MapPin, Search, Loader2, Check, X, Eye, ExternalLink, CalendarIcon
+ MapPin, Search, Loader2, Check, X, Eye, ExternalLink, CalendarIcon
 } from 'lucide-react';
-import { format, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
+import { format } from 'date-fns';
 import { DateRange } from "react-day-picker";
 
 import { DataTableReusable } from '@/components/data-table-reusable';
@@ -32,14 +32,10 @@ import { IconCalendar } from '@tabler/icons-react';
 const BAG_LIFT_API_ENDPOINT = `/api/dashboardPagesAPI/masonpc-side/bags-lift`;
 const BAG_LIFT_ACTION_API_BASE = `/api/dashboardPagesAPI/masonpc-side/bags-lift`;
 const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-locations`;
-const ROLES_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-roles`;
 
 interface LocationsResponse {
   areas: string[];
   regions: string[];
-}
-interface RolesResponse {
-  roles: string[];
 }
 
 const extendedSchema = selectBagLiftSchema.loose().extend({
@@ -53,7 +49,6 @@ const extendedSchema = selectBagLiftSchema.loose().extend({
   siteAddress: z.string().nullable().optional(),
   verificationSiteImageUrl: z.string().nullable().optional(),
   verificationProofImageUrl: z.string().nullable().optional(),
-  role: z.string().optional().catch("N/A"),
   area: z.string().optional().catch("N/A"),
   region: z.string().optional().catch("N/A"),
   purchaseDate: z.string(),

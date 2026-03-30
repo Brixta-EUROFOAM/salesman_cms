@@ -2,10 +2,11 @@
 import 'server-only';
 import { NextResponse, NextRequest } from 'next/server';
 import { db } from '@/lib/drizzle';
-import { users } from '../../../../../../../drizzle';
+import { users, roles, userRoles } from '../../../../../../../drizzle';
 import { eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { verifySession } from '@/lib/auth';
+import { getRoleWeight, isSuperUser } from '@/lib/roleHierarchy';
 
 const editMappingSchema = z.object({
   userId: z.number(),
@@ -27,42 +28,78 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { userId, reportsToId, managesIds } = editMappingSchema.parse(body);
 
-    if (reportsToId === userId || managesIds.includes(userId)) return NextResponse.json({ error: "Self-mapping forbidden" }, { status: 400 });
+    if (reportsToId === userId || managesIds.includes(userId)) {
+      return NextResponse.json({ error: "Self-mapping forbidden" }, { status: 400 });
+    }
 
-    /* -- REPORTING HIERARCHY LOCK ---
-    // Fetch the user being edited to check if reportsToId is actually changing
-    const [targetUser] = await db.select({ reportsToId: users.reportsToId }).from(users).where(eq(users.id, userId)).limit(1);
-    if (!targetUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    // Fetch the target user's current mapping and orgRole
+    const targetUserQuery = await db
+      .select({ 
+        companyId: users.companyId, 
+        reportsToId: users.reportsToId,
+        orgRole: roles.orgRole 
+      })
+      .from(users)
+      .leftJoin(userRoles, eq(users.id, userRoles.userId))
+      .leftJoin(roles, eq(userRoles.roleId, roles.id))
+      .where(eq(users.id, userId))
+      .limit(1);
 
-    // ONLY enforce assignment rules if the manager is being changed to someone new
+    if (targetUserQuery.length === 0 || targetUserQuery[0].companyId !== session.companyId) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const targetUser = targetUserQuery[0];
+    const targetOrgRole = targetUser.orgRole || 'Unassigned';
+
+    const currentUserRole = session.orgRole; 
+    const currentWeight = getRoleWeight(currentUserRole);
+    const targetWeight = getRoleWeight(targetOrgRole);
+
+    if (!isSuperUser(currentUserRole) && currentWeight <= targetWeight) {
+      return NextResponse.json({ error: "Forbidden: Cannot modify mapping for a user with equal or higher authority." }, { status: 403 });
+    }
+
+    // Manager Hierarchy Lock
     if (reportsToId && reportsToId !== targetUser.reportsToId) {
-      const [manager] = await db.select({ role: users.role }).from(users).where(eq(users.id, reportsToId)).limit(1);
+      const newManagerQuery = await db
+        .select({ orgRole: roles.orgRole })
+        .from(users)
+        .leftJoin(userRoles, eq(users.id, userRoles.userId))
+        .leftJoin(roles, eq(userRoles.roleId, roles.id))
+        .where(eq(users.id, reportsToId))
+        .limit(1);
       
-      const currentUserIndex = ROLE_HIERARCHY.indexOf(claims.role as string);
-      const managerRoleIndex = manager ? ROLE_HIERARCHY.indexOf(manager.role) : -1;
+      if (newManagerQuery.length === 0) {
+        return NextResponse.json({ error: "Target manager not found" }, { status: 404 });
+      }
 
-      // You can only assign someone to a manager who is equal to or below your own tier (<= index)
-      if (!manager || currentUserIndex === -1 || managerRoleIndex === -1 || currentUserIndex > managerRoleIndex) {
-        return NextResponse.json({ error: `Forbidden: Cannot assign to manager role '${manager?.role}'` }, { status: 403 });
+      const managerOrgRole = newManagerQuery[0].orgRole || 'Unassigned';
+      const managerWeight = getRoleWeight(managerOrgRole);
+
+      if (!isSuperUser(managerOrgRole) && managerWeight <= targetWeight) {
+        return NextResponse.json({ error: "Invalid Hierarchy: A user must report to someone with higher authority." }, { status: 400 });
+      }
+
+      if (!isSuperUser(currentUserRole) && currentWeight < managerWeight) {
+        return NextResponse.json({ error: "Forbidden: Cannot assign a user to a manager with higher authority than yourself." }, { status: 403 });
       }
     }
-    */
 
+    // Perform database updates
     await db.transaction(async (tx) => {
-      // Unassign current reports that are no longer in the list
       await tx.update(users).set({ reportsToId: null }).where(eq(users.reportsToId, userId));
 
-      // Assign new reports
       if (managesIds.length > 0) {
         await tx.update(users).set({ reportsToId: userId }).where(inArray(users.id, managesIds));
       }
 
-      // Update user's manager
       await tx.update(users).set({ reportsToId }).where(eq(users.id, userId));
     });
 
-    return NextResponse.json({ message: 'Mapping updated' });
+    return NextResponse.json({ message: 'Mapping updated successfully' }, { status: 200 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Mapping Error:', error);
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }

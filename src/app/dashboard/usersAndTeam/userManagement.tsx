@@ -43,7 +43,7 @@ interface User {
   firstName: string | null;
   lastName: string | null;
   phoneNumber: string | null;
-  role: string;
+  orgRole: string;
   jobRoles?: string[];
   region: string | null;
   area: string | null;
@@ -265,7 +265,7 @@ export default function UsersManagement({ adminUser }: Props) {
       firstName: user.firstName || '',
       lastName: user.lastName || '',
       phoneNumber: user.phoneNumber || '',
-      orgRole: user.role || 'junior-executive', 
+      orgRole: user.orgRole || 'junior-executive',
       jobRole: user.jobRoles || [],
       region: user.region || '',
       area: user.area || '',
@@ -298,7 +298,7 @@ export default function UsersManagement({ adminUser }: Props) {
   // --- Derived Options for Filters (Memoized) ---
   const roleOptions = useMemo(() => {
     const roles = new Set<string>();
-    users.forEach(u => { if (u.role) roles.add(u.role); });
+    users.forEach(u => { if (u.orgRole) roles.add(u.orgRole); });
     return Array.from(roles).sort();
   }, [users]);
 
@@ -317,7 +317,7 @@ export default function UsersManagement({ adminUser }: Props) {
         fullName.includes(search) ||
         (user.email || '').toLowerCase().includes(search);
 
-      const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+      const matchesRole = roleFilter === 'all' || user.orgRole === roleFilter;
       const matchesRegion = regionFilter === 'all' || user.region === regionFilter;
 
       return matchesSearch && matchesRole && matchesRegion;
@@ -342,6 +342,24 @@ export default function UsersManagement({ adminUser }: Props) {
       ),
     },
     {
+      accessorKey: 'orgRole',
+      header: 'Role',
+      cell: ({ row }) => {
+        const orgRole = row.original.orgRole;
+        const jobRoles = row.original.jobRoles; 
+        return (
+          <div className="flex flex-col">
+            <span className="font-medium text-foreground">{orgRole}</span>
+            {jobRoles && jobRoles.length > 0 && (
+              <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                {jobRoles.join(', ')}
+              </span>
+            )}
+          </div>
+        )
+      }
+    },
+    {
       accessorKey: "email",
       header: "Email",
     },
@@ -349,15 +367,6 @@ export default function UsersManagement({ adminUser }: Props) {
       accessorKey: "phoneNumber",
       header: "Phone",
       cell: ({ row }) => row.original.phoneNumber || '-',
-    },
-    {
-      accessorKey: "role",
-      header: "Role",
-      cell: ({ row }) => (
-        <Badge variant="outline">
-          {row.original.role ? row.original.role.replace(/-/g, ' ') : 'N/A'}
-        </Badge>
-      ),
     },
     {
       accessorKey: "region",

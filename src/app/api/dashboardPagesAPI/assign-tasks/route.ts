@@ -11,7 +11,8 @@ import { selectDailyTaskSchema } from '../../../../../drizzle/zodSchemas';
 import crypto from 'crypto';
 import { verifySession } from '@/lib/auth';
 
-const assignableRoles = ['senior-regional-manager', 'regional-manager', 'deputy-manager', 'senior-area-manager', 'area-manager',
+const assignableRoles = [
+  'senior-regional-manager', 'regional-manager', 'deputy-manager', 'senior-area-manager', 'area-manager',
   'senior-executive', 'executive', 'junior-executive'
 ];
 

@@ -129,14 +129,11 @@ export default function SalesmanGeoTrackingPage() {
   const [areaFilter, setAreaFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('all');
 
-  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [availableAreas, setAvailableAreas] = useState<string[]>([]);
   const [availableRegions, setAvailableRegions] = useState<string[]>([]);
 
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
-  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
-  const [roleError, setRoleError] = useState<string | null>(null);
 
   // Debounce search
   useEffect(() => {
@@ -186,22 +183,6 @@ export default function SalesmanGeoTrackingPage() {
       setLocationError('Failed to load Area/Region filters.');
     } finally {
       setIsLoadingLocations(false);
-    }
-  }, []);
-
-  const fetchRoles = useCallback(async () => {
-    setIsLoadingRoles(true);
-    setRoleError(null);
-    try {
-      const response = await fetch(ROLES_API_ENDPOINT);
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-      const data: RolesResponse = await response.json();
-      setAvailableRoles(data.roles && Array.isArray(data.roles) ? data.roles.filter(Boolean).sort() : []);
-    } catch (err: any) {
-      console.error('Failed to fetch filter roles:', err);
-      setRoleError('Failed to load Role filters.');
-    } finally {
-      setIsLoadingRoles(false);
     }
   }, []);
 
@@ -262,8 +243,7 @@ export default function SalesmanGeoTrackingPage() {
 
   useEffect(() => {
     fetchLocations();
-    fetchRoles();
-  }, [fetchLocations, fetchRoles]);
+  }, [fetchLocations]);
 
   const allFilteredTracks = useMemo(() => {
     const lowerCaseSearch = (debouncedSearchQuery || '').toLowerCase();
@@ -354,7 +334,6 @@ export default function SalesmanGeoTrackingPage() {
       header: 'Salesman',
       cell: ({ row }) => row.original.salesmanName ?? 'N/A',
     },
-    { accessorKey: "appRole", header: "App Role"},
     {
       accessorKey: 'displayDate',
       header: 'Date',
@@ -506,7 +485,6 @@ export default function SalesmanGeoTrackingPage() {
               </div>
             </div>
 
-            {renderSelectFilter('Role', roleFilter, setRoleFilter, availableRoles, isLoadingRoles)}
             {renderSelectFilter('Area', areaFilter, setAreaFilter, availableAreas, isLoadingLocations)}
             {renderSelectFilter('Region', regionFilter, setRegionFilter, availableRegions, isLoadingLocations)}
 
@@ -524,10 +502,9 @@ export default function SalesmanGeoTrackingPage() {
               Clear Filters
             </Button>
             
-            {(locationError || roleError) && (
+            {(locationError) && (
               <div className="w-full">
                  {locationError && <p className="text-xs text-red-500 w-full mt-2">Location Filter Error: {locationError}</p>}
-                 {roleError && <p className="text-xs text-red-500 w-full mt-2">Role Filter Error: {roleError}</p>}
               </div>
             )}
           </div>

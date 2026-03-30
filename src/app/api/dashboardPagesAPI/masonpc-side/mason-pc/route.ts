@@ -14,7 +14,6 @@ export type KycVerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED' | 'NONE'
 
 const masonPcFullSchema = selectMasonPcSideSchema.extend({
   salesmanName: z.string().optional(),
-  role: z.string().optional(),
   area: z.string().optional(),
   region: z.string().optional(),
   dealerName: z.string().optional().nullable(),
@@ -36,7 +35,6 @@ async function getCachedMasonPcRecords(
   pageSize: number,
   search: string | null,
   kycStatusFilter: string | null,
-  roleFilter: string | null,
   areaFilter: string | null,
   regionFilter: string | null
 ) {
@@ -44,7 +42,7 @@ async function getCachedMasonPcRecords(
   cacheLife('minutes');
   cacheTag(`mason-pc-${companyId}`); // generic tag for server actions
   
-  const filterKey = `${search}-${kycStatusFilter}-${roleFilter}-${areaFilter}-${regionFilter}`;
+  const filterKey = `${search}-${kycStatusFilter}-${areaFilter}-${regionFilter}`;
   cacheTag(`mason-pc-${companyId}-${page}-${filterKey}`);
 
   const filters: SQL[] = []; // Not scoping by users.companyId yet because masonPcSide might not have a userId assigned
@@ -66,7 +64,6 @@ async function getCachedMasonPcRecords(
     if (searchCondition) filters.push(searchCondition);
   }
 
-  if (roleFilter && roleFilter !== 'all') filters.push(eq(users.role, roleFilter));
   if (areaFilter && areaFilter !== 'all') filters.push(eq(users.area, areaFilter));
   if (regionFilter && regionFilter !== 'all') filters.push(eq(users.region, regionFilter));
 
@@ -182,7 +179,6 @@ export async function GET(request: NextRequest) {
     
     const search = searchParams.get('search');
     const kycStatusFilter = searchParams.get('kycStatus');
-    const roleFilter = searchParams.get('role');
     const areaFilter = searchParams.get('area');
     const regionFilter = searchParams.get('region');
 
@@ -192,7 +188,6 @@ export async function GET(request: NextRequest) {
       pageSize,
       search,
       kycStatusFilter,
-      roleFilter,
       areaFilter,
       regionFilter
     );

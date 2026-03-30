@@ -10,11 +10,9 @@ import { z } from 'zod';
 import { selectDailyVisitReportSchema } from '../../../../../../drizzle/zodSchemas';
 import { verifySession } from '@/lib/auth';
 
-
 const frontendDVRSchema = selectDailyVisitReportSchema.extend({
   id: z.string(),
   salesmanName: z.string(),
-  role: z.string(),
   area: z.string(),
   region: z.string(),
   dealerName: z.string().nullable().optional(),
@@ -46,7 +44,6 @@ type DVRRow = InferSelectModel<typeof dailyVisitReports> & {
   userFirstName: string | null;
   userLastName: string | null;
   userEmail: string | null;
-  userRole?: string | null;
   userArea: string | null;
   userRegion: string | null;
   dealerNameStr: string | null;
@@ -60,7 +57,6 @@ async function getCachedDailyVisitReports(
   page: number,
   pageSize: number,
   search: string | null,
-  role: string | null,
   area: string | null,
   region: string | null,
   pjpStatus: string | null
@@ -70,7 +66,7 @@ async function getCachedDailyVisitReports(
   cacheTag(`daily-visit-reports-${companyId}`);
 
   // Unique cache tag based on active filters
-  const filterKey = `${search}-${role}-${area}-${region}`;
+  const filterKey = `${search}-${area}-${region}`;
   cacheTag(`daily-visit-reports-${companyId}-${page}-${filterKey}`);
 
   const subDealers = aliasedTable(dealers, 'subDealers');
@@ -88,7 +84,6 @@ async function getCachedDailyVisitReports(
     if (searchCondition) filters.push(searchCondition);
   }
 
-  if (role) filters.push(eq(users.role, role));
   if (area) filters.push(eq(users.area, area));
   if (region) filters.push(eq(users.region, region));
 
@@ -182,7 +177,6 @@ async function getCachedDailyVisitReports(
       ...row,
       id: String(row.id),
       salesmanName: salesmanName,
-      role: row.userRole || 'Unknown',
       area: row.userArea || '',
       region: row.userRegion || '',
       reportDate: row.reportDate ? new Date(row.reportDate).toISOString().split('T')[0] : '',
@@ -232,7 +226,6 @@ export async function GET(request: NextRequest) {
     const pageSize = Math.min(Number(searchParams.get('pageSize') ?? 500), 500);
 
     const search = searchParams.get('search');
-    const role = searchParams.get('role');
     const area = searchParams.get('area');
     const region = searchParams.get('region');
     const pjpStatus = searchParams.get('pjpStatus');
@@ -242,7 +235,6 @@ export async function GET(request: NextRequest) {
       page,
       pageSize,
       search,
-      role,
       area,
       region,
       pjpStatus,

@@ -27,7 +27,6 @@ type LeaveRow = InferSelectModel<typeof salesmanLeaveApplications> & {
   userFirstName: string | null;
   userLastName: string | null;
   userEmail: string | null;
-  userRole?: string | null;
   userArea: string | null;
   userRegion: string | null;
 };
@@ -37,7 +36,6 @@ async function getCachedLeaves(
   page: number,
   pageSize: number,
   search: string | null,
-  role: string | null,
   area: string | null,
   region: string | null,
   startDateParam: string | null,
@@ -47,7 +45,7 @@ async function getCachedLeaves(
   cacheLife('hours');
   cacheTag(`salesman-leaves-${companyId}`);
 
-  const filterKey = `${search}-${role}-${area}-${region}-${startDateParam}-${endDateParam}`;
+  const filterKey = `${search}-${area}-${region}-${startDateParam}-${endDateParam}`;
   cacheTag(`salesman-leaves-${companyId}-${page}-${filterKey}`);
   cacheTag(`salesman-leaves-${companyId}`); // Broad tag for simple invalidation
 
@@ -63,7 +61,6 @@ async function getCachedLeaves(
     if (searchCondition) filters.push(searchCondition);
   }
 
-  if (role && role !== 'all') filters.push(eq(users.role, role));
   if (area && area !== 'all') filters.push(eq(users.area, area));
   if (region && region !== 'all') filters.push(eq(users.region, region));
 
@@ -115,10 +112,8 @@ async function getCachedLeaves(
       endDate: row.endDate ? new Date(row.endDate).toISOString().split('T')[0] : '',
       createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString(),
       updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : new Date().toISOString(),
-      salesmanRole: row.userRole ?? '',
       area: row.userArea ?? '',
       region: row.userRegion ?? '',
-      appRole: row.appRole,
     };
   });
 
@@ -153,7 +148,6 @@ export async function GET(request: NextRequest) {
       page,
       pageSize,
       search,
-      role,
       area,
       region,
       startDateParam,

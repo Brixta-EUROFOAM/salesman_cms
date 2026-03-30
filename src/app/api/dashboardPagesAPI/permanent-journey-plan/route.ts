@@ -19,7 +19,6 @@ const getISTDate = (date: string | Date | null) => {
 const frontendPJPSchema = selectPermanentJourneyPlanSchema.extend({
   salesmanName: z.string(),
   createdByName: z.string(),
-  createdByRole: z.string().nullable().optional(),
   taskIds: z.array(z.string()), 
   visitDealerName: z.string().nullable(),
   planDate: z.string(), 
@@ -35,7 +34,6 @@ type PJPRow = InferSelectModel<typeof permanentJourneyPlans> & {
   createdByFirstName: string | null;
   createdByLastName: string | null;
   createdByEmail: string | null;
-  createdByRole: string | null;
   dealerName: string | null;
   siteName: string | null;
 };
@@ -91,7 +89,6 @@ async function getCachedPJPs(
       createdByFirstName: createdByUsers.firstName,
       createdByLastName: createdByUsers.lastName,
       createdByEmail: createdByUsers.email,
-      createdByRole: createdByUsers.role,
       dealerName: dealers.name,
       siteName: technicalSites.siteName,
     })
@@ -137,7 +134,6 @@ async function getCachedPJPs(
       ...row,
       salesmanName,
       createdByName,
-      createdByRole: row.createdByRole,
       planDate: getISTDate(row.planDate),
       taskIds: tasksByPjpId[row.id] || [],
       visitDealerName: row.dealerName ?? row.siteName ?? null,

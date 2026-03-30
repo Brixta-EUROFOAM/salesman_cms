@@ -35,14 +35,12 @@ const frontendAttendanceSchema = selectSalesmanAttendanceSchema.extend({
   salesmanRole: z.string(),
   area: z.string(),
   region: z.string(),
-  role: z.string().nullable().optional(),
 });
 
 type AttendanceRow = InferSelectModel<typeof salesmanAttendance> & {
   userFirstName: string | null;
   userLastName: string | null;
   userEmail: string | null;
-  userRole?: string | null;
   userArea: string | null;
   userRegion: string | null;
 };
@@ -146,10 +144,8 @@ async function getCachedAttendance(
 
       createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString(),
       updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : new Date().toISOString(),
-      salesmanRole: row.userRole ?? '',
       area: row.userArea ?? '',
       region: row.userRegion ?? '',
-      role: row.role ?? row.userRole ?? '',
     };
   });
 

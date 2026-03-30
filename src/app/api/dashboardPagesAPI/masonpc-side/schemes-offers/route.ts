@@ -2,8 +2,8 @@
 import 'server-only';
 import { NextResponse, NextRequest, connection } from 'next/server';
 import { db } from '@/lib/drizzle';
-import { users, schemesOffers } from '../../../../../../drizzle';
-import { eq, desc } from 'drizzle-orm';
+import { schemesOffers } from '../../../../../../drizzle';
+import { desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { selectSchemesOffersSchema, insertSchemesOffersSchema } from '../../../../../../drizzle/zodSchemas';
 import { verifySession } from '@/lib/auth';

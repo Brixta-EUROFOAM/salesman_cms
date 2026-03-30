@@ -12,7 +12,6 @@ import { verifySession } from '@/lib/auth';
 
 const frontendSalesOrderSchema = selectSalesOrderSchema.extend({
   salesmanName: z.string(),
-  salesmanRole: z.string(),
   dealerName: z.string(),
   dealerType: z.string(),
   dealerPhone: z.string(),
@@ -56,7 +55,6 @@ async function getCachedSalesOrders(
   page: number,
   pageSize: number,
   search: string | null,
-  role: string | null,
   area: string | null,
   region: string | null
 ) {
@@ -64,7 +62,7 @@ async function getCachedSalesOrders(
   cacheLife('hours');
   cacheTag(`sales-orders-${companyId}`);
 
-  const filterKey = `${search}-${role}-${area}-${region}`;
+  const filterKey = `${search}-${area}-${region}`;
   cacheTag(`sales-orders-${companyId}-${page}-${filterKey}`);
 
   const filters: SQL[] = [eq(users.companyId, companyId)];
@@ -78,7 +76,6 @@ async function getCachedSalesOrders(
     if (searchCondition) filters.push(searchCondition);
   }
 
-  if (role) filters.push(eq(users.role, role));
   if (area) filters.push(eq(dealers.area, area));
   if (region) filters.push(eq(dealers.region, region));
 
@@ -189,7 +186,6 @@ export async function GET(request: NextRequest) {
       page,
       pageSize,
       search,
-      role,
       area,
       region
     );

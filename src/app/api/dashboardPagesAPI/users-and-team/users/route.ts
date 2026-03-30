@@ -197,103 +197,101 @@ export async function GET(request: NextRequest) {
         if (!session || !session.userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-
-        const url = new URL(request.url);
-        const isCurrentOnly = url.searchParams.get("current") === "true";
-
-        if (!isCurrentOnly && !session.permissions.includes("READ")) {
-            return NextResponse.json({ error: "Forbidden: READ access required" }, { status: 403 });
+        if (!session.permissions.includes("READ")) {
+            return NextResponse.json({ error: 'Forbidden: READ access required' }, { status: 403 });
         }
 
-        const currentUserResult = await db
+        const adminUserResult = await db
+            .select({ companyId: users.companyId })
+            .from(users)
+            .where(eq(users.id, session.userId))
+            .limit(1);
+
+        const adminUser = adminUserResult[0];
+
+        // 1. Fetch all users in the company, explicitly joining roles to get orgRole and jobRole
+        const rawData = await db
             .select({
                 id: users.id,
                 email: users.email,
-                companyId: users.companyId,
                 firstName: users.firstName,
                 lastName: users.lastName,
                 region: users.region,
                 area: users.area,
+                status: users.status,
+                createdAt: users.createdAt,
+                updatedAt: users.updatedAt,
+                phoneNumber: users.phoneNumber,
                 isTechnicalRole: users.isTechnicalRole,
                 isAdminAppUser: users.isAdminAppUser,
                 deviceId: users.deviceId,
-                companyName: companies.companyName,
+                isDashboardUser: users.isDashboardUser,
+                isSalesAppUser: users.isSalesAppUser,
+                salesmanLoginId: users.salesmanLoginId,
+                // Role Data from JOIN
+                orgRole: rolesTable.orgRole,
+                jobRole: rolesTable.jobRole,
             })
             .from(users)
-            .leftJoin(companies, eq(users.companyId, companies.id))
-            .where(eq(users.id, session.userId))
-            .limit(1);
-
-        const currentUser = currentUserResult[0];
-
-        if (!currentUser)
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
-
-        if (url.searchParams.get("current") === "true") {
-            return NextResponse.json({
-                currentUser: {
-                    id: currentUser.id,
-                    firstName: currentUser.firstName,
-                    lastName: currentUser.lastName,
-                    companyName: currentUser.companyName,
-                    region: currentUser.region,
-                    area: currentUser.area,
-                    isTechnical: currentUser.isTechnicalRole,
-                    isAdminAppUser: currentUser.isAdminAppUser,
-                    deviceId: currentUser.deviceId,
-                    permissions: session.permissions || []
-                },
-            });
-        }
-
-        const companyUsers = await db
-            .select()
-            .from(users)
-            .where(eq(users.companyId, currentUser.companyId))
+            .leftJoin(userRoles, eq(users.id, userRoles.userId))
+            .leftJoin(rolesTable, eq(userRoles.roleId, rolesTable.id))
+            .where(eq(users.companyId, adminUser.companyId))
             .orderBy(desc(users.createdAt));
-            
-        // 2. Extract IDs to fetch their linked job roles
-        const userIds = companyUsers.map(u => u.id);
-        let allUserRoles: any[] = [];
-        
-        // 3. Query the user_roles linking table and join with roles table
-        if (userIds.length > 0) {
-            allUserRoles = await db
-                .select({
-                    userId: userRoles.userId,
-                    jobRole: rolesTable.jobRole
-                })
-                .from(userRoles)
-                .innerJoin(rolesTable, eq(userRoles.roleId, rolesTable.id))
-                .where(inArray(userRoles.userId, userIds));
+
+        // 2. Aggregate the multiple rows per user into a single object
+        const usersMap = new Map();
+
+        for (const row of rawData) {
+            const userId = row.id;
+
+            if (!usersMap.has(userId)) {
+                // First time seeing this user, set up the base object
+                usersMap.set(userId, {
+                    id: row.id,
+                    email: row.email,
+                    firstName: row.firstName,
+                    lastName: row.lastName,
+                    region: row.region,
+                    area: row.area,
+                    status: row.status,
+                    createdAt: row.createdAt,
+                    updatedAt: row.updatedAt,
+                    phoneNumber: row.phoneNumber,
+                    isTechnicalRole: row.isTechnicalRole,
+                    isAdminAppUser: row.isAdminAppUser,
+                    deviceId: row.deviceId,
+                    isDashboardUser: row.isDashboardUser,
+                    isSalesAppUser: row.isSalesAppUser,
+                    salesmanLoginId: row.salesmanLoginId,
+                    // Role processing
+                    orgRole: row.orgRole || 'Unassigned',
+                    jobRoles: new Set<string>(), // Use a Set to collect job roles without duplicates
+                });
+            }
+
+            const u = usersMap.get(userId);
+
+            // Add the job role from this row to the user's Set
+            if (row.jobRole) {
+                u.jobRoles.add(row.jobRole);
+            }
+
+            // If the first row we hit had a null orgRole, but a subsequent row has one, use it.
+            if (row.orgRole && u.orgRole === 'Unassigned') {
+                u.orgRole = row.orgRole;
+            }
         }
 
-        // 4. Attach the array of job roles to each respective user object
-        const formattedUsers = companyUsers.map(u => ({
+        // 3. Format the final array, converting Set to Array
+        const formattedUsers = Array.from(usersMap.values()).map(u => ({
             ...u,
-            jobRoles: allUserRoles
-                .filter(ur => ur.userId === u.id)
-                .map(ur => ur.jobRole)
-                .filter(Boolean)
+            jobRole: Array.from(u.jobRoles) // Convert Set to Array for JSON transmission
         }));
 
-        return NextResponse.json({
-            users: formattedUsers,
-            currentUser: {
-                companyName: currentUser.companyName,
-                region: currentUser.region,
-                area: currentUser.area,
-                isTechnical: currentUser.isTechnicalRole,
-                isAdminAppUser: currentUser.isAdminAppUser,
-                deviceId: currentUser.deviceId,
-                permissions: session.permissions || []
-            },
-        });
-    } catch (error: any) {
-        console.error(error);
-        return NextResponse.json(
-            { error: "Failed to fetch users" },
-            { status: 500 }
-        );
+        return NextResponse.json({ users: formattedUsers }, { status: 200 });
+
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
     }
 }

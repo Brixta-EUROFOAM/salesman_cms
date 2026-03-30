@@ -2,8 +2,8 @@
 import 'server-only';
 import { connection, NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/drizzle';
-import { users, logisticsIO } from '../../../../../drizzle';
-import { eq, and, gte, lte, ilike, desc } from 'drizzle-orm';
+import { logisticsIO } from '../../../../../drizzle';
+import { and, gte, lte, ilike, desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { selectLogisticsIOSchema } from '../../../../../drizzle/zodSchemas';
 import { verifySession } from '@/lib/auth';

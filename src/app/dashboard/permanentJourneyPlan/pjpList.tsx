@@ -1,7 +1,7 @@
 // src/app/dashboard/permanentJourneyPlan/pjpList.tsx
 'use client';
 
-import * as React from 'react';
+import React from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -34,7 +34,6 @@ import { selectPermanentJourneyPlanSchema } from '../../../../drizzle/zodSchemas
 const extendedPjpSchema = selectPermanentJourneyPlanSchema.extend({
   salesmanName: z.string().optional().catch("Unknown"),
   createdByName: z.string().optional().catch("Unknown"),
-  createdByRole: z.string().optional().catch("N/A"),
   visitDealerName: z.string().nullable().optional(),
   influencerName: z.string().nullable().optional(),
   influencerPhone: z.string().nullable().optional(),
@@ -418,7 +417,7 @@ export default function PJPListPage() {
               <div className="bg-muted/50 p-4 rounded-lg flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Created By</p>
-                  <p className="text-sm font-semibold">{selectedPjp.createdByName} <span className="text-muted-foreground font-normal">({selectedPjp.createdByRole})</span></p>
+                  <p className="text-sm font-semibold">{selectedPjp.createdByName}</p>
                 </div>
                 <div className="text-right space-y-1">
                   <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Verification Status</p>

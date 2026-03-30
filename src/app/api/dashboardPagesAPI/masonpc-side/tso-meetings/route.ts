@@ -12,7 +12,6 @@ import { verifySession } from '@/lib/auth';
 const meetingResponseSchema = selectTsoMeetingSchema.loose().extend({
   totalExpenses: z.number().nullable(), 
   creatorName: z.string(),
-  role: z.string(),
   area: z.string(),
   region: z.string(),
 });
@@ -22,7 +21,6 @@ async function getCachedTsoMeetings(
   page: number,
   pageSize: number,
   search: string | null,
-  role: string | null,
   area: string | null,
   region: string | null
 ) {
@@ -30,7 +28,7 @@ async function getCachedTsoMeetings(
   cacheLife('minutes');
   cacheTag(`tso-meetings-${companyId}`);
 
-  const filterKey = `${search}-${role}-${area}-${region}`;
+  const filterKey = `${search}-${area}-${region}`;
   cacheTag(`tso-meetings-${companyId}-${page}-${filterKey}`);
 
   const filters: SQL[] = [eq(users.companyId, companyId)];
@@ -45,7 +43,6 @@ async function getCachedTsoMeetings(
     if (searchCondition) filters.push(searchCondition);
   }
 
-  if (role && role !== 'all') filters.push(eq(users.role, role));
   if (area && area !== 'all') filters.push(eq(users.area, area));
   if (region && region !== 'all') filters.push(eq(users.region, region));
 
@@ -110,7 +107,6 @@ export async function GET(request: NextRequest) {
     const pageSize = Math.min(Number(searchParams.get('pageSize') ?? 500), 500);
     
     const search = searchParams.get('search');
-    const role = searchParams.get('role');
     const area = searchParams.get('area');
     const region = searchParams.get('region');
 
@@ -119,7 +115,6 @@ export async function GET(request: NextRequest) {
       page,
       pageSize,
       search,
-      role,
       area,
       region
     );

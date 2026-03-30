@@ -1,7 +1,7 @@
 // app/dashboard/reports/salesOrders.tsx
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ColumnDef, createColumnHelper } from '@tanstack/react-table';
 import { toast } from 'sonner';
@@ -18,7 +18,6 @@ import { selectSalesOrderSchema } from '../../../../drizzle/zodSchemas';
 
 const extendedSalesOrderSchema = selectSalesOrderSchema.extend({
   salesmanName: z.string().optional().catch("Unknown"),
-  salesmanRole: z.string().optional().catch("N/A"),
   dealerName: z.string().nullable().optional(),
   dealerType: z.string().nullable().optional(),
   dealerPhone: z.string().nullable().optional(),
@@ -40,14 +39,10 @@ const extendedSalesOrderSchema = selectSalesOrderSchema.extend({
 type SalesOrder = z.infer<typeof extendedSalesOrderSchema>;
 
 const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-locations`;
-const ROLES_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-roles`;
 
 interface LocationsResponse {
   areas: string[];
   regions: string[];
-}
-interface RolesResponse {
-  roles: string[];
 }
 
 const columnHelper = createColumnHelper<SalesOrder>();
@@ -63,43 +58,10 @@ export const salesOrderColumns: ColumnDef<SalesOrder, any>[] = [
     cell: info => info.getValue(),
     meta: { filterType: 'search' },
   }),
-  columnHelper.accessor('userId', {
-    header: 'User ID',
-    cell: info => info.getValue() ?? '-',
-  }),
   columnHelper.accessor('salesmanName', {
     header: 'Salesman',
     cell: info => info.getValue(),
     meta: { filterType: 'search' },
-  }),
-  columnHelper.accessor('salesmanRole', {
-    header: 'Role',
-    cell: info => info.getValue(),
-  }),
-  columnHelper.accessor('dealerName', {
-    header: 'Dealer',
-    cell: info => info.getValue(),
-    meta: { filterType: 'search' },
-  }),
-  columnHelper.accessor('dealerType', {
-    header: 'Dealer Type',
-    cell: info => info.getValue(),
-  }),
-  columnHelper.accessor('dealerPhone', {
-    header: 'Phone',
-    cell: info => info.getValue(),
-  }),
-  columnHelper.accessor('dealerAddress', {
-    header: 'Dealer Address',
-    cell: info => info.getValue(),
-  }),
-  columnHelper.accessor('area', {
-    header: 'Area',
-    cell: info => info.getValue(),
-  }),
-  columnHelper.accessor('region', {
-    header: 'Region',
-    cell: info => info.getValue(),
   }),
   columnHelper.accessor('orderDate', {
     header: 'Order Date',
@@ -194,43 +156,6 @@ export const salesOrderColumns: ColumnDef<SalesOrder, any>[] = [
     header: 'Item Price (₹)',
     cell: info => num(info.getValue()),
   }),
-  columnHelper.accessor('discountPercentage', {
-    header: 'Discount (%)',
-    cell: info => {
-      const v = info.getValue();
-      return v == null ? '-' : `${v}`;
-    },
-  }),
-  columnHelper.accessor('itemPriceAfterDiscount', {
-    header: 'Price After Discount (₹)',
-    cell: info => num(info.getValue()),
-  }),
-  columnHelper.accessor('itemType', {
-    header: 'Item Type',
-    cell: info => info.getValue() ?? '-',
-  }),
-  columnHelper.accessor('itemGrade', {
-    header: 'Item Grade',
-    cell: info => info.getValue() ?? '-',
-  }),
-  columnHelper.accessor('orderTotal', {
-    header: 'Order Total (₹)',
-    cell: info => num(info.getValue()),
-  }),
-  columnHelper.accessor('remarks', {
-    header: 'Remarks',
-    cell: info => info.getValue() ?? '-',
-  }),
-  columnHelper.accessor('createdAt', {
-    header: 'Created On',
-    cell: info => info.getValue() ? new Date(info.getValue() as string).toLocaleDateString() : '-',
-    meta: { filterType: 'date' },
-  }),
-  columnHelper.accessor('updatedAt', {
-    header: 'Updated On',
-    cell: info => info.getValue() ? new Date(info.getValue() as string).toLocaleDateString() : '-',
-    meta: { filterType: 'date' },
-  }),
 ];
 
 const renderSelectFilter = (
@@ -276,16 +201,11 @@ export default function SalesOrdersTable() {
   const [roleFilter, setRoleFilter] = useState('all');
   const [areaFilter, setAreaFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('all');
-
-  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [availableAreas, setAvailableAreas] = useState<string[]>([]);
   const [availableRegions, setAvailableRegions] = useState<string[]>([]);
 
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
-  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
-
   const [locationError, setLocationError] = useState<string | null>(null);
-  const [roleError, setRoleError] = useState<string | null>(null);
 
   const [page, setPage] = useState(0);
   const [pageSize] = useState(500);
@@ -372,34 +292,13 @@ export default function SalesOrdersTable() {
     }
   }, []);
 
-  const fetchRoles = useCallback(async () => {
-    setIsLoadingRoles(true);
-    setRoleError(null);
-    try {
-      const response = await fetch(ROLES_API_ENDPOINT);
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-      
-      const data: RolesResponse = await response.json();
-      const roles = data.roles && Array.isArray(data.roles) ? data.roles : [];
-      const safeRoles = roles.filter(Boolean);
-
-      setAvailableRoles(safeRoles);
-    } catch (err: any) {
-      console.error('Failed to fetch filter roles:', err);
-      setRoleError('Failed to load Role filters.');
-    } finally {
-      setIsLoadingRoles(false);
-    }
-  }, []);
-
   useEffect(() => {
     fetchSalesOrders();
   }, [fetchSalesOrders]);
 
   useEffect(() => {
     fetchLocations();
-    fetchRoles();
-  }, [fetchLocations, fetchRoles]);
+  }, [fetchLocations]);
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -431,7 +330,6 @@ export default function SalesOrdersTable() {
             </div>
           </div>
 
-          {renderSelectFilter('Role', roleFilter, setRoleFilter, availableRoles, isLoadingRoles)}
           {renderSelectFilter('Area', areaFilter, setAreaFilter, availableAreas, isLoadingLocations)}
           {renderSelectFilter('Region', regionFilter, setRegionFilter, availableRegions, isLoadingLocations)}
 
@@ -439,7 +337,6 @@ export default function SalesOrdersTable() {
             variant="ghost"
             onClick={() => {
               setSearchQuery('');
-              setRoleFilter('all');
               setAreaFilter('all');
               setRegionFilter('all');
             }}
@@ -449,7 +346,6 @@ export default function SalesOrdersTable() {
           </Button>
 
           {locationError && <p className="text-xs text-red-500 w-full mt-2">Location Filter Error: {locationError}</p>}
-          {roleError && <p className="text-xs text-red-500 w-full mt-2">Role Filter Error: {roleError}</p>}
         </div>
 
         <div className="bg-card p-1 rounded-lg border border-border shadow-sm">

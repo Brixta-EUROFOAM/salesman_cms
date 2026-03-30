@@ -1,4 +1,4 @@
-// src/app/dashboard/team-overview/teamTabContent.tsx
+// src/app/dashboard/team-overview/teamOverview.tsx
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ROLE_HIERARCHY } from '@/lib/roleHierarchy';
+import { SUPER_USER_ROLES, ORG_ROLE_WEIGHTS } from '@/lib/roleHierarchy';
 import TeamEditModal, { TeamMember } from '@/app/dashboard/usersAndTeam/teamEdit';
 
 const renderSelectFilter = (
@@ -50,7 +50,10 @@ const renderSelectFilter = (
   </div>
 );
 
-export function TeamTabContent() {
+// Combine super users and standard organizational roles for the filter dropdown
+const allRoles = [...SUPER_USER_ROLES, ...Object.keys(ORG_ROLE_WEIGHTS)];
+
+export function TeamOverview() {
   const [teamData, setTeamData] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,8 +63,6 @@ export function TeamTabContent() {
   const [selectedRole, setSelectedRole] = useState<string>('all');
 
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
-
-  const allRoles = ROLE_HIERARCHY;
 
   // --- API Endpoints ---
   const dataFetchURI = `/api/dashboardPagesAPI/users-and-team/team-overview/dataFetch`;
@@ -98,7 +99,7 @@ export function TeamTabContent() {
       const res = await fetch(currentUserURI);
       if (res.ok) {
         const user = await res.json();
-        setCurrentUserRole(user.role ?? null);
+        setCurrentUserRole(user.orgRole ?? null); 
       }
     } catch (e) {
       console.error('Failed to fetch current user role', e);
@@ -112,14 +113,17 @@ export function TeamTabContent() {
 
 
   // --- 2. Action Handlers (Passed to Modal) ---
-  const handleSaveRole = useCallback(async (userId: number, newRole: string) => {
+  const handleSaveRole = useCallback(async (userId: number, newOrgRole: string, newJobRoles: string[]) => {
     const res = await fetch(editRoleURI, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, newRole }),
+      body: JSON.stringify({ userId, newOrgRole, newJobRoles }),
     });
-    if (!res.ok) throw new Error('Failed to update role');
-    toast.success('User role updated!');
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to update roles');
+    }
+    toast.success('User roles updated!');
     await loadTeamData();
   }, [editRoleURI, loadTeamData]);
 
@@ -172,13 +176,28 @@ export function TeamTabContent() {
     const q = searchQuery.trim().toLowerCase();
     return teamData.filter((member) => {
       if (!q) return true;
-      return member.name.toLowerCase().includes(q) || member.role.toLowerCase().includes(q);
+      const nameMatch = member.name?.toLowerCase().includes(q) || false;
+      const roleMatch = member.orgRole?.toLowerCase().includes(q) || false;
+      return nameMatch || roleMatch;
     });
   }, [teamData, searchQuery]);
 
   const columns: ColumnDef<TeamMember>[] = useMemo(() => [
     { accessorKey: 'name', header: 'Member Name' },
-    { accessorKey: 'role', header: 'Role' },
+    { 
+      accessorKey: 'orgRole', 
+      header: 'Role',
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="font-medium">{row.original.orgRole}</span>
+          {row.original.jobRole && row.original.jobRole.length > 0 && (
+            <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+              {row.original.jobRole.join(', ')}
+            </span>
+          )}
+        </div>
+      )
+    },
     {
       accessorKey: 'managedBy',
       header: 'Manager',

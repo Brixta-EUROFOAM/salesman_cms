@@ -15,8 +15,6 @@ const frontendTrackingSchema = selectJourneyOpsSchema.extend({
   id: z.string(),
   salesmanName: z.string(),
   employeeId: z.string().nullable().optional(),
-  workosOrganizationId: z.string().nullable().optional(),
-  salesmanRole: z.string(),
   area: z.string(),
   region: z.string(),
 
@@ -41,7 +39,6 @@ const frontendTrackingSchema = selectJourneyOpsSchema.extend({
   isActive: z.boolean(),
   destLat: z.number().nullable(),
   destLng: z.number().nullable(),
-  appRole: z.string().nullable().optional(),
 
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -51,11 +48,9 @@ type TrackingRow = InferSelectModel<typeof journeyOps> & {
   userFirstName: string | null;
   userLastName: string | null;
   userEmail: string | null;
-  userRole?: string | null;
   userArea: string | null;
   userRegion: string | null;
   userSalesmanLoginId: string | null;
-  companyWorkosOrgId: string | null;
 };
 
 async function getCachedTracking(companyId: number, startDateParam: string | null, endDateParam: string | null) {
@@ -89,7 +84,6 @@ async function getCachedTracking(companyId: number, startDateParam: string | nul
       userArea: users.area,
       userRegion: users.region,
       userSalesmanLoginId: users.salesmanLoginId,
-      companyWorkosOrgId: companies.workosOrganizationId,
     })
     .from(journeyOps)
     .leftJoin(users, eq(journeyOps.userId, users.id))
@@ -106,11 +100,9 @@ async function getCachedTracking(companyId: number, startDateParam: string | nul
       id: String(row.opId), // Convert BigInt to string to prevent JSON serialization errors
       salesmanName: row.userFirstName && row.userLastName ? `${row.userFirstName} ${row.userLastName}` : row.userEmail || 'Unknown',
       employeeId: row.userSalesmanLoginId ?? null,
-      workosOrganizationId: row.companyWorkosOrgId ?? null,
-      salesmanRole: row.userRole ?? '',
+      
       area: row.userArea ?? '',
       region: row.userRegion ?? '',
-      appRole: row.appRole || payload.appRole,
 
       latitude: Number(payload.latitude) || 0,
       longitude: Number(payload.longitude) || 0,

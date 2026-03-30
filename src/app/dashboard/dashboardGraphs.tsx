@@ -20,22 +20,17 @@ import {
   rawSalesOrderSchema,
 } from './data-format';
 
-// Sales roles
-const SALES_ROLES = ['junior-executive', 'executive', 'senior-executive'] as const;
-type SalesRole = (typeof SALES_ROLES)[number] | 'all';
-
 type SlimUser = {
   id: number;
   firstName: string | null;
   lastName: string | null;
   email: string;
-  role: string;
   salesmanLoginId: string | null;
 };
 
 type UsersApiResponse = {
   users: SlimUser[];
-  currentUser: { role: string; companyName?: string | null; region?: string | null; area?: string | null };
+  currentUser: { companyName?: string | null; region?: string | null; area?: string | null };
 };
 
 // --- Table Columns ---
@@ -143,7 +138,6 @@ const salesOrderColumns: ColumnDef<RawSalesOrderReportRecord>[] = [
 
 // --- Graph Data Types ---
 type GeoTrackingData = { name: string; distance: number };
-type DailyCollectionData = { name: string; collection: number };
 type SalesQuantityData = { name: string; quantity: number };
 
 export default function DashboardGraphs() {
@@ -154,7 +148,6 @@ export default function DashboardGraphs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedRole, setSelectedRole] = useState<SalesRole>('all');
   const [selectedSalesman, setSelectedSalesman] = useState<string | 'all'>('all');
 
   const fetchData = useCallback(async () => {
@@ -220,38 +213,16 @@ export default function DashboardGraphs() {
     fetchData();
   }, [fetchData]);
 
+  // Create a unique list of salesmen based on the fetched records so the dropdown works
   const salesmenList = useMemo(() => {
-    const pool = users.filter(u =>
-      selectedRole === 'all'
-        ? SALES_ROLES.includes(u.role as any)
-        : u.role?.toLowerCase() === selectedRole
-    );
+    const names = new Set<string>();
+    rawGeoTrackingRecords.forEach(r => { if (r.salesmanName) names.add(r.salesmanName); });
+    rawSalesOrders.forEach(r => { if (r.salesmanName) names.add(r.salesmanName); });
+    
+    return Array.from(names).sort().map(name => ({ id: name, name }));
+  }, [rawGeoTrackingRecords, rawSalesOrders]);
 
-    const unique = new Map<string, { id: string; name: string }>();
-    pool.forEach(u => {
-      const name =
-        `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() ||
-        u.email ||
-        u.salesmanLoginId ||
-        `User-${u.id}`;
-      unique.set(name, { id: name, name });
-    });
-
-    return Array.from(unique.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [users, selectedRole]);
-
-  useEffect(() => {
-    if (selectedSalesman !== 'all' && !salesmenList.some(s => s.id === selectedSalesman)) {
-      setSelectedSalesman('all');
-    }
-  }, [salesmenList, selectedSalesman]);
-
-  // Filter & aggregate
-  const roleFilteredDailyReports = useMemo(() => {
-    if (selectedRole === 'all') return rawDailyReports;
-    return rawDailyReports.filter(r => r.role?.toLowerCase() === selectedRole);
-  }, [rawDailyReports, selectedRole]);
-
+  
   const geoGraphData: GeoTrackingData[] = useMemo(() => {
     let filtered = rawGeoTrackingRecords;
     if (selectedSalesman !== 'all') filtered = filtered.filter(r => r.salesmanName === selectedSalesman);
@@ -305,17 +276,6 @@ export default function DashboardGraphs() {
           <CardTitle className="flex flex-wrap gap-3 items-center justify-between">
             <span>Filters</span>
             <div className="flex flex-wrap gap-3">
-              <Select value={selectedRole} onValueChange={v => setSelectedRole(v as SalesRole)}>
-                <SelectTrigger className="w-[220px]">
-                  <SelectValue placeholder="Role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="junior-executive">Junior Executive</SelectItem>
-                  <SelectItem value="executive">Executive</SelectItem>
-                  <SelectItem value="senior-executive">Senior Executive</SelectItem>
-                </SelectContent>
-              </Select>
 
               <Select value={selectedSalesman} onValueChange={setSelectedSalesman}>
                 <SelectTrigger className="w-[260px]">

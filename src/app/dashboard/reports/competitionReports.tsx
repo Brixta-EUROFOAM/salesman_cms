@@ -1,7 +1,7 @@
 // src/app/dashboard/reports/competitionReports.tsx
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -28,11 +28,8 @@ import { selectCompetitionReportSchema } from '../../../../drizzle/zodSchemas';
 // Add the relational fields and type coercions that your API returns
 const extendedCompetitionReportSchema = selectCompetitionReportSchema.extend({
   salesmanName: z.string().optional().catch("Unknown"),
-  // Drizzle's numeric/decimal types often return as strings; coerce it to a number
   avgSchemeCost: z.coerce.number().optional().catch(0),
-  // Handle cases where the API might still be mapping 'reportDate' to 'date'
   date: z.string().optional(),
-  // Remarks is nullable in Drizzle, ensure it falls back gracefully
   remarks: z.string().nullable().optional().transform(val => val || ""),
 });
 

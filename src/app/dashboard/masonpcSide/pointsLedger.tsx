@@ -1,7 +1,7 @@
 // src/app/dashboard/masonpcSide/pointsLedger.tsx
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'sonner';
 import { Search, Loader2 } from 'lucide-react';

@@ -1,7 +1,7 @@
 // src/app/dashboard/masonpcSide/rewardsRedemption.tsx
 'use client';
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'sonner';
 import { Search, Loader2, IndianRupee, Package, CheckCircle, XCircle, Truck, Check, Eye } from 'lucide-react';

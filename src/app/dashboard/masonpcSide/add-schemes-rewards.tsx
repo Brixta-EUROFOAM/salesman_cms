@@ -1,7 +1,7 @@
 // src/components/add-schemes-rewards.tsx
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { Loader2, Plus, Gift, ScrollText } from 'lucide-react';
 

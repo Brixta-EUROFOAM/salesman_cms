@@ -26,9 +26,9 @@ export interface TableMeta {
 export const tablesMetadata: TableMeta[] = [
     {
         id: 'users',
-        title: 'User (Salesman)',
+        title: 'Users',
         icon: User,
-        columns: ['id', 'email', 'firstName', 'lastName', 'role', 'phoneNo', 'address', 'region', 'area', 'isTechnicalRole', 'isActive', 'createdAt']
+        columns: ['id', 'orgRole', 'jobRoles', 'email', 'firstName', 'lastName', 'phoneNo', 'address', 'region', 'area']
     },
     {
         id: 'dealers',
@@ -166,7 +166,7 @@ export const tablesMetadata: TableMeta[] = [
     //     icon: BadgeIndianRupeeIcon,
     //     columns: [
     //         'id', 'userId', 'dealerId', 'dvrId', 'pjpId',
-    //         'salesmanName', 'salesmanRole',
+    //         'salesmanName',
     //         'dealerName', 'dealerType', 'dealerPhone', 'dealerAddress', 'area', 'region',
     //         'orderDate', 'orderPartyName',
     //         'partyPhoneNo', 'partyArea', 'partyRegion', 'partyAddress',
@@ -201,20 +201,20 @@ export const tablesMetadata: TableMeta[] = [
         id: 'salesmanAttendance',
         title: 'Salesman Attendance',
         icon: ClipboardCheck,
-        columns: ['id', 'attendanceDate', 'locationName', 'role', 'inTimeTimestamp', 'outTimeTimestamp', 'inTimeLatitude', 'inTimeLongitude', 'salesmanName', 'salesmanEmail', 'createdAt'],
+        columns: ['id', 'attendanceDate', 'locationName', 'inTimeTimestamp', 'outTimeTimestamp', 'inTimeLatitude', 'inTimeLongitude', 'salesmanName', 'salesmanEmail', 'createdAt'],
     },
     {
         id: 'salesmanLeaveApplications',
         title: 'Leave Applications',
         icon: BandageIcon,
-        columns: ['id', 'leaveType', 'startDate', 'endDate', 'reason', 'status', 'appRole', 'salesmanName', 'salesmanEmail', 'approverName', 'createdAt'],
+        columns: ['id', 'leaveType', 'startDate', 'endDate', 'reason', 'status', 'salesmanName', 'salesmanEmail', 'approverName', 'createdAt'],
     },
     {
         id: 'geoTracking',
         title: 'Salesman GeoTracking',
         icon: MapPin,
         columns: [
-            'id', 'salesmanName', 'salesmanEmail', 'appRole',
+            'id', 'salesmanName', 'salesmanEmail',
             'journeyId', 'recordedAt', 'createdAt', 'latitude', 'longitude', 'totalDistanceTravelled',
             'siteName', 'checkInTime', 'checkOutTime', 'isActive', 'destLat', 'destLng'
         ],
@@ -230,7 +230,7 @@ export const tablesMetadata: TableMeta[] = [
         title: 'TSO Meetings',
         icon: UsersRound,
         columns: [
-            'id', 'creatorName', 'role', 'type', 'date', 'market', 'zone', 'dealerName', 'conductedBy',
+            'id', 'creatorName', 'type', 'date', 'market', 'zone', 'dealerName', 'conductedBy',
             'participantsCount', 'giftType', 'accountJsbJud', 'totalExpenses', 'billSubmitted', 'createdAt', 'updatedAt'
         ],
     },

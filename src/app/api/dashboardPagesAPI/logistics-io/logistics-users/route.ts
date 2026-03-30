@@ -3,7 +3,7 @@ import 'server-only';
 import { NextResponse, NextRequest, connection } from 'next/server';
 import { cacheTag, cacheLife } from 'next/cache';
 import { db } from '@/lib/drizzle';
-import { users, logisticsUsers } from '../../../../../../drizzle';
+import { logisticsUsers } from '../../../../../../drizzle';
 import { eq, and, or, ilike, desc, getTableColumns, count, SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { generateRandomPassword } from '../../users-and-team/users/helpers';

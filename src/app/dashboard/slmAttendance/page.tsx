@@ -1,12 +1,12 @@
 // src/app/dashboard/slmAttendance/page.tsx
 'use client';
 
-import * as React from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { format, addDays } from "date-fns";
+import { format } from "date-fns";
 import { DateRange } from "react-day-picker";
 
 // Import your Shadcn UI components
@@ -36,7 +36,6 @@ import SyncLocationBtn from '@/app/home/customReportGenerator/syncLocationBtn';
 
 const extendedSalesmanAttendanceSchema = selectSalesmanAttendanceSchema.extend({
   salesmanName: z.string().optional().catch("Unknown"),
-  salesmanRole: z.string().optional().catch("N/A"),
   area: z.string().nullable().optional().catch("N/A"),
   region: z.string().nullable().optional().catch("N/A"),
   date: z.string().optional(),
@@ -62,14 +61,10 @@ const extendedSalesmanAttendanceSchema = selectSalesmanAttendanceSchema.extend({
 type SalesmanAttendanceReport = z.infer<typeof extendedSalesmanAttendanceSchema>;
 
 const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-locations`;
-const ROLES_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-roles`;
 
 interface LocationsResponse {
   areas: string[];
   regions: string[];
-}
-interface RolesResponse {
-  roles: string[];
 }
 
 const renderSelectFilter = (
@@ -122,14 +117,11 @@ export default function SlmAttendancePage() {
   const [regionFilter, setRegionFilter] = React.useState('all');
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
 
-  const [availableJobTitles, setAvailableJobTitles] = React.useState<string[]>([]);
   const [availableAreas, setAvailableAreas] = React.useState<string[]>([]);
   const [availableRegions, setAvailableRegions] = React.useState<string[]>([]);
 
   const [isLoadingLocations, setIsLoadingLocations] = React.useState(true);
-  const [isLoadingRoles, setIsLoadingRoles] = React.useState(true);
   const [locationError, setLocationError] = React.useState<string | null>(null);
-  const [roleError, setRoleError] = React.useState<string | null>(null);
 
   const [isViewModalOpen, setIsViewModalOpen] = React.useState(false);
   const [selectedReport, setSelectedReport] = React.useState<SalesmanAttendanceReport | null>(null);
@@ -227,33 +219,13 @@ export default function SlmAttendancePage() {
     }
   }, []);
 
-  const fetchRoles = React.useCallback(async () => {
-    setIsLoadingRoles(true);
-    setRoleError(null);
-    try {
-      const response = await fetch(ROLES_API_ENDPOINT);
-      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-      const data: RolesResponse = await response.json();
-
-      const rolesList = data.roles && Array.isArray(data.roles) ? data.roles.filter(Boolean) : [];
-      setAvailableJobTitles(rolesList.sort());
-
-    } catch (err: any) {
-      console.error('Failed to fetch filter roles:', err);
-      setRoleError('Failed to load Role filters.');
-    } finally {
-      setIsLoadingRoles(false);
-    }
-  }, []);
-
   React.useEffect(() => {
     fetchAttendanceReports();
   }, [fetchAttendanceReports]);
 
   React.useEffect(() => {
     fetchLocations();
-    fetchRoles();
-  }, [fetchLocations, fetchRoles]);
+  }, [fetchLocations]);
 
   const todayStats = React.useMemo(() => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -364,7 +336,6 @@ export default function SlmAttendancePage() {
 
   const salesmanAttendanceColumns: ColumnDef<SalesmanAttendanceReport>[] = [
     { accessorKey: "salesmanName", header: "Salesman" },
-    { accessorKey: "role", header: "Company Role" },
     { accessorKey: "salesmanRole", header: "User Role" },
     {
       id: 'date',
@@ -553,13 +524,12 @@ export default function SlmAttendancePage() {
               </div>
             </div>
 
-            {renderSelectFilter('User Role', jobTitleFilter, setJobTitleFilter, availableJobTitles, isLoadingRoles)}
             {renderSelectFilter('Company Role', companyCategoryFilter, setCompanyCategoryFilter, ['SALES', 'TECHNICAL'], false)}
             {renderSelectFilter('Area', areaFilter, setAreaFilter, availableAreas, isLoadingLocations)}
             {renderSelectFilter('Region (Zone)', regionFilter, setRegionFilter, availableRegions, isLoadingLocations)}
 
           </div>
-          {(locationError || roleError) && <p className="text-xs text-red-500 mt-4 italic">⚠️ Failed to load some filter options.</p>}
+          {(locationError) && <p className="text-xs text-red-500 mt-4 italic">Failed to load some locations.</p>}
         </div>
 
         <div className="bg-card p-1 rounded-lg border border-border shadow-sm">

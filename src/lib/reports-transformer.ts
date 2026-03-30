@@ -1,17 +1,16 @@
 // src/lib/reports-transformer.ts
 import { db } from '@/lib/drizzle';
 import {
-  users, dealers, dailyVisitReports, technicalVisitReports, technicalSites,
+  users, roles, userRoles, dealers, dailyVisitReports, technicalVisitReports, technicalSites,
   salesOrders, permanentJourneyPlans, competitionReports, dailyTasks,
   salesmanAttendance, salesmanLeaveApplications, journeyOps, dealerReportsAndScores,
   ratings, dealerBrandMapping, brands, tsoMeetings, rewards, giftAllocationLogs,
-  masonPcSide, schemesOffers, masonOnScheme, masonsOnMeetings, rewardCategories,
+  masonPcSide, schemesOffers, rewardCategories,
   kycSubmissions, tsoAssignments, bagLifts, rewardRedemptions, pointsLedger, logisticsIO,
   siteAssociatedUsers, siteAssociatedDealers, siteAssociatedMasons
 } from '../../drizzle/schema';
 import { eq, desc, and, or, inArray, getTableColumns, aliasedTable, sql, isNull, notIlike, SQL } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
-import { TSO_AOP_TARGETS } from './Reusable-constants';
 
 // --- HELPERS ---
 
@@ -43,41 +42,73 @@ export const formatDateTimeIST = (date: Date | string | null | undefined): strin
 
 const toNum = (v: any): number | null => (v == null ? null : Number(v));
 
-type FlattenedUserRow = InferSelectModel<typeof users> & {
+// 1. Define the raw row shape explicitly, adding our joined role columns
+type RawUserRow = InferSelectModel<typeof users> & {
   managerFirstName: string | null;
   managerLastName: string | null;
   managerEmail: string | null;
+  orgRole: string | null;
+  jobRole: string | null;
 };
 
 export async function getFlattenedUsers(companyId: number) {
   const reportsToUsers = aliasedTable(users, 'reportsTo');
 
-  const rawUsers: FlattenedUserRow[] = await db
+  // 2. Just type cast the query output using `as RawUserRow[]`
+  const rawUsers = (await db
     .select({
       ...getTableColumns(users),
       managerFirstName: reportsToUsers.firstName,
       managerLastName: reportsToUsers.lastName,
       managerEmail: reportsToUsers.email,
+      orgRole: roles.orgRole,
+      jobRole: roles.jobRole,
     })
     .from(users)
     .leftJoin(reportsToUsers, eq(users.reportsToId, reportsToUsers.id))
+    .leftJoin(userRoles, eq(users.id, userRoles.userId))
+    .leftJoin(roles, eq(userRoles.roleId, roles.id))
     .where(eq(users.companyId, companyId))
-    .orderBy(desc(users.createdAt));
+    .orderBy(desc(users.createdAt))) as RawUserRow[];
 
-  return rawUsers.map((u) => ({
-    id: u.id,
-    email: u.email,
-    firstName: u.firstName || '',
-    lastName: u.lastName || '',
-    role: u.role,
-    phoneNumber: u.phoneNumber ?? null,
-    status: u.status,
-    region: u.region ?? null,
-    area: u.area ?? null,
-    isTechnicalRole: u.isTechnicalRole ?? null,
-    reportsToManagerName: formatUserName({ firstName: u.managerFirstName, lastName: u.managerLastName, email: u.managerEmail }) || null,
-    createdAt: u.createdAt ? new Date(u.createdAt).toISOString() : '',
-  }));
+  // 3. Aggregate the multiple rows per user into a single object
+  const usersMap = new Map<number, any>();
+
+  for (const row of rawUsers) {
+    if (!usersMap.has(row.id)) {
+      usersMap.set(row.id, {
+        ...row,
+        orgRole: row.orgRole || 'Unassigned',
+        jobRoles: new Set<string>(),
+      });
+    }
+    
+    const u = usersMap.get(row.id);
+    if (row.jobRole) { u.jobRoles.add(row.jobRole); }
+    if (row.orgRole && u.orgRole === 'Unassigned') { u.orgRole = row.orgRole; }
+  }
+
+  // 4. Format the final array for CSV/Download
+  return Array.from(usersMap.values()).map((u) => {
+    return {
+      id: u.id,
+      email: u.email,
+      firstName: u.firstName || '',
+      lastName: u.lastName || '',
+      orgRole: u.orgRole, 
+      jobRoles: Array.from(u.jobRoles).join(', '), // Flattens to string for Excel cell
+      phoneNumber: u.phoneNumber ?? null,
+      status: u.status,
+      region: u.region ?? null,
+      area: u.area ?? null, 
+      reportsToManagerName: formatUserName({ 
+        firstName: u.managerFirstName, 
+        lastName: u.managerLastName, 
+        email: u.managerEmail 
+      }) || null,
+      createdAt: u.createdAt ? new Date(u.createdAt).toISOString() : '',
+    };
+  });
 }
 
 export async function getFlattenedDealers(companyId: number) {
@@ -645,7 +676,6 @@ export async function getFlattenedPermanentJourneyPlans(companyId: number) {
       creatorFirstName: createdByUsers.firstName,
       creatorLastName: createdByUsers.lastName,
       creatorEmail: createdByUsers.email,
-      creatorRole: createdByUsers.role,
       dealerName: dealers.name,
       siteName: technicalSites.siteName,
     })
@@ -707,7 +737,6 @@ export async function getFlattenedPermanentJourneyPlans(companyId: number) {
       assignedSalesmanEmail: r.salesmanEmail || '',
       creatorName: formatUserName({ firstName: r.creatorFirstName, lastName: r.creatorLastName, email: r.creatorEmail }),
       creatorEmail: r.creatorEmail || '',
-      createdByRole: r.creatorRole || '',
       dealerName: r.dealerName ?? null,
     };
   });
@@ -815,7 +844,6 @@ export async function getFlattenedSalesmanAttendance(companyId: number) {
   return rawReports.map((r) => ({
     id: r.id,
     locationName: r.locationName,
-    role: r.role || '',
     inTimeImageCaptured: r.inTimeImageCaptured,
     outTimeImageCaptured: r.outTimeImageCaptured,
     inTimeImageUrl: r.inTimeImageUrl ?? null,
@@ -870,7 +898,6 @@ export async function getFlattenedSalesmanLeaveApplication(companyId: number) {
     updatedAt: formatDateTimeIST(r.updatedAt),
     salesmanName: formatUserName({ firstName: r.userFirstName, lastName: r.userLastName, email: r.userEmail }),
     salesmanEmail: r.userEmail || '',
-    appSector: r.appRole,
   }));
 }
 
@@ -962,7 +989,6 @@ export async function getFlattenedGeoTracking(companyId: number) {
       userFirstName: users.firstName,
       userLastName: users.lastName,
       userEmail: users.email,
-      appRole: journeyOps.appRole,
     })
     .from(journeyOps)
     .leftJoin(users, eq(journeyOps.userId, users.id))
@@ -999,7 +1025,6 @@ export async function getFlattenedGeoTracking(companyId: number) {
       isActive: Boolean(p.isActive),
       destLat: p.destLat ? Number(p.destLat) : null,
       destLng: p.destLng ? Number(p.destLng) : null,
-      appSector: op.appRole || p.appRole,
       createdAt: op.createdAt ? new Date(op.createdAt).toISOString() : '',
       updatedAt: op.createdAt ? new Date(op.createdAt).toISOString() : '',
     };

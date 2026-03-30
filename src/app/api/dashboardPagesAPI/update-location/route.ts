@@ -2,7 +2,7 @@
 import 'server-only';
 import { NextRequest, NextResponse, connection } from 'next/server';
 import { db } from '@/lib/drizzle';
-import { users, salesmanAttendance } from '../../../../../drizzle';
+import { salesmanAttendance } from '../../../../../drizzle';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { verifySession } from '@/lib/auth';

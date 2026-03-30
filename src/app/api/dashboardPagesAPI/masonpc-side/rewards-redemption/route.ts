@@ -7,7 +7,6 @@ import { users, rewardRedemptions, rewards, masonPcSide } from '../../../../../.
 import { eq, desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { selectRewardRedemptionSchema } from '../../../../../../drizzle/zodSchemas';
-import { verify } from 'crypto';
 import { verifySession } from '@/lib/auth';
 
 async function getCachedRedemptions(companyId: number) {

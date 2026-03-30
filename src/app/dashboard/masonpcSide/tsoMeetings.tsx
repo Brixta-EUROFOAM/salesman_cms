@@ -7,7 +7,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import {
-  Search, Loader2, Badge as BadgeIcon, XCircle, CheckCircle2,
+  Search, Loader2,
   Eye, User, Calendar, MapPin, Store, Users, ExternalLink,
   Wallet, Gift, Camera, Image as ImageIcon
 } from 'lucide-react';
@@ -27,7 +27,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
   DialogDescription,
   DialogFooter,
@@ -36,19 +35,14 @@ import {
 // API Endpoints
 const TSO_MEETINGS_API_ENDPOINT = `/api/dashboardPagesAPI/masonpc-side/tso-meetings`;
 const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-locations`;
-const ROLES_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-roles`;
 
 interface LocationsResponse {
   areas: string[];
   regions: string[];
 }
-interface RolesResponse {
-  roles: string[];
-}
 
 const extendedMeetingSchema = selectTsoMeetingSchema.loose().extend({
   creatorName: z.string(),
-  role: z.string(),
   area: z.string(),
   region: z.string(),
   meetImageUrl: z.string().nullable().optional(),
@@ -145,20 +139,16 @@ export default function TsoMeetingsPage() {
   // --- Filter States ---
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
   const [areaFilter, setAreaFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('all');
 
   // --- Filter Options States ---
-  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [availableAreas, setAvailableAreas] = useState<string[]>([]);
   const [availableRegions, setAvailableRegions] = useState<string[]>([]);
 
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
-  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
 
   const [locationError, setLocationError] = useState<string | null>(null);
-  const [roleError, setRoleError] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 500);
@@ -167,7 +157,7 @@ export default function TsoMeetingsPage() {
 
   useEffect(() => {
     setPage(0);
-  }, [debouncedSearchQuery, roleFilter, areaFilter, regionFilter]);
+  }, [debouncedSearchQuery, areaFilter, regionFilter]);
 
   // --- Data Fetching Functions ---
   const fetchTsoMeetings = useCallback(async () => {
@@ -179,7 +169,6 @@ export default function TsoMeetingsPage() {
       url.searchParams.append('pageSize', pageSize.toString());
 
       if (debouncedSearchQuery) url.searchParams.append('search', debouncedSearchQuery);
-      if (roleFilter !== 'all') url.searchParams.append('role', roleFilter);
       if (areaFilter !== 'all') url.searchParams.append('area', areaFilter);
       if (regionFilter !== 'all') url.searchParams.append('region', regionFilter);
 
@@ -207,7 +196,7 @@ export default function TsoMeetingsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [router, page, pageSize, debouncedSearchQuery, roleFilter, areaFilter, regionFilter]);
+  }, [router, page, pageSize, debouncedSearchQuery, areaFilter, regionFilter]);
 
   const fetchLocations = useCallback(async () => {
     setIsLoadingLocations(true);
@@ -225,34 +214,17 @@ export default function TsoMeetingsPage() {
     }
   }, []);
 
-  const fetchRoles = useCallback(async () => {
-    setIsLoadingRoles(true);
-    try {
-      const response = await fetch(ROLES_API_ENDPOINT);
-      if (response.ok) {
-        const data: RolesResponse = await response.json();
-        setAvailableRoles(Array.isArray(data.roles) ? data.roles.filter(Boolean) : []);
-      }
-    } catch (err: any) {
-      setRoleError('Failed to load Role filters.');
-    } finally {
-      setIsLoadingRoles(false);
-    }
-  }, []);
-
   useEffect(() => {
     fetchTsoMeetings();
   }, [fetchTsoMeetings]);
 
   useEffect(() => {
     fetchLocations();
-    fetchRoles();
-  }, [fetchLocations, fetchRoles]);
+  }, [fetchLocations]);
 
   // --- Define Columns ---
   const tsoMeetingColumns = useMemo<ColumnDef<TsoMeeting>[]>(() => [
     { accessorKey: "creatorName", header: "Creator" },
-    { accessorKey: "role", header: "Role" },
     {
       accessorKey: "type",
       header: "Type",
@@ -331,7 +303,6 @@ export default function TsoMeetingsPage() {
             </div>
           </div>
 
-          {renderSelectFilter('Role', roleFilter, setRoleFilter, availableRoles, isLoadingRoles)}
           {renderSelectFilter('Area', areaFilter, setAreaFilter, availableAreas, isLoadingLocations)}
           {renderSelectFilter('Region', regionFilter, setRegionFilter, availableRegions, isLoadingLocations)}
 
@@ -339,7 +310,6 @@ export default function TsoMeetingsPage() {
             variant="ghost"
             onClick={() => {
               setSearchQuery('');
-              setRoleFilter('all');
               setAreaFilter('all');
               setRegionFilter('all');
             }}
@@ -348,8 +318,7 @@ export default function TsoMeetingsPage() {
             Clear Filters
           </Button>
 
-          {locationError && <p className="text-xs text-red-500 w-full mt-2">Location Filter Error: {locationError}</p>}
-          {roleError && <p className="text-xs text-red-500 w-full mt-2">Role Filter Error: {roleError}</p>}
+          {locationError && <p className="text-xs text-red-500 w-full mt-2">Location Filter Error: {locationError}</p>};
         </div>
 
         {/* Data Table Section */}
@@ -388,7 +357,7 @@ export default function TsoMeetingsPage() {
                 </Badge>
               </DialogTitle>
               <DialogDescription className="mt-1 flex items-center gap-4 text-xs sm:text-sm">
-                <span className="flex items-center gap-1"><User className="w-3 h-3" /> {selectedReport.creatorName} ({selectedReport.role})</span>
+                <span className="flex items-center gap-1"><User className="w-3 h-3" /> {selectedReport.creatorName}</span>
                 <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatDate(selectedReport.date)}</span>
               </DialogDescription>
             </div>

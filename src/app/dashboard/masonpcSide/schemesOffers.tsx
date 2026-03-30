@@ -1,12 +1,12 @@
 // src/app/dashboard/masonpcSide/schemesOffers.tsx
 'use client';
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import {
-  Search, Loader2, IndianRupee, Plus, Eye,
+  Search, Loader2, IndianRupee, Eye,
 } from 'lucide-react';
 
 // Reusable Components

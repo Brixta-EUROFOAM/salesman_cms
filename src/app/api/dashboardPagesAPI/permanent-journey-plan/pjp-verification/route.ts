@@ -18,7 +18,6 @@ const getISTDate = (date: string | Date | null) => {
 const frontendPJPSchema = selectPermanentJourneyPlanSchema.extend({
     salesmanName: z.string(),
     createdByName: z.string(),
-    createdByRole: z.string().nullable().optional(),
     visitDealerName: z.string().nullable().optional(),
     verificationStatus: z.string(),
     salesmanRegion: z.string().nullable().optional(),
@@ -40,7 +39,6 @@ type PendingPJPRow = InferSelectModel<typeof permanentJourneyPlans> & {
     createdByFirstName: string | null;
     createdByLastName: string | null;
     createdByEmail: string | null;
-    createdByRole: string | null;
     dealerName: string | null;
     siteName: string | null;
 };
@@ -61,7 +59,6 @@ async function getPendingPJPs(companyId: number) {
             createdByFirstName: createdByUsers.firstName,
             createdByLastName: createdByUsers.lastName,
             createdByEmail: createdByUsers.email,
-            createdByRole: createdByUsers.role,
             dealerName: dealers.name,
             siteName: technicalSites.siteName,
         })
@@ -90,7 +87,6 @@ async function getPendingPJPs(companyId: number) {
             ...row,
             salesmanName,
             createdByName,
-            createdByRole: row.createdByRole,
             planDate: getISTDate(row.planDate),
             visitDealerName: visitTargetName,
             verificationStatus: row.verificationStatus ? row.verificationStatus.toUpperCase() : 'PENDING',
