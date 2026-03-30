@@ -91,6 +91,11 @@ export async function PUT(
         updatedAt: new Date()
       };
 
+      // BACKWARD COMPATIBILITY save orgRole into the legacy role column
+      if (orgRole !== undefined) {
+        drizzleUpdateData.role = orgRole;
+      }
+
       let needsEmail = false;
       const payload: any = {
         to: standardData.email || targetUser.email,

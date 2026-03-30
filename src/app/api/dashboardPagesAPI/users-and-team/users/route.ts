@@ -71,7 +71,10 @@ export async function POST(request: NextRequest) {
                 firstName,
                 lastName,
                 phoneNumber,
-                role: orgRole || jobRole,
+
+                // BACKWARD COMPATIBILITY save orgRole to legacy role column
+                role: orgRole || 'junior-executive', 
+
                 region,
                 area,
                 companyId: adminUser.companyId,

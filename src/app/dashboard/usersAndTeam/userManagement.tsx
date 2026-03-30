@@ -44,7 +44,7 @@ interface User {
   lastName: string | null;
   phoneNumber: string | null;
   orgRole: string;
-  jobRoles?: string[];
+  jobRole?: string[];
   region: string | null;
   area: string | null;
   inviteToken: string | null;
@@ -266,7 +266,7 @@ export default function UsersManagement({ adminUser }: Props) {
       lastName: user.lastName || '',
       phoneNumber: user.phoneNumber || '',
       orgRole: user.orgRole || 'junior-executive',
-      jobRole: user.jobRoles || [],
+      jobRole: user.jobRole || [],
       region: user.region || '',
       area: user.area || '',
       isDashboardUser: user.isDashboardUser || false,
@@ -346,7 +346,7 @@ export default function UsersManagement({ adminUser }: Props) {
       header: 'Role',
       cell: ({ row }) => {
         const orgRole = row.original.orgRole;
-        const jobRoles = row.original.jobRoles; 
+        const jobRoles = row.original.jobRole; 
         return (
           <div className="flex flex-col">
             <span className="font-medium text-foreground">{orgRole}</span>

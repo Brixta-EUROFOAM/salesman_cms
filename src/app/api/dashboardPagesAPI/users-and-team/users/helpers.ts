@@ -50,12 +50,12 @@ export async function sendInvitationEmailResend(props: SendEmailProps) {
                 lastName: props.lastName,
                 adminName: props.adminName,
                 companyName: props.companyName || '',
-                role: props.role || 'Team Member', // Added missing role prop
+                role: props.role || 'Team Member', // Injects: "Senior Executive (Technical Sales)"
                 dashboardUrl: props.dashboardUrl,
                 dashboardEmail: props.dashboardEmail,
                 dashboardTempPassword: props.dashboardTempPassword,
                 salesmanLoginId: props.salesmanLoginId,
-                tempPassword: props.salesmanTempPassword || '', // Fixed prop name mapped to InvitationEmail
+                tempPassword: props.salesmanTempPassword || '',
                 techLoginId: props.techLoginId,
                 techTempPassword: props.techTempPassword,
                 adminAppLoginId: props.adminAppLoginId,
