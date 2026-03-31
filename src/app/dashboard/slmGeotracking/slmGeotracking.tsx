@@ -34,13 +34,9 @@ const extendedJourneyOpsSchema = selectJourneyOpsSchema.partial().extend({
   id: z.string().optional(),
   serverSeq: z.coerce.bigint().optional(),
   salesmanName: z.string().nullable().optional().catch("Unknown"),
-  salesmanRole: z.string().nullable().optional().catch("N/A"),
-  role: z.string().nullable().optional().catch("N/A"),
   area: z.string().nullable().optional().catch("N/A"),
   region: z.string().nullable().optional().catch("N/A"),
   employeeId: z.string().nullable().optional(),
-  workosOrganizationId: z.string().nullable().optional(),
-  appRole: z.string().nullable().optional(),
 
   latitude: z.coerce.number().nullable().optional().catch(null),
   longitude: z.coerce.number().nullable().optional().catch(null),
@@ -75,14 +71,10 @@ type DisplayGeoTrack = Omit<GeoTrack, 'id'> &
 };
 
 const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-locations`;
-const ROLES_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-roles`;
 
 interface LocationsResponse {
   areas: string[];
   regions: string[];
-}
-interface RolesResponse {
-  roles: string[];
 }
 
 const renderSelectFilter = (
@@ -125,7 +117,6 @@ export default function SalesmanGeoTrackingPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [roleFilter, setRoleFilter] = useState('all');
   const [areaFilter, setAreaFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('all');
 
@@ -267,18 +258,15 @@ export default function SalesmanGeoTrackingPage() {
         locationType.toLowerCase().includes(lowerCaseSearch) ||
         appSector.toLowerCase().includes(lowerCaseSearch);
 
-      const reportRole = (track.salesmanRole || track.role || '').toString();
-      const roleMatch = roleFilter === 'all' || reportRole.toLowerCase() === roleFilter.toLowerCase();
-
       const reportArea = (track.area || '').toString();
       const areaMatch = areaFilter === 'all' || reportArea.toLowerCase() === areaFilter.toLowerCase();
 
       const reportRegion = (track.region || '').toString();
       const regionMatch = regionFilter === 'all' || reportRegion.toLowerCase() === regionFilter.toLowerCase();
 
-      return matchesSearch && roleMatch && areaMatch && regionMatch;
+      return matchesSearch && areaMatch && regionMatch;
     });
-  }, [tracks, debouncedSearchQuery, roleFilter, areaFilter, regionFilter]);
+  }, [tracks, debouncedSearchQuery, areaFilter, regionFilter]);
 
   const geoStats = useMemo(() => {
     const now = new Date();
@@ -492,7 +480,6 @@ export default function SalesmanGeoTrackingPage() {
               variant="ghost"
               onClick={() => {
                 setSearchQuery('');
-                setRoleFilter('all');
                 setAreaFilter('all');
                 setRegionFilter('all');
                 setDateRange(undefined);

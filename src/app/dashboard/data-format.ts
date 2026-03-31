@@ -6,7 +6,8 @@ import {
   selectDailyVisitReportSchema,
   selectTechnicalVisitReportSchema, 
   selectSalesOrderSchema, 
-  selectCompetitionReportSchema
+  selectSalesmanAttendanceSchema,
+  selectSalesmanLeaveApplicationSchema
 } from '../../../drizzle/zodSchemas';
 
 // ---------------------------------------------------------------------
@@ -32,7 +33,6 @@ export const rawDailyVisitReportSchema = selectDailyVisitReportSchema.extend({
   updatedAt: z.coerce.date(),
   expectedActivationDate: z.coerce.date().nullable().optional(),
   salesmanName: z.string().optional().catch("Unknown"),
-  role: z.string().optional().catch("N/A"),
   dealerName: z.string().nullable().optional(),
   todayCollectionRupees: z.coerce.number().optional().catch(0),
   latitude: z.coerce.number().optional().catch(0),
@@ -60,10 +60,21 @@ export const rawTechnicalVisitReportSchema = selectTechnicalVisitReportSchema.ex
   salesmanName: z.string().optional().catch("Unknown"),
 });
 
-export const rawCompetitionReportSchema = selectCompetitionReportSchema.extend({
-  salesmanName: z.string().optional().catch("Unknown"),
+export const rawAttendanceSchema = selectSalesmanAttendanceSchema.extend({
+  id: z.any().optional(),
+  date: z.string().optional(),
+  attendanceDate: z.string().optional(),
+  inTime: z.string().nullable().optional(),
+  salesmanName: z.string().optional().catch("Unknown")
 });
 
+export const rawLeaveSchema = selectSalesmanLeaveApplicationSchema.extend({
+  id: z.any().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  status: z.string().optional(),
+  salesmanName: z.string().optional().catch("Unknown")
+});
 
 // ---------------------------------------------------------------------
 // 2. Exporting Inferred Types (Ensuring 'id' is strictly a string for Tables)
@@ -72,7 +83,8 @@ export type RawGeoTrackingRecord = Omit<z.infer<typeof rawGeoTrackingSchema>, 'i
 export type RawDailyVisitReportRecord = Omit<z.infer<typeof rawDailyVisitReportSchema>, 'id'> & { id: string };
 export type RawTechnicalVisitReportRecord = Omit<z.infer<typeof rawTechnicalVisitReportSchema>, 'id'> & { id: string };
 export type RawSalesOrderReportRecord = Omit<z.infer<typeof rawSalesOrderSchema>, 'id'> & { id: string };
-export type RawCompetitionReportRecord = Omit<z.infer<typeof rawCompetitionReportSchema>, 'id'> & { id: string };
+export type RawAttendanceRecord = z.infer<typeof rawAttendanceSchema>;
+export type RawLeaveRecord = z.infer<typeof rawLeaveSchema>;
 
 // ---------------------------------------------------------------------
 // 3. Types for Aggregated Graph Data
@@ -100,9 +112,4 @@ export type SalesOrderQuantityData = {
 export type TechnicalConversionData = {
   name: string; // Date or Day
   conversionQuantity: number; // Sum of conversionQuantityValue
-};
-
-export type CompetitionBrandCount = {
-  name: string; // Brand Name
-  count: number;
 };

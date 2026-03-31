@@ -198,7 +198,6 @@ export default function SalesOrdersTable() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
   const [areaFilter, setAreaFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('all');
   const [availableAreas, setAvailableAreas] = useState<string[]>([]);
@@ -218,7 +217,7 @@ export default function SalesOrdersTable() {
 
   useEffect(() => {
     setPage(0);
-  }, [debouncedSearchQuery, roleFilter, areaFilter, regionFilter]);
+  }, [debouncedSearchQuery, areaFilter, regionFilter]);
 
   const fetchSalesOrders = useCallback(async () => {
     setIsLoading(true);
@@ -229,7 +228,6 @@ export default function SalesOrdersTable() {
       url.searchParams.append('pageSize', pageSize.toString());
 
       if (debouncedSearchQuery) url.searchParams.append('search', debouncedSearchQuery);
-      if (roleFilter !== 'all') url.searchParams.append('role', roleFilter);
       if (areaFilter !== 'all') url.searchParams.append('area', areaFilter);
       if (regionFilter !== 'all') url.searchParams.append('region', regionFilter);
 
@@ -269,7 +267,7 @@ export default function SalesOrdersTable() {
     } finally {
       setIsLoading(false);
     }
-  }, [router, page, pageSize, debouncedSearchQuery, roleFilter, areaFilter, regionFilter]);
+  }, [router, page, pageSize, debouncedSearchQuery, areaFilter, regionFilter]);
 
   const fetchLocations = useCallback(async () => {
     setIsLoadingLocations(true);

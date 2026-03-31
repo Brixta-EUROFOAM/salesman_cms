@@ -4,10 +4,11 @@ import { verifySession } from '@/lib/auth';
 import { db } from '@/lib/drizzle';
 import { users } from '../../../drizzle';
 import { eq } from 'drizzle-orm';
-import DashboardGraphs from './dashboardGraphs';
-import SimpleWelcomePage from '@/app/dashboard/welcome/page';
 import { connection } from 'next/server';
 import { redirect } from 'next/navigation';
+import SimpleWelcomePage from '@/app/dashboard/welcome/page';
+import LinearGraphs from './linearGraphs';
+import PieGraphs from './pieGraphs';
 
 const allowedNonAdminRoles = [
   'senior-executive',
@@ -58,7 +59,13 @@ async function DashboardContent() {
     return <SimpleWelcomePage firstName={dbUser.firstName || 'Team Member'} />;
   }
 
-  console.log('DashboardPage: Rendering DashboardGraphs...');
-
-  return <DashboardGraphs />;
+  return (
+    <div className="flex flex-col gap-6 w-full max-w-[1600px] mx-auto">
+      {/* Row 1: Full width Pie Chart component (Chart Left, Legend Right) */}
+      <PieGraphs />
+      
+      {/* Row 2: Performance Filters & 2-Column Linear Graphs */}
+      <LinearGraphs />
+    </div>
+  );
 }

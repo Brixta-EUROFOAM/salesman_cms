@@ -148,7 +148,6 @@ export default function TechnicalVisitReportsPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
   const [areaFilter, setAreaFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('all');
   const [customerTypeFilter, setCustomerTypeFilter] = useState('all');
@@ -167,7 +166,7 @@ export default function TechnicalVisitReportsPage() {
 
   useEffect(() => {
     setPage(0);
-  }, [debouncedSearchQuery, roleFilter, areaFilter, regionFilter, customerTypeFilter]);
+  }, [debouncedSearchQuery, areaFilter, regionFilter, customerTypeFilter]);
 
   const fetchTechnicalReports = React.useCallback(async () => {
     setIsLoading(true);
@@ -212,7 +211,7 @@ export default function TechnicalVisitReportsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [router, page, pageSize, debouncedSearchQuery, roleFilter, areaFilter, regionFilter, customerTypeFilter]);
+  }, [router, page, pageSize, debouncedSearchQuery, areaFilter, regionFilter, customerTypeFilter]);
 
   const fetchLocations = useCallback(async () => {
     setIsLoadingLocations(true);
@@ -498,7 +497,6 @@ export default function TechnicalVisitReportsPage() {
             onClick={() => {
               setSearchQuery('');
               setCustomerTypeFilter('all');
-              setRoleFilter('all');
               setAreaFilter('all');
               setRegionFilter('all');
             }}

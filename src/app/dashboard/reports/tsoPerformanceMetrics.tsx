@@ -1,7 +1,7 @@
 // app/dashboard/reports/tsoPerformanceMetrics.tsx
 'use client';
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ColumnDef } from '@tanstack/react-table';
 import { toast } from 'sonner';
@@ -11,7 +11,7 @@ import { format, startOfMonth } from "date-fns";
 
 import {
     Loader2, Search, Eye, MapPin, User,
-    Activity, Building2, HardHat, Users, Target, Calendar as CalendarIcon
+    Activity, Calendar as CalendarIcon
 } from 'lucide-react';
 
 import { DataTableReusable } from '@/components/data-table-reusable';

@@ -34,7 +34,6 @@ const extendedDailyVisitReportSchema = selectDailyVisitReportSchema.extend({
   updatedAt: z.string().nullable().optional(),
   expectedActivationDate: z.string().nullable().optional(),
   salesmanName: z.string().optional().catch("Unknown"),
-  role: z.string().optional().catch("N/A"),
   area: z.string().optional().catch("N/A"),
   region: z.string().optional().catch("N/A"),
   dealerName: z.string().nullable().optional(),
@@ -53,7 +52,6 @@ type DailyVisitReport = z.infer<typeof extendedDailyVisitReportSchema>;
 
 const extendedTechnicalVisitReportSchema = selectTechnicalVisitReportSchema.extend({
   salesmanName: z.string().optional().catch("Unknown"),
-  role: z.string().optional().catch("N/A"),
   date: z.string().optional(),
   timeSpentinLoc: z.string().nullable().optional(),
   latitude: z.coerce.number().nullable().optional().catch(null),
@@ -72,11 +70,9 @@ const extendedTechnicalVisitReportSchema = selectTechnicalVisitReportSchema.exte
 type TechnicalVisitReport = z.infer<typeof extendedTechnicalVisitReportSchema>;
 
 type LocationsResponse = any;
-type RolesResponse = any;
 
 // --- CONSTANTS & HELPERS ---
 const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-locations`;
-const ROLES_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-roles`;
 
 const DVR_CUSTOMER_TYPES = ['Dealer', 'Sub-Dealer', 'Non-Trade', 'Other'];
 const TVR_CUSTOMER_TYPES = ['IHB/Site', 'Engineer/Architect', 'Contractor/Head Mason', 'Channel Partner(Dealer/Sub-Dealer)', 'Competitor Channel Partner (Dealer/Sub-Dealer)'];
@@ -153,16 +149,13 @@ export default function HybridReportsPage() {
   // Filters State
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
   const [areaFilter, setAreaFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('all');
   const [customerTypeFilter, setCustomerTypeFilter] = useState('all');
 
-  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [availableAreas, setAvailableAreas] = useState<string[]>([]);
   const [availableRegions, setAvailableRegions] = useState<string[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
-  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
 
   const [page, setPage] = useState(0);
   const [pageSize] = useState(500);
@@ -175,7 +168,7 @@ export default function HybridReportsPage() {
 
   useEffect(() => {
     setPage(0);
-  }, [debouncedSearchQuery, roleFilter, areaFilter, regionFilter, customerTypeFilter, activeTab]);
+  }, [debouncedSearchQuery, areaFilter, regionFilter, customerTypeFilter, activeTab]);
 
   useEffect(() => {
     // Reset customer type filter specifically when switching tabs, as the options change completely
@@ -191,7 +184,6 @@ export default function HybridReportsPage() {
       url.searchParams.append('pageSize', pageSize.toString());
 
       if (debouncedSearchQuery) url.searchParams.append('search', debouncedSearchQuery);
-      if (roleFilter !== 'all') url.searchParams.append('role', roleFilter);
       if (areaFilter !== 'all') url.searchParams.append('area', areaFilter);
       if (regionFilter !== 'all') url.searchParams.append('region', regionFilter);
       if (customerTypeFilter !== 'all') url.searchParams.append('customerType', customerTypeFilter);
@@ -229,30 +221,25 @@ export default function HybridReportsPage() {
     } finally {
       setLoading(false);
     }
-  }, [router, page, pageSize, debouncedSearchQuery, roleFilter, areaFilter, regionFilter, customerTypeFilter]);
+  }, [router, page, pageSize, debouncedSearchQuery, areaFilter, regionFilter, customerTypeFilter]);
 
-  const fetchLocationsAndRoles = useCallback(async () => {
+  const fetchLocations = useCallback(async () => {
     try {
-      const [locRes, roleRes] = await Promise.all([
-        fetch(LOCATION_API_ENDPOINT), fetch(ROLES_API_ENDPOINT)
+      const [locRes] = await Promise.all([
+        fetch(LOCATION_API_ENDPOINT),
       ]);
       if (locRes.ok) {
         const data: LocationsResponse = await locRes.json();
         setAvailableAreas(data.areas || []);
         setAvailableRegions(data.regions || []);
       }
-      if (roleRes.ok) {
-        const data: RolesResponse = await roleRes.json();
-        setAvailableRoles(data.roles || []);
-      }
     } finally {
       setIsLoadingLocations(false);
-      setIsLoadingRoles(false);
     }
   }, []);
 
   useEffect(() => { fetchReports(); }, [fetchReports]);
-  useEffect(() => { fetchLocationsAndRoles(); }, [fetchLocationsAndRoles]);
+  useEffect(() => { fetchLocations(); }, [fetchLocations]);
 
   // --- DVR SPECIFIC LOGIC & COLUMNS ---
   const isDealerVisit = (r: DailyVisitReport) => !!r.dealerType;
@@ -267,7 +254,6 @@ export default function HybridReportsPage() {
       cell: ({ row }) => (
         <div className="flex flex-col">
           <span className="font-medium text-sm">{row.original.salesmanName}</span>
-          <span className="text-xs text-muted-foreground">{row.original.role}</span>
         </div>
       ),
     },
@@ -321,7 +307,6 @@ export default function HybridReportsPage() {
       cell: ({ row }) => (
         <div className="flex flex-col">
           <span className="font-medium text-sm">{row.original.salesmanName}</span>
-          <span className="text-xs text-muted-foreground">{row.original.role}</span>
         </div>
       )
     },
@@ -483,8 +468,6 @@ export default function HybridReportsPage() {
           
           {/* Dynamic Customer Type Filter based on Active Tab */}
           {renderSelectFilter('Report Type', customerTypeFilter, setCustomerTypeFilter, activeTab === 'dvr' ? DVR_CUSTOMER_TYPES : TVR_CUSTOMER_TYPES)}
-          
-          {renderSelectFilter('Role', roleFilter, setRoleFilter, availableRoles, isLoadingRoles)}
           {renderSelectFilter('Area', areaFilter, setAreaFilter, availableAreas, isLoadingLocations)}
           {renderSelectFilter('Region', regionFilter, setRegionFilter, availableRegions, isLoadingLocations)}
 
@@ -493,7 +476,6 @@ export default function HybridReportsPage() {
             onClick={() => {
               setSearchQuery('');
               setCustomerTypeFilter('all');
-              setRoleFilter('all');
               setAreaFilter('all');
               setRegionFilter('all');
             }}
@@ -554,7 +536,7 @@ export default function HybridReportsPage() {
                 </div>
               </DialogTitle>
               <DialogDescription className="mt-1 flex items-center gap-4 text-xs sm:text-sm">
-                <span className="flex items-center gap-1"><User className="w-3 h-3" /> {selectedDvr.salesmanName} ({selectedDvr.role})</span>
+                <span className="flex items-center gap-1"><User className="w-3 h-3" /> {selectedDvr.salesmanName}</span>
                 <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {selectedDvr.reportDate}</span>
               </DialogDescription>
             </div>
@@ -637,7 +619,7 @@ export default function HybridReportsPage() {
                 <Badge variant={getTvrCustomerTypeBadgeColor(selectedTvr.customerType)} className="text-sm px-3">{selectedTvr.customerType}</Badge>
               </DialogTitle>
               <DialogDescription className="mt-1 flex items-center gap-4 text-xs sm:text-sm">
-                <span className="flex items-center gap-1"><User className="w-3 h-3" /> {selectedTvr.salesmanName} ({selectedTvr.role})</span>
+                <span className="flex items-center gap-1"><User className="w-3 h-3" /> {selectedTvr.salesmanName}</span>
                 <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {selectedTvr.date}</span>
               </DialogDescription>
             </div>

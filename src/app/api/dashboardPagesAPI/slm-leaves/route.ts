@@ -13,7 +13,6 @@ import { verifySession } from '@/lib/auth';
 
 const frontendLeaveSchema = selectSalesmanLeaveApplicationSchema.extend({
   salesmanName: z.string(),
-  salesmanRole: z.string(),
   area: z.string(),
   region: z.string(),
   startDate: z.string(),
@@ -137,7 +136,6 @@ export async function GET(request: NextRequest) {
     const pageSize = Math.min(Number(searchParams.get('pageSize') ?? 500), 500);
 
     const search = searchParams.get('search');
-    const role = searchParams.get('role');
     const area = searchParams.get('area');
     const region = searchParams.get('region');
     const startDateParam = searchParams.get('startDate');

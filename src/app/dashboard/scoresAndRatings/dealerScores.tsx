@@ -1,7 +1,7 @@
 // app/dashboard/scoresAndRatings/dealerScores.tsx
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { z } from 'zod';
 import { ColumnDef, createColumnHelper } from '@tanstack/react-table';
 import { toast } from 'sonner';

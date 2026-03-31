@@ -13,14 +13,9 @@ import { MapPin } from 'lucide-react';
 import { renderToStaticMarkup } from "react-dom/server";
 import "leaflet/dist/leaflet.css";
 import { useUserLocations } from '@/components/reusable-user-locations';
-import { BASE_URL } from "@/lib/Reusable-constants";
+import { ORG_ROLES } from "@/lib/Reusable-constants";
 
-const roles = [
-  'president', 'senior-general-manager', 'general-manager',
-  'assistant-sales-manager', 'area-sales-manager', 'regional-sales-manager',
-  'senior-manager', 'manager', 'assistant-manager',
-  'senior-executive','executive', 'junior-executive',
-];
+const roles = ORG_ROLES;
 
 // --- Zod Schema Validation ---
 const liveLocationSchema = z.object({

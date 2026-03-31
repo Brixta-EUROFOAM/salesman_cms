@@ -336,7 +336,6 @@ export default function SlmAttendancePage() {
 
   const salesmanAttendanceColumns: ColumnDef<SalesmanAttendanceReport>[] = [
     { accessorKey: "salesmanName", header: "Salesman" },
-    { accessorKey: "salesmanRole", header: "User Role" },
     {
       id: 'date',
       header: 'Report Date',

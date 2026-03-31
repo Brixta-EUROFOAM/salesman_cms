@@ -32,7 +32,6 @@ const frontendAttendanceSchema = selectSalesmanAttendanceSchema.extend({
 
   createdAt: z.string(),
   updatedAt: z.string(),
-  salesmanRole: z.string(),
   area: z.string(),
   region: z.string(),
 });

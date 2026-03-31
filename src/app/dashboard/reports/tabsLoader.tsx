@@ -1,8 +1,9 @@
 // src/app/dashboard/reports/tabsLoader.tsx
 'use client';
 
-import * as React from 'react'; // Import React for useEffect and useState
+import React from 'react'; 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSearchParams } from 'next/navigation';
 import CompetitionReportsPage from './competitionReports';
 import SalesOrdersTable from './salesOrders';
 import DailyVisitReportsPage from './dailyVisitReports';
@@ -32,14 +33,26 @@ export function ReportsTabs({
 
   // 1. State to track hydration completion
   const [isClient, setIsClient] = React.useState(false);
+  const searchParams = useSearchParams();
 
   // 2. Set the client state after mounting
   React.useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Determine the default tab based on permissions
+  // Determine the default tab based on URL params first, then permissions
   const defaultTab = React.useMemo(() => {
+    const requestedTab = searchParams.get('tab');
+    
+    // Map URL friendly strings to your exact TabsTrigger values
+    let mappedTab = "";
+    if (requestedTab === 'salesOrders') mappedTab = 'salesOrderReport';
+    // Add more mappings here if you add deep-links for other tabs in the future
+    
+    // Prioritize the requested tab if the user has permission
+    if (mappedTab === 'salesOrderReport' && canSeeSalesOrders) return 'salesOrderReport';
+
+    // Fallback logic if no valid URL param or lacking permission
     if (canSeeDVR) return "dailyVisitReport";
     if (canSeeTVR) return "technicalVisitReport";
     if (canSeeDvrTvr) return "dvrAndTvr"
@@ -47,7 +60,7 @@ export function ReportsTabs({
     if (canSeeCompetition) return "competitionReport";
     if (canSeeTsoPerformanceMetrics) return "tsoPerformanceMetrics";
     return ""; // Should not happen if canSeeAnyReport is checked in parent
-  }, [canSeeDVR, canSeeTVR, canSeeDvrTvr, canSeeSalesOrders, canSeeCompetition, canSeeTsoPerformanceMetrics]);
+  }, [searchParams, canSeeDVR, canSeeTVR, canSeeDvrTvr, canSeeSalesOrders, canSeeCompetition, canSeeTsoPerformanceMetrics]);
 
 
   // 3. Prevent rendering the component that generates unstable IDs during SSR

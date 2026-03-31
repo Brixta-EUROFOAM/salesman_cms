@@ -1,7 +1,8 @@
 // src/app/dashboard/slmGeotracking/tabsLoader.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, } from 'lucide-react';
 
@@ -17,10 +18,27 @@ interface TabsProps {
 export function GeotrackingTabs({ canSeeGeotracking, canSeeLiveLocation }: TabsProps) {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => setIsMounted(true), []);
+  const searchParams = useSearchParams();
 
   if (!isMounted) return <Loader2 className="w-8 h-8 animate-spin mx-auto mt-10" />;
 
-  const defaultTab = canSeeGeotracking ? "geotracking" : (canSeeLiveLocation ? "live-map" : "");
+  // 1. Get the requested tab from the URL
+  const requestedTab = searchParams.get('tab');
+
+  // 2. Map the URL param to your actual Tabs values
+  let mappedTab = "";
+  if (requestedTab === 'salesmanLiveLocation') mappedTab = 'live-map';
+  if (requestedTab === 'geotracking') mappedTab = 'geotracking';
+
+  // 3. Determine the default tab (prioritize URL if they have permission, otherwise fallback)
+  let defaultTab = "";
+  if (mappedTab === 'live-map' && canSeeLiveLocation) {
+      defaultTab = 'live-map';
+  } else if (mappedTab === 'geotracking' && canSeeGeotracking) {
+      defaultTab = 'geotracking';
+  } else {
+      defaultTab = canSeeGeotracking ? "geotracking" : (canSeeLiveLocation ? "live-map" : "");
+  }
 
   if (!defaultTab) {
       return <div className="p-10 text-center text-muted-foreground">You do not have access to these views.</div>;

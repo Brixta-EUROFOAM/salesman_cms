@@ -62,7 +62,6 @@ export default function SlmLeavesPage() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = React.useState("");
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
-  const [roleFilter, setRoleFilter] = React.useState('all');
   const [areaFilter, setAreaFilter] = React.useState('all');
   const [regionFilter, setRegionFilter] = React.useState('all');
 
@@ -90,7 +89,7 @@ export default function SlmLeavesPage() {
   // Reset page when filters change
   React.useEffect(() => {
     setPage(0);
-  }, [debouncedSearchQuery, roleFilter, areaFilter, regionFilter, dateRange]);
+  }, [debouncedSearchQuery, areaFilter, regionFilter, dateRange]);
 
   const fetchLocations = React.useCallback(async () => {
     setIsLoadingLocations(true);
@@ -123,7 +122,6 @@ export default function SlmLeavesPage() {
       url.searchParams.append('pageSize', pageSize.toString());
 
       if (debouncedSearchQuery) url.searchParams.append('search', debouncedSearchQuery);
-      if (roleFilter !== 'all') url.searchParams.append('role', roleFilter);
       if (areaFilter !== 'all') url.searchParams.append('area', areaFilter);
       if (regionFilter !== 'all') url.searchParams.append('region', regionFilter);
 
@@ -173,7 +171,7 @@ export default function SlmLeavesPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, debouncedSearchQuery, roleFilter, areaFilter, regionFilter, dateRange, router]);
+  }, [page, pageSize, debouncedSearchQuery, areaFilter, regionFilter, dateRange, router]);
 
   React.useEffect(() => {
     fetchLeaveApplications();
@@ -236,7 +234,6 @@ export default function SlmLeavesPage() {
 
   const salesmanLeaveColumns: ColumnDef<SalesmanLeaveApplication>[] = [
     { accessorKey: "salesmanName", header: "Salesman" },
-    { accessorKey: "appRole", header: "App Role",},
     { accessorKey: "leaveType", header: "Leave Type" },
     { accessorKey: "startDate", header: "Start Date" },
     { accessorKey: "endDate", header: "End Date" },

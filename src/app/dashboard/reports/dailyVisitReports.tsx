@@ -63,14 +63,10 @@ const extendedDailyVisitReportSchema = selectDailyVisitReportSchema.extend({
 type DailyVisitReport = z.infer<typeof extendedDailyVisitReportSchema>;
 
 const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-locations`;
-const ROLES_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-roles`;
 
 interface LocationsResponse {
   areas: string[];
   regions: string[];
-}
-interface RolesResponse {
-  roles: string[];
 }
 
 const CUSTOMER_TYPE_OPTIONS = [
@@ -148,17 +144,13 @@ export default function DailyVisitReportsPage() {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
 
   // Filters state
-  const [roleFilter, setRoleFilter] = useState('all');
   const [areaFilter, setAreaFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('all');
   const [customerTypeFilter, setCustomerTypeFilter] = useState('all');
   const [pjpStatusFilter, setPjpStatusFilter] = useState('all');
-
-  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [availableAreas, setAvailableAreas] = useState<string[]>([]);
   const [availableRegions, setAvailableRegions] = useState<string[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
-  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
 
   const [page, setPage] = useState(0);
   const [pageSize] = useState(500);
@@ -178,7 +170,7 @@ export default function DailyVisitReportsPage() {
 
   useEffect(() => {
     setPage(0);
-  }, [debouncedSearchQuery, roleFilter, areaFilter, regionFilter, customerTypeFilter, pjpStatusFilter]);
+  }, [debouncedSearchQuery, areaFilter, regionFilter, customerTypeFilter, pjpStatusFilter]);
 
   const fetchReports = useCallback(async () => {
     setLoading(true);
@@ -188,7 +180,6 @@ export default function DailyVisitReportsPage() {
       url.searchParams.append('pageSize', pageSize.toString());
 
       if (debouncedSearchQuery) url.searchParams.append('search', debouncedSearchQuery);
-      if (roleFilter !== 'all') url.searchParams.append('role', roleFilter);
       if (areaFilter !== 'all') url.searchParams.append('area', areaFilter);
       if (regionFilter !== 'all') url.searchParams.append('region', regionFilter);
       if (customerTypeFilter !== 'all') url.searchParams.append('customerType', customerTypeFilter);
@@ -216,7 +207,7 @@ export default function DailyVisitReportsPage() {
     } finally {
       setLoading(false);
     }
-  }, [router, page, pageSize, debouncedSearchQuery, roleFilter, areaFilter, regionFilter, customerTypeFilter, pjpStatusFilter]);
+  }, [router, page, pageSize, debouncedSearchQuery, areaFilter, regionFilter, customerTypeFilter, pjpStatusFilter]);
 
   const fetchLocations = useCallback(async () => {
     setIsLoadingLocations(true);
