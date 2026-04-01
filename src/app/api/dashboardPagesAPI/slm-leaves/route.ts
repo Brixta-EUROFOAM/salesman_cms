@@ -69,8 +69,8 @@ async function getCachedLeaves(
     end.setHours(23, 59, 59, 999);
 
     // Filter by the startDate of the leave overlapping the selected range
-    filters.push(gte(salesmanLeaveApplications.startDate, start.toISOString()));
     filters.push(lte(salesmanLeaveApplications.startDate, end.toISOString()));
+    filters.push(gte(salesmanLeaveApplications.endDate, start.toISOString()));
   }
 
   const whereClause = and(...filters);

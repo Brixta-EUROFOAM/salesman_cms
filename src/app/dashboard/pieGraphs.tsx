@@ -4,12 +4,17 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
-import { CalendarX, UserCheck } from 'lucide-react';
+import { CalendarX, UserCheck, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { RawAttendanceRecord, RawLeaveRecord } from './data-format';
 
 const COLORS = ['#10b981', '#f43f5e', '#f59e0b']; // Present (Emerald), Leave (Rose), Pending (Amber)
+
+// Helper to reliably get current IST date as YYYY-MM-DD
+const getTodayIST = () => {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+};
 
 export default function PieGraphs() {
   const [attendance, setAttendance] = useState<RawAttendanceRecord[]>([]);
@@ -23,7 +28,6 @@ export default function PieGraphs() {
       
       const [attRes, leavesRes] = await Promise.all([
         fetch(`/api/dashboardPagesAPI/slm-attendance?startDate=${todayStr}&endDate=${todayStr}`, { cache: 'no-store' }),
-        // Assuming your leave API can filter by active dates, or we just fetch all recent and filter client-side
         fetch(`/api/dashboardPagesAPI/slm-leaves`, { cache: 'no-store' }) 
       ]);
 
@@ -48,42 +52,53 @@ export default function PieGraphs() {
   }, [fetchData]);
 
   const stats = useMemo(() => {
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const todayDate = new Date();
+    const todayISTStr = getTodayIST();
 
-    // 1. Calculate Present
+    // 1. Calculate Present (Exact Match)
     const presentCount = attendance.filter(a => {
       const d = a.date || a.attendanceDate;
       if (!d) return false;
-      return format(new Date(d), 'yyyy-MM-dd') === todayStr && a.inTime;
+      return d.substring(0, 10) === todayISTStr && a.inTime;
     }).length;
 
-    // 2. Calculate Leaves (Active today & approved)
-    const leaveCount = leaves.filter(l => {
+    // 2. Calculate Approved Leaves (Range Match)
+    const approvedLeaveCount = leaves.filter(l => {
       if (l.status && l.status.toUpperCase() !== 'APPROVED') return false;
       if (!l.startDate || !l.endDate) return false;
       
-      const start = new Date(l.startDate);
-      const end = new Date(l.endDate);
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
-      
-      return todayDate >= start && todayDate <= end;
+      const start = l.startDate.substring(0, 10);
+      const end = l.endDate.substring(0, 10);
+      return todayISTStr >= start && todayISTStr <= end;
     }).length;
 
-    const total = presentCount + leaveCount;
+    // 3. Calculate Pending Leaves (Range Match)
+    const pendingLeaveCount = leaves.filter(l => {
+      if (l.status && l.status.toUpperCase() !== 'PENDING') return false;
+      if (!l.startDate || !l.endDate) return false;
+      
+      const start = l.startDate.substring(0, 10);
+      const end = l.endDate.substring(0, 10);
+      return todayISTStr >= start && todayISTStr <= end;
+    }).length;
+
+    // 4. Calculate Ratios
+    const total = presentCount + approvedLeaveCount + pendingLeaveCount;
     const presentRatio = total === 0 ? 0 : Math.round((presentCount / total) * 100);
-    const leaveRatio = total === 0 ? 0 : Math.round((leaveCount / total) * 100);
+    const approvedRatio = total === 0 ? 0 : Math.round((approvedLeaveCount / total) * 100);
+    const pendingRatio = total === 0 ? 0 : Math.round((pendingLeaveCount / total) * 100);
 
     return {
       presentCount,
-      leaveCount,
+      approvedLeaveCount,
+      pendingLeaveCount,
       total,
       presentRatio,
-      leaveRatio,
+      approvedRatio,
+      pendingRatio,
       chartData: [
         { name: 'Present', value: presentCount, color: COLORS[0] },
-        { name: 'On Leave', value: leaveCount, color: COLORS[1] }
+        { name: 'Approved Leave', value: approvedLeaveCount, color: COLORS[1] },
+        { name: 'Pending Leave', value: pendingLeaveCount, color: COLORS[2] }
       ]
     };
   }, [attendance, leaves]);
@@ -107,7 +122,7 @@ export default function PieGraphs() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={stats.chartData}
+                    data={stats.chartData.filter(entry => entry.value > 0)}
                     cx="50%"
                     cy="50%"
                     innerRadius={70}
@@ -115,7 +130,7 @@ export default function PieGraphs() {
                     paddingAngle={5}
                     dataKey="value"
                   >
-                    {stats.chartData.map((entry, index) => (
+                    {stats.chartData.filter(entry => entry.value > 0).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} stroke="transparent" />
                     ))}
                   </Pie>
@@ -128,8 +143,9 @@ export default function PieGraphs() {
             </div>
 
             {/* Right Part: Legend & Stats */}
-            <div className="w-full md:w-1/2 flex flex-col justify-center space-y-6 md:pl-12 mt-8 md:mt-0">
+            <div className="w-full md:w-1/2 flex flex-col justify-center space-y-4 md:pl-12 mt-8 md:mt-0">
               
+              {/* Present Block */}
               <div className="flex items-center gap-4 p-4 rounded-xl bg-emerald-50 border border-emerald-100">
                 <div className="p-3 bg-emerald-500 rounded-lg text-white">
                   <UserCheck className="w-6 h-6" />
@@ -143,15 +159,30 @@ export default function PieGraphs() {
                 </div>
               </div>
 
+              {/* Approved Leave Block */}
               <div className="flex items-center gap-4 p-4 rounded-xl bg-rose-50 border border-rose-100">
                 <div className="p-3 bg-rose-500 rounded-lg text-white">
                   <CalendarX className="w-6 h-6" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-rose-900 uppercase tracking-wide">On Leave</p>
+                  <p className="text-sm font-semibold text-rose-900 uppercase tracking-wide">Approved Leave</p>
                   <div className="flex items-end gap-2">
-                    <span className="text-3xl font-bold text-rose-700">{stats.leaveCount}</span>
-                    <span className="text-rose-600 font-medium mb-1">({stats.leaveRatio}%)</span>
+                    <span className="text-3xl font-bold text-rose-700">{stats.approvedLeaveCount}</span>
+                    <span className="text-rose-600 font-medium mb-1">({stats.approvedRatio}%)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pending Leave Block */}
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-amber-50 border border-amber-100">
+                <div className="p-3 bg-amber-500 rounded-lg text-white">
+                  <Clock className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-amber-900 uppercase tracking-wide">Pending Leave</p>
+                  <div className="flex items-end gap-2">
+                    <span className="text-3xl font-bold text-amber-700">{stats.pendingLeaveCount}</span>
+                    <span className="text-amber-600 font-medium mb-1">({stats.pendingRatio}%)</span>
                   </div>
                 </div>
               </div>

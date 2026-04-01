@@ -1,7 +1,7 @@
 // src/app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/drizzle';
-import { users, roles, userRoles } from '../../../../../drizzle';
+import { companies, users, roles, userRoles } from '../../../../../drizzle';
 import { eq } from 'drizzle-orm';
 import { encrypt } from '@/lib/auth';
 import { cookies } from 'next/headers';
@@ -17,16 +17,28 @@ export async function POST(request: NextRequest) {
 
     // 1. Find user by Dashboard Login ID
     const userResult = await db
-      .select()
+      .select({
+        user: users,
+        companyName: companies.companyName
+      })
       .from(users)
+      .leftJoin(companies, eq(users.companyId, companies.id))
       .where(eq(users.dashboardLoginId, email))
       .limit(1);
 
-    const user = userResult[0];
+    const row = userResult[0];
+
+    // Immediate null check: if no row is returned, the email doesn't exist
+    if (!row || !row.user) {
+      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+    }
+
+    // Now safely extract the nested objects
+    const user = row.user;
+    const companyName = row.companyName;
 
     // 2. IMMEDIATE SECURITY CHECK
-    // We check existence and password BEFORE trying to fetch roles
-    if (!user || !user.isDashboardUser || user.dashboardHashedPassword !== password) {
+    if (!user.isDashboardUser || user.dashboardHashedPassword !== password) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
@@ -78,7 +90,10 @@ export async function POST(request: NextRequest) {
     const sessionData = {
       userId: user.id,
       email: user.email,
-      orgRole: primaryOrgRole,           // e.g., 'executive'
+      firstName: user.firstName,   
+      lastName: user.lastName,     
+      companyName: companyName,    
+      orgRole: primaryOrgRole,        // e.g., 'executive', 'general-manager'
       jobRoles: jobRoleNames,        // e.g., ['Sales-Marketing', 'Technical-Sales']
       permissions: allPerms,         // e.g., ['READ', 'WRITE', 'UPDATE']
       companyId: user.companyId,

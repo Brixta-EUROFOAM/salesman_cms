@@ -58,17 +58,7 @@ export default function SignedOutHomePage() {
         {/* Subtle Background Pattern */}
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay pointer-events-none"></div>
         
-        {/* Header */}
-        <div className="relative z-10 flex items-center space-x-3">
-          <Image
-            src="/bestcement.webp"
-            alt="Best Cement Logo"
-            width={48}
-            height={48}
-            className="rounded-lg shadow-lg"
-          />
-          <span className="text-2xl font-bold tracking-tight">Best Cement CMS</span>
-        </div>
+        {/* Header -- implement later*/}
 
         {/* Catchy Hero Content */}
         <div className="relative z-10 max-w-3xl my-12 lg:my-0">

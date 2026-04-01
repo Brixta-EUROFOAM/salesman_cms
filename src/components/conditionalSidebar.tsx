@@ -25,14 +25,38 @@ export function ConditionalSidebar({ children }: ConditionalSidebarProps) {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Fetch current user role using existing users API with query param
+  // MOVE this to the top so we can use it inside the useEffect
+  const hideSidebar = pathname === '/' 
+                    || pathname === '/home' // keep for layout formatting
+                    || pathname === '/dashboard' // keep for layout formatting
+                    || pathname.startsWith('/auth')
+                    || pathname.startsWith('/setup-company')
+                    || pathname.startsWith('/login'); 
+
   useEffect(() => {
+    // STOP the fetch if we are on a public/logged-out page
+    if (hideSidebar) {
+      setLoading(false);
+      return;
+    }
+
+  // Fetch current user role using existing users API with query param
     const fetchCurrentUser = async () => {
       try {
-        const response = await fetch('/api/dashboardPagesAPI/users-and-team/users?current=true', {cache: 'no-store'}); 
+        const response = await fetch('/api/me', { cache: 'no-store' }); 
         if (response.ok) {
-          const data = await response.json();
-          setCurrentUser(data.currentUser);
+          const sessionData = await response.json();
+          
+          // Map the session data directly to your state
+          setCurrentUser({
+            id: sessionData.userId,
+            role: sessionData.orgRole,
+            permissions: sessionData.permissions || [],
+            firstName: sessionData.firstName || '',
+            lastName: sessionData.lastName || '',
+            email: sessionData.email || '',
+            companyName: sessionData.companyName || ''
+          });
         } else {
           console.error('Failed to fetch current user:', response.statusText);
         }
@@ -43,18 +67,9 @@ export function ConditionalSidebar({ children }: ConditionalSidebarProps) {
       }
     };
     fetchCurrentUser();
-  }, []);
-  
-  // Don't show sidebar on home page, landing page, or auth pages
-  const hideSidebar = pathname === '/home' 
-                    || pathname === '/' 
-                    //|| pathname === '/home/cemtemChat'
-                    || pathname.startsWith('/auth')
-                    || pathname.startsWith('/setup-company')
-                    || pathname.startsWith('/dashboard')
-                    || pathname.startsWith('/home')
-                    || pathname.startsWith('/login'); 
-  
+  }, [hideSidebar]);
+
+  // Return early if sidebar is hidden
   if (hideSidebar) {
     return <>{children}</>;
   }

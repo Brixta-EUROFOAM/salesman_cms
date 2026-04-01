@@ -21,11 +21,6 @@ interface Props {
   permissions: string[]; // New: ['READ', 'WRITE', 'UPDATE']
 }
 
-interface CompanyInfo {
-  companyName: string;
-  adminName: string;
-}
-
 interface MenuItem {
   title: string;
   url?: string;
@@ -134,26 +129,32 @@ const menuItems: MenuItem[] = [
 ]
 
 export function AppSidebar({ userRole, permissions = [] }: Props) {
-  const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  const apiURI = `/api/company`;
+  const [userName, setUserName] = useState<string>("Loading...");
+  const [companyName, setCompanyName] = useState<string>("Loading...");
 
+  // Fetch data directly on mount
   useEffect(() => {
-    const fetchCompanyInfo = async () => {
+    const fetchSidebarData = async () => {
       try {
-        setLoading(true);
-        const response = await fetch(apiURI);
-        const data = await response.json();
-        setCompanyInfo(data);
+        const response = await fetch('/api/me', { cache: 'no-store' });
+        if (response.ok) {
+          const data = await response.json();
+          setCompanyName(data.companyName || "Company Name");
+          const fullName = `${data.firstName || ''} ${data.lastName || ''}`.trim();
+          setUserName(fullName || "User Name");
+        } else {
+          setCompanyName("Session Expired");
+          setUserName("");
+        }
       } catch (error) {
-        console.error("Failed to fetch company info", error);
-      } finally {
-        setLoading(false);
+        console.error("Failed to fetch sidebar info:", error);
+        setCompanyName("Error");
+        setUserName("");
       }
     };
 
-    fetchCompanyInfo();
+    fetchSidebarData();
   }, []);
 
   // Filter based on the 'permissions' array from the DB
@@ -198,20 +199,16 @@ export function AppSidebar({ userRole, permissions = [] }: Props) {
       <SidebarContent>
         <SidebarHeader>
           <div className="flex items-center space-x-2">
-            {/*<div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-              <Building2 className="size-4" />
-            </div>*/}
-            {/* This replaces the <div> with the Building2 icon */}
             <Image
               src="/bestcement.webp"
-              alt={companyInfo?.companyName || 'Company Logo'}
-              width={32}  // Corresponds to your 'size-8' class (8 * 4px)
-              height={32} // Corresponds to your 'size-8' class
-              className="rounded-lg object-cover" // Keeps it rounded and ensures the image fills the space
+              alt={companyName}
+              width={32}
+              height={32}
+              className="rounded-lg object-cover"
             />
             <div>
-              <div className="text-sm font-bold">{companyInfo?.companyName}</div>
-              <div className="text-xs text-gray-500">{companyInfo?.adminName}</div>
+              <div className="text-sm font-bold">{companyName}</div>
+              <div className="text-xs text-gray-500">{userName}</div>
             </div>
           </div>
         </SidebarHeader>
