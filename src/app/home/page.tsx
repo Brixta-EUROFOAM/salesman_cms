@@ -57,7 +57,7 @@ async function HomeContent() {
                 </div>
 
                 {/*Quick Navigate Cards */}
-                <body className="mb-16">
+                <body>
                     <h2 className="text-xl font-semibold tracking-tight mb-4">Quick Navigate</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
                         
