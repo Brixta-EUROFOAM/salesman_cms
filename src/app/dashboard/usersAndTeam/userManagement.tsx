@@ -167,10 +167,21 @@ export default function UsersManagement({ adminUser }: Props) {
       });
 
       if (response.ok) {
-        await fetchUsers();
-        setEditingUser(null);
-        resetForm();
-        setSuccess('User updated successfully');
+        const data = await response.json();
+        await fetchUsers(); // Refresh background data
+        
+        // Check if new credentials were generated during this edit
+        const hasCredentials = data.credentials && Object.values(data.credentials).some(val => !!val);
+
+        if (hasCredentials) {
+          // Show the success screen with new passwords!
+          setUpdatedCredentials(data.credentials);
+        } else {
+          // No new access granted, just close the modal
+          setEditingUser(null);
+          resetForm();
+          setSuccess('User updated successfully');
+        }
       } else {
         const errorData = await response.json();
         setError(errorData.error || 'Failed to update user');

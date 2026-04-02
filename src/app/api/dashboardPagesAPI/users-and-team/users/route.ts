@@ -180,7 +180,17 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             message: 'User created and credentials delivered successfully',
-            user: newUser
+            user: newUser,
+            credentials: {
+                dashboardEmail: emailPayload.dashboardEmail,
+                dashboardPassword: emailPayload.dashboardTempPassword,
+                salesmanId: emailPayload.salesmanLoginId,
+                salesmanPassword: emailPayload.salesmanTempPassword,
+                techId: emailPayload.techLoginId,
+                techPassword: emailPayload.techTempPassword,
+                adminId: emailPayload.adminAppLoginId,
+                adminPassword: emailPayload.adminAppTempPassword
+            }
         }, { status: 201 });
 
     } catch (error: any) {

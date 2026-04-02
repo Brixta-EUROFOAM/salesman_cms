@@ -6,12 +6,16 @@ import { DataTableReusable } from '@/components/data-table-reusable';
 import { ColumnDef } from '@tanstack/react-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react'; 
+import { Loader2 } from 'lucide-react';
 import { GlobalFilterBar } from '@/components/global-filter-bar';
 import { useDebounce } from '@/hooks/use-debounce-search';
 import TeamEditModal, { TeamMember } from '@/app/dashboard/usersAndTeam/teamEdit';
 
-export function TeamOverview() {
+interface TeamOverviewProps {
+  currentUserRole: string | null;
+}
+
+export function TeamOverview({ currentUserRole }: TeamOverviewProps) {
   const [teamData, setTeamData] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,15 +28,12 @@ export function TeamOverview() {
   const [zoneFilters, setZoneFilters] = useState<string[]>([]);
   const [areaFilters, setAreaFilters] = useState<string[]>([]);
 
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
-
   // --- API Endpoints ---
   const dataFetchURI = `/api/dashboardPagesAPI/users-and-team/team-overview/dataFetch`;
   const editRoleURI = `/api/dashboardPagesAPI/users-and-team/team-overview/editRole`;
   const editMappingURI = `/api/dashboardPagesAPI/users-and-team/team-overview/editMapping`;
   const editDealerMappingURI = `/api/dashboardPagesAPI/users-and-team/team-overview/editDealerMapping`;
   const editMasonMappingURI = `/api/dashboardPagesAPI/users-and-team/team-overview/editMasonMapping`;
-  const currentUserURI = `/api/dashboardPagesAPI/users-and-team/users`;
 
   // --- 1. Data Loading ---
   const loadTeamData = useCallback(async () => {
@@ -54,22 +55,9 @@ export function TeamOverview() {
     }
   }, [dataFetchURI]);
 
-  const fetchCurrentUser = useCallback(async () => {
-    try {
-      const res = await fetch(currentUserURI);
-      if (res.ok) {
-        const user = await res.json();
-        setCurrentUserRole(user.orgRole ?? null); 
-      }
-    } catch (e) {
-      console.error('Failed to fetch current user role', e);
-    }
-  }, [currentUserURI]);
-
   useEffect(() => {
-    fetchCurrentUser();
     loadTeamData();
-  }, [fetchCurrentUser, loadTeamData]);
+  }, [loadTeamData]);
 
 
   // --- 2. Action Handlers (Passed to Modal) ---
@@ -102,8 +90,8 @@ export function TeamOverview() {
       toast.success('Hierarchy updated!');
       await loadTeamData();
     } catch (err: any) {
-      toast.error(err.message); 
-      throw err; 
+      toast.error(err.message);
+      throw err;
     }
   }, [editMappingURI, loadTeamData]);
 
@@ -158,11 +146,11 @@ export function TeamOverview() {
   const filteredData = useMemo(() => {
     return teamData.filter(member => {
       const fullName = (member.name || '').toLowerCase();
-      const search = debouncedSearch.toLowerCase(); 
+      const search = debouncedSearch.toLowerCase();
       const matchesSearch = !debouncedSearch || fullName.includes(search);
 
       const matchesRole = roleFilter === 'all' || member.orgRole === roleFilter;
-      
+
       // Defensively checking region/area in case TeamMember doesn't expose them cleanly
       const memberRegion = (member as any).region;
       const memberArea = (member as any).area;
@@ -178,8 +166,8 @@ export function TeamOverview() {
   // --- 5. Column Definitions ---
   const columns: ColumnDef<TeamMember>[] = useMemo(() => [
     { accessorKey: 'name', header: 'Member Name' },
-    { 
-      accessorKey: 'orgRole', 
+    {
+      accessorKey: 'orgRole',
       header: 'Role',
       cell: ({ row }) => (
         <div className="flex flex-col">
@@ -242,7 +230,7 @@ export function TeamOverview() {
       <CardContent>
 
         {/* --- Unified Global Filter Bar --- */}
-        <GlobalFilterBar 
+        <GlobalFilterBar
           showSearch={true}
           showRole={true}
           showZone={true}

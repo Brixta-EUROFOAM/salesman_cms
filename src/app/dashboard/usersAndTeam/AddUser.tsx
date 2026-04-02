@@ -85,17 +85,19 @@ export function AddUserDialog({ onSuccess, onError, onRefresh }: AddUserProps) {
       const data = await response.json();
 
       if (response.ok) {
-        let successMsg = `User ${formData.firstName} created successfully!`;
-        if (formData.isDashboardUser || formData.isSalesAppUser || formData.isTechnicalRole || formData.isAdminAppUser) {
-          successMsg += ` Credentials have been sent to ${formData.email}.`;
-        } else {
-          successMsg += ` No app access was granted.`;
-        }
+        // Check if any credentials were actually generated and returned
+        const hasCredentials = data.credentials && Object.values(data.credentials).some(val => !!val);
 
-        onSuccess(successMsg);
-        onRefresh();
-        setOpen(false);
-        resetForm();
+        if (hasCredentials) {
+          // Show the success screen with passwords!
+          setCreatedCredentials(data.credentials);
+        } else {
+          // No access granted, just close the modal
+          onSuccess(`User ${formData.firstName} created successfully.`);
+          onRefresh();
+          setOpen(false);
+          resetForm();
+        }
       } else {
         onError(data.error || 'Failed to create user');
       }

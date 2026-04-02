@@ -11,7 +11,7 @@ import UsersManagement from './userManagement';
 
 interface TabsProps {
   adminUser: any;
-  canSeeUsers: any; 
+  canSeeUsers: any;
   canSeeTeamView: boolean;
 }
 
@@ -29,14 +29,14 @@ export function UsersAndTeamTabs({ adminUser, canSeeUsers, canSeeTeamView }: Tab
       </TabsList>
 
       {canSeeUsers && (
-      <TabsContent value="users">
-        <UsersManagement adminUser={adminUser} />
-      </TabsContent>
+        <TabsContent value="users">
+          <UsersManagement adminUser={adminUser} />
+        </TabsContent>
       )}
 
       {canSeeTeamView && (
         <TabsContent value="team">
-          <TeamOverview />
+          <TeamOverview currentUserRole={adminUser.orgRole} />
         </TabsContent>
       )}
     </Tabs>

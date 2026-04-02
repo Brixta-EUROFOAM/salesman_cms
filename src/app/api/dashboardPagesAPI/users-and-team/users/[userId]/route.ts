@@ -229,7 +229,20 @@ export async function PUT(
       await sendInvitationEmailResend(emailPayload);
     }
 
-    return NextResponse.json({ message: 'User updated successfully', user: updatedUser });
+    return NextResponse.json({ 
+      message: 'User updated successfully', 
+      user: updatedUser,
+      credentials: {
+         dashboardEmail: emailPayload.dashboardEmail,
+         dashboardPassword: emailPayload.dashboardTempPassword,
+         salesmanId: emailPayload.salesmanLoginId,
+         salesmanPassword: emailPayload.salesmanTempPassword,
+         techId: emailPayload.techLoginId,
+         techPassword: emailPayload.techTempPassword,
+         adminId: emailPayload.adminAppLoginId,
+         adminPassword: emailPayload.adminAppTempPassword
+      }
+    });
 
   } catch (error: any) {
     console.error('Update Error:', error);
