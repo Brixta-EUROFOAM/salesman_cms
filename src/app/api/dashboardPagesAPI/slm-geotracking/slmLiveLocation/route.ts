@@ -1,11 +1,12 @@
 // src/app/api/dashboardPagesAPI/slm-geotracking/slmLiveLocation/route.ts
 import 'server-only';
-import { NextRequest, NextResponse } from 'next/server';
+import { connection, NextRequest, NextResponse } from 'next/server';
 
 // FIREBASE URL HERE (Do not include a trailing slash)
 const FIREBASE_DB_URL = "https://bestauthotp-default-rtdb.asia-southeast1.firebasedatabase.app";
 
 export async function GET(request: NextRequest) {
+  await connection();
   try {
     // 1. Fetch the raw JSON from Firebase. 
     // We MUST use 'no-store' so Next.js doesn't cache the GPS coordinates!

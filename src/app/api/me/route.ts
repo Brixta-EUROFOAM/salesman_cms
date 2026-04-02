@@ -1,9 +1,10 @@
 // src/app/api/me/route.ts
 import 'server-only';
-import { NextResponse } from 'next/server';
+import { NextResponse, connection } from 'next/server';
 import { verifySession } from '@/lib/auth';
 
 export async function GET() {
+  await connection();
   try {
     const session = await verifySession();
 
