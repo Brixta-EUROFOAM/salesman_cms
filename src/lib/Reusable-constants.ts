@@ -31,6 +31,11 @@ export const TSO_AOP_TARGETS = {
   technicalMeet: 5,
 };
 
+export const SO_AOP_TARGETS = {
+  dealerVisits: 100,
+  subDealerVisits: 200,
+};
+
 export const ORG_ROLES = [ //fixed
   'Admin', 'Manager', 'Assistant-Manager',  
   'chief-managing-director', 'director', 'president', 

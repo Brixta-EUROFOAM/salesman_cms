@@ -1,4 +1,4 @@
-// app/dashboard/reports/tsoPerformanceMetrics.tsx
+// app/dashboard/reports/soPerformanceMetrics.tsx
 'use client';
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
@@ -10,7 +10,7 @@ import { DateRange } from "react-day-picker";
 import { format, startOfMonth } from "date-fns";
 
 import {
-    Loader2, Eye, MapPin, User, Activity
+    Loader2, Eye, MapPin, User, Activity, Store
 } from 'lucide-react';
 
 import { DataTableReusable } from '@/components/data-table-reusable';
@@ -36,7 +36,7 @@ const metricNode = z.object({
     pct: z.number(),
 });
 
-const tsoPerformanceMetricSchema = z.object({
+const soPerformanceMetricSchema = z.object({
     id: z.union([z.string(), z.number()]),
     userId: z.number().nullable().optional(),
     salesmanName: z.string().catch("Unknown"),
@@ -44,22 +44,15 @@ const tsoPerformanceMetricSchema = z.object({
     area: z.string().nullable().optional().catch(""),
     totalVisits: z.coerce.number().catch(0),
     metrics: z.object({
-        siteVisitNew: metricNode,
-        siteVisitOld: metricNode,
-        dealerRetailer: metricNode,
-        siteConversion: metricNode,
-        volumeConvertedMT: metricNode,
-        influencerVisits: metricNode,
-        enrollmentLifting: metricNode,
-        siteServiceSlab: metricNode,
-        technicalMeet: metricNode,
+        dealerVisits: metricNode,
+        subDealerVisits: metricNode,
     }),
 });
 
-type TsoPerformanceMetric = z.infer<typeof tsoPerformanceMetricSchema>;
+type SoPerformanceMetric = z.infer<typeof soPerformanceMetricSchema>;
 
 // --- API Endpoints ---
-const API_ENDPOINT = `/api/dashboardPagesAPI/reports/tso-performance-metrics`;
+const API_ENDPOINT = `/api/dashboardPagesAPI/reports/so-performance-metrics`;
 const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-locations`;
 
 interface LocationsResponse {
@@ -90,12 +83,12 @@ const MetricProgressCard = ({ title, data, colorClass = "bg-primary" }: { title:
     </Card>
 );
 
-export default function TsoPerformanceMetricsPage() {
+export default function SoPerformanceMetricsPage() {
     const router = useRouter();
-    const [metrics, setMetrics] = useState<TsoPerformanceMetric[]>([]);
+    const [metrics, setMetrics] = useState<SoPerformanceMetric[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const [selectedMetric, setSelectedMetric] = useState<TsoPerformanceMetric | null>(null);
+    const [selectedMetric, setSelectedMetric] = useState<SoPerformanceMetric | null>(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
     // --- Standardized Filter State ---
@@ -129,18 +122,13 @@ export default function TsoPerformanceMetricsPage() {
 
             if (debouncedSearchQuery) url.searchParams.append('search', debouncedSearchQuery);
 
-            // Join arrays for multi-select
             if (areaFilters.length > 0) url.searchParams.append('area', areaFilters.join(','));
             if (zoneFilters.length > 0) url.searchParams.append('region', zoneFilters.join(','));
 
-            // --- Parse DateRange for API ---
-            if (dateRange?.from) {
-                url.searchParams.append('startDate', format(dateRange.from, "yyyy-MM-dd"));
-            }
+            if (dateRange?.from) url.searchParams.append('startDate', format(dateRange.from, "yyyy-MM-dd"));
             if (dateRange?.to) {
                 url.searchParams.append('endDate', format(dateRange.to, "yyyy-MM-dd"));
             } else if (dateRange?.from) {
-                // If only "from" is selected, filter strictly for that day
                 url.searchParams.append('endDate', format(dateRange.from, "yyyy-MM-dd"));
             }
 
@@ -148,32 +136,24 @@ export default function TsoPerformanceMetricsPage() {
 
             const response = await fetch(url.toString(), {
                 cache: 'no-store',
-                headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                }
+                headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
             });
 
             const result = await response.json();
-
-            const rawData: TsoPerformanceMetric[] = result.data || [];
+            const rawData: SoPerformanceMetric[] = result.data || [];
             setTotalCount(result.totalCount || 0);
 
             const validatedData = rawData.map((item, index) => {
                 try {
-                    const itemWithId = {
-                        ...item,
-                        id: item.userId ? String(item.userId) : `row-fallback-${index}`
-                    };
-                    return tsoPerformanceMetricSchema.parse(itemWithId);
+                    const itemWithId = { ...item, id: item.userId ? String(item.userId) : `row-fallback-${index}` };
+                    return soPerformanceMetricSchema.parse(itemWithId);
                 } catch (e) {
-                    console.error("Validation error:", item, e);
                     return null;
                 }
-            }).filter(Boolean) as TsoPerformanceMetric[];
+            }).filter(Boolean) as SoPerformanceMetric[];
 
             setMetrics(validatedData);
-            toast.success("Metrics loaded successfully!");
+            toast.success("SO Metrics loaded successfully!");
         } catch (error: any) {
             toast.error(`Failed to load: ${error.message}`);
         } finally {
@@ -186,14 +166,7 @@ export default function TsoPerformanceMetricsPage() {
         try {
             const url = new URL(LOCATION_API_ENDPOINT, window.location.origin);
             url.searchParams.append('_t', Date.now().toString());
-
-            const response = await fetch(url.toString(), {
-                cache: 'no-store',
-                headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                }
-            });
+            const response = await fetch(url.toString(), { cache: 'no-store' });
             if (response.ok) {
                 const data: LocationsResponse = await response.json();
                 setAvailableAreas(data.areas || []);
@@ -202,23 +175,17 @@ export default function TsoPerformanceMetricsPage() {
         } finally { setIsLoadingLocations(false); }
     }, []);
 
-    useEffect(() => {
-        fetchMetrics();
-    }, [fetchMetrics]);
+    useEffect(() => { fetchMetrics(); }, [fetchMetrics]);
+    useEffect(() => { fetchLocations(); }, [fetchLocations]);
 
-    useEffect(() => {
-        fetchLocations();
-    }, [fetchLocations]);
-
-    // --- Map raw string arrays to `{ label, value }` Options ---
     const zoneOptions = useMemo(() => availableRegions.sort().map(r => ({ label: r, value: r })), [availableRegions]);
     const areaOptions = useMemo(() => availableAreas.sort().map(a => ({ label: a, value: a })), [availableAreas]);
 
     // --- Table Columns ---
-    const columns = useMemo<ColumnDef<TsoPerformanceMetric>[]>(() => [
+    const columns = useMemo<ColumnDef<SoPerformanceMetric>[]>(() => [
         {
             accessorKey: "salesmanName",
-            header: "TSO Name",
+            header: "SO Name",
             cell: ({ row }) => (
                 <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm">{row.original.salesmanName}</span>
@@ -245,51 +212,40 @@ export default function TsoPerformanceMetricsPage() {
             )
         },
         {
-            id: "siteVisits",
-            header: "Site Visits",
-            cell: ({ row }) => {
-                const totalSiteVisits = row.original.metrics.siteVisitNew.mtd + row.original.metrics.siteVisitOld.mtd;
-                return <span className="font-medium text-muted-foreground">{totalSiteVisits}</span>;
-            }
-        },
-        {
             id: "dealerVisits",
             header: "Dealer Visits",
-            cell: ({ row }) => <span className="font-medium text-muted-foreground">{row.original.metrics.dealerRetailer.mtd}</span>
-        },
-        {
-            id: "influencerVisits",
-            header: "Influencer Visits",
-            cell: ({ row }) => <span className="font-medium text-muted-foreground">{row.original.metrics.influencerVisits.mtd}</span>
-        },
-        {
-            id: "volumeConvertedMT",
-            header: "Vol. Converted (Bags)",
             cell: ({ row }) => (
                 <div className="flex flex-col">
-                    <span className="font-medium text-foreground">
-                        {row.original.metrics.volumeConvertedMT.mtd}
-                    </span>
+                    <span className="font-medium text-muted-foreground">{row.original.metrics.dealerVisits.mtd}</span>
                 </div>
             )
         },
         {
-            id: "actions",
-            header: "Actions",
+            id: "subDealerVisits",
+            header: "Sub-Dealer Visits",
             cell: ({ row }) => (
-                <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300 h-8 px-2 shadow-sm"
-                    onClick={() => {
-                        setSelectedMetric(row.original);
-                        setIsViewModalOpen(true);
-                    }}
-                >
-                    <Eye className="h-3.5 w-3.5 mr-1" /> View Breakdown
-                </Button>
-            ),
+                <div className="flex flex-col">
+                    <span className="font-medium text-muted-foreground">{row.original.metrics.subDealerVisits.mtd}</span>
+                </div>
+            )
         },
+        // {
+        //     id: "actions",
+        //     header: "Actions",
+        //     cell: ({ row }) => (
+        //         <Button
+        //             variant="outline"
+        //             size="sm"
+        //             className="text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300 h-8 px-2 shadow-sm"
+        //             onClick={() => {
+        //                 setSelectedMetric(row.original);
+        //                 setIsViewModalOpen(true);
+        //             }}
+        //         >
+        //             <Eye className="h-3.5 w-3.5 mr-1" /> View Breakdown
+        //         </Button>
+        //     ),
+        // },
     ], []);
 
     return (
@@ -297,36 +253,28 @@ export default function TsoPerformanceMetricsPage() {
             <div className="flex-1 space-y-6 p-4 md:p-8 pt-6 w-full">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <h2 className="text-3xl font-bold tracking-tight">TSO Performance Metrics</h2>
+                        <h2 className="text-3xl font-bold tracking-tight">SO Performance Metrics</h2>
                         <Badge variant="outline" className="text-base px-4 py-1">
                             Active Personnel: {totalCount}
                         </Badge>
                     </div>
-
-                    <RefreshDataButton
-                        cachePrefix="tso-performance-metrics"
-                        onRefresh={fetchMetrics}
-                    />
+                    <RefreshDataButton cachePrefix="so-performance-metrics" onRefresh={fetchMetrics} />
                 </div>
 
-                {/* --- Unified Global Filter Bar --- */}
                 <div className="w-full">
                     <GlobalFilterBar
                         showSearch={true}
-                        showRole={false}
                         showZone={true}
                         showArea={true}
                         showDateRange={true}
+                        showRole={false}
                         showStatus={false}
-
                         searchVal={searchQuery}
                         dateRangeVal={dateRange}
                         zoneVals={zoneFilters}
                         areaVals={areaFilters}
-
                         zoneOptions={zoneOptions}
                         areaOptions={areaOptions}
-
                         onSearchChange={setSearchQuery}
                         onDateRangeChange={setDateRange}
                         onZoneChange={setZoneFilters}
@@ -334,23 +282,17 @@ export default function TsoPerformanceMetricsPage() {
                     />
                 </div>
 
-                {/* Data Table */}
                 <div className="bg-card p-1 rounded-lg border border-border shadow-sm">
                     {isLoading ? (
                         <div className="flex justify-center items-center h-64">
                             <Loader2 className="w-8 h-8 animate-spin text-primary" />
                         </div>
                     ) : (
-                        <DataTableReusable
-                            columns={columns}
-                            data={metrics}
-                            enableRowDragging={false}
-                        />
+                        <DataTableReusable columns={columns} data={metrics} enableRowDragging={false} />
                     )}
                 </div>
             </div>
 
-            {/* View Details Modal */}
             {selectedMetric && (
                 <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
                     <DialogContent className="sm:max-w-[600px] p-0 gap-0 bg-background">
@@ -358,10 +300,10 @@ export default function TsoPerformanceMetricsPage() {
                             <DialogTitle className="text-xl flex items-center justify-between">
                                 <span className="flex items-center gap-2">
                                     <Activity className="w-5 h-5 text-primary" />
-                                    Performance Breakdown
+                                    SO Breakdown
                                 </span>
                                 <Badge variant="default" className="text-sm px-3">
-                                    {selectedMetric.totalVisits} Total Visits
+                                    {selectedMetric.totalVisits} Total DVRs
                                 </Badge>
                             </DialogTitle>
                             <DialogDescription className="mt-1 flex items-center gap-4 text-sm">
@@ -372,23 +314,10 @@ export default function TsoPerformanceMetricsPage() {
 
                         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
                             <div>
-                                <h3 className="text-sm font-bold text-muted-foreground mb-4 uppercase tracking-wider">Site & Field Activities</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                    <MetricProgressCard title="New Site Visits" data={selectedMetric.metrics.siteVisitNew} colorClass="bg-blue-500" />
-                                    <MetricProgressCard title="Old Site Visits" data={selectedMetric.metrics.siteVisitOld} colorClass="bg-blue-400" />
-                                    <MetricProgressCard title="Dealer/Retailer" data={selectedMetric.metrics.dealerRetailer} colorClass="bg-amber-500" />
-                                    <MetricProgressCard title="Influencer / Architect" data={selectedMetric.metrics.influencerVisits} colorClass="bg-emerald-500" />
-                                    <MetricProgressCard title="Technical Meet / Canopy" data={selectedMetric.metrics.technicalMeet} colorClass="bg-purple-500" />
-                                    <MetricProgressCard title="Site Service" data={selectedMetric.metrics.siteServiceSlab} colorClass="bg-indigo-500" />
-                                </div>
-                            </div>
-
-                            <div>
-                                <h3 className="text-sm font-bold text-muted-foreground mb-4 uppercase tracking-wider">Business Impact</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <MetricProgressCard title="Site Conversions" data={selectedMetric.metrics.siteConversion} colorClass="bg-green-600" />
-                                    <MetricProgressCard title="Vol. Converted (Bags)" data={selectedMetric.metrics.volumeConvertedMT} colorClass="bg-green-500" />
-                                    {/* <MetricProgressCard title="Mason Enroll / Lift" data={selectedMetric.metrics.enrollmentLifting} colorClass="bg-orange-500" /> */}
+                                <h3 className="text-sm font-bold text-muted-foreground mb-4 uppercase tracking-wider flex items-center gap-2"><Store className="w-4 h-4"/> Channel Visits</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <MetricProgressCard title="Dealer Visits" data={selectedMetric.metrics.dealerVisits} colorClass="bg-amber-500" />
+                                    <MetricProgressCard title="Sub-Dealer Visits" data={selectedMetric.metrics.subDealerVisits} colorClass="bg-blue-500" />
                                 </div>
                             </div>
                         </div>

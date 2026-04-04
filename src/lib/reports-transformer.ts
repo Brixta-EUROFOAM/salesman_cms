@@ -434,6 +434,68 @@ export async function getFlattenedTsoPerformanceMetrics(
   });
 }
 
+export async function getFlattenedSoPerformanceMetrics(
+  companyId: number,
+  startDate?: Date,
+  endDate?: Date
+) {
+
+  // Normalize to DATE STRINGS
+  let startStr: string;
+  let endStr: string;
+
+  if (!startDate || !endDate) {
+    const now = new Date();
+
+    startStr = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toLocaleDateString('en-CA'); // YYYY-MM-DD
+
+    endStr = now.toLocaleDateString('en-CA');
+  } else {
+    startStr = startDate.toLocaleDateString('en-CA');
+    endStr = endDate.toLocaleDateString('en-CA');
+  }
+
+  const endOfDay = new Date(endStr);
+  endOfDay.setHours(23, 59, 59, 999);
+  
+  const filters: (SQL | undefined)[] = [
+    eq(users.companyId, companyId),
+    and(
+      sql`${dailyVisitReports.reportDate} >= ${startStr}`,
+      sql`${dailyVisitReports.reportDate} <= ${endOfDay.toISOString()}`
+    )
+  ];
+
+  const rawData = await db
+    .select({
+      userId: users.id,
+      salesmanName: sql<string>`COALESCE(NULLIF(TRIM(CONCAT(${users.firstName}, ' ', ${users.lastName})), ''), ${users.email})`,
+      region: users.region,
+      area: users.area,
+      totalVisits: sql<number>`CAST(COUNT(${dailyVisitReports.id}) AS INTEGER)`,
+      dealerVisits: sql<number>`CAST(SUM(CASE WHEN ${dailyVisitReports.dealerType} ILIKE 'Dealer%' THEN 1 ELSE 0 END) AS INTEGER)`,
+      subDealerVisits: sql<number>`CAST(SUM(CASE WHEN ${dailyVisitReports.dealerType} ILIKE 'Sub%Dealer%' THEN 1 ELSE 0 END) AS INTEGER)`,
+    })
+    .from(dailyVisitReports)
+    .leftJoin(users, eq(dailyVisitReports.userId, users.id))
+    .where(and(...filters))
+    .groupBy(users.id, users.firstName, users.lastName, users.email, users.region, users.area)
+    .orderBy(desc(sql`COUNT(${dailyVisitReports.id})`));
+
+  return rawData.map((r) => {
+    return {
+      userId: r.userId ?? null,
+      salesmanName: r.salesmanName || 'Unknown',
+      region: r.region || '',
+      area: r.area || '',
+      totalVisits: r.totalVisits || 0,
+      dealerVisits: r.dealerVisits || 0,
+      subDealerVisits: r.subDealerVisits || 0,
+    };
+  });
+}
+
 export async function getFlattenedKamrupDvrs(companyId: number) {
   const subDealers = aliasedTable(dealers, 'subDealers');
   const kamrupAreaFilter = inArray(users.area, ['Kamrup-TSO', 'Kamrup TSO']);
@@ -1546,6 +1608,7 @@ export const transformerMap = {
   dailyVisitReports: getFlattenedDailyVisitReports,
   technicalVisitReports: getFlattenedTechnicalVisitReports,
   tsoPerformanceMetrics: getFlattenedTsoPerformanceMetrics,
+  soPerformanceMetrics: getFlattenedSoPerformanceMetrics,
   technicalSites: getFlattenedTechnicalSites,
   kamrupTsoDvrs: getFlattenedKamrupDvrs,
   kamrupTsoTvrs: getFlattenedKamrupTvrs,

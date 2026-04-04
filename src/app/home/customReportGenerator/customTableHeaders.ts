@@ -5,10 +5,10 @@ import {
     CalendarCheck, PencilRuler, MapPin,
     Construction, UsersRound, Gift, HandCoins, ScrollText, ClipboardPen,
     Building2, ShoppingBag,
-    Truck,
     ListChecks,
     ClipboardPenLine,
-    Activity
+    Activity,
+    Store
 } from 'lucide-react';
 
 export interface TableColumn {
@@ -124,9 +124,18 @@ export const tablesMetadata: TableMeta[] = [
             'userId', 'salesmanName', 'region', 'area',
             'totalVisits', 'siteVisitsNew', 'siteVisitsOld', 
             'dealerVisits', 'influencerVisits', 'siteConversion', 
-            'volumeConvertedMT', 'enrollmentLifting', 'siteServiceSlab', 'technicalMeet'
+            'volumeConvertedMT(Bags)', 'enrollmentLifting', 'siteServiceSlab', 'technicalMeet'
         ]
     },
+    // {
+    //     id: 'soPerformanceMetrics',
+    //     title: 'SO Metrics (Current Month|1st -> today)',
+    //     icon: Store, 
+    //     columns: [
+    //         'userId', 'salesmanName', 'region', 'area',
+    //         'totalVisits', 'dealerVisits', 'subDealerVisits'
+    //     ]
+    // },
     {
         id: 'technicalSites',
         title: 'Technical Sites',
@@ -293,19 +302,19 @@ export const tablesMetadata: TableMeta[] = [
             'memo', 'sourceDescription', 'createdAt'
         ],
     },
-    {
-        id: 'logisticsIO',
-        title: 'Logistics Operations (Gate/WB/Store)',
-        icon: Truck,
-        columns: [
-            'id', 'sourceName', 'zone', 'district', 'destination', 'purpose', 'typeOfMaterials', 'vehicleNumber', 'noOfInvoice',
-            'invoiceNos', 'billNos', 'storeDate', 'storeTime',
-            'doOrderDate', 'doOrderTime', 'gateInDate', 'gateInTime',
-            'wbInDate', 'wbInTime', 'wbOutDate', 'wbOutTime',
-            'gateOutDate', 'gateOutTime', 'gateOutNoOfInvoice', 'gateOutInvoiceNos', 'gateOutBillNos',
-            'createdAt', 'updatedAt'
-        ],
-    },
+    // {
+    //     id: 'logisticsIO',
+    //     title: 'Logistics Operations (Gate/WB/Store)',
+    //     icon: Truck,
+    //     columns: [
+    //         'id', 'sourceName', 'zone', 'district', 'destination', 'purpose', 'typeOfMaterials', 'vehicleNumber', 'noOfInvoice',
+    //         'invoiceNos', 'billNos', 'storeDate', 'storeTime',
+    //         'doOrderDate', 'doOrderTime', 'gateInDate', 'gateInTime',
+    //         'wbInDate', 'wbInTime', 'wbOutDate', 'wbOutTime',
+    //         'gateOutDate', 'gateOutTime', 'gateOutNoOfInvoice', 'gateOutInvoiceNos', 'gateOutBillNos',
+    //         'createdAt', 'updatedAt'
+    //     ],
+    // },
     // {
     //   id: 'schemesOffers',
     //   title: 'Schemes & Offers',

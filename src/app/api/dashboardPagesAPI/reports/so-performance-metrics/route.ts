@@ -1,0 +1,173 @@
+// src/app/api/dashboardPagesAPI/reports/so-performance-metrics/route.ts
+import 'server-only';
+import { connection, NextResponse, NextRequest } from 'next/server';
+import { cacheTag, cacheLife } from 'next/cache';
+import { db } from '@/lib/drizzle';
+import { users, dailyVisitReports } from '../../../../../../drizzle';
+import { eq, desc, and, or, ilike, SQL, sql, gte, lte } from 'drizzle-orm';
+import { z } from 'zod';
+import { SO_AOP_TARGETS } from '@/lib/Reusable-constants';
+import { verifySession } from '@/lib/auth';
+
+// Reusable schema for the metric nodes
+const metricNode = z.object({
+    aop: z.number(),
+    mtd: z.number(),
+    pct: z.number(),
+});
+
+// Custom Zod schema for the aggregated metrics
+const soPerformanceMetricSchema = z.object({
+    userId: z.number().nullable(),
+    salesmanName: z.string(),
+    region: z.string().nullable(),
+    area: z.string().nullable(),
+    totalVisits: z.number(),
+    metrics: z.object({
+        dealerVisits: metricNode,
+        subDealerVisits: metricNode,
+    })
+});
+
+async function getCachedSoPerformanceMetrics(
+    companyId: number,
+    page: number,
+    pageSize: number,
+    search: string | null,
+    area: string | null,
+    region: string | null,
+    startDate: string | null,
+    endDate: string | null
+) {
+    'use cache';
+    cacheLife('hours');
+    cacheTag(`so-performance-metrics-${companyId}`);
+
+    const filterKey = `${search}-${area}-${region}-${startDate}-${endDate}`;
+    cacheTag(`so-performance-metrics-${companyId}-${page}-${filterKey}`);
+
+    const filters: (SQL | undefined)[] = [eq(users.companyId, companyId)];
+
+    if (search) {
+        const searchCondition = or(
+            ilike(users.firstName, `%${search}%`),
+            ilike(users.lastName, `%${search}%`),
+            ilike(users.area, `%${search}%`),
+            ilike(users.region, `%${search}%`)
+        );
+        if (searchCondition) filters.push(searchCondition);
+    }
+
+    if (area) filters.push(eq(users.area, area));
+    if (region) filters.push(eq(users.region, region));
+
+    if (startDate) {
+        filters.push(gte(dailyVisitReports.reportDate, startDate));
+    }
+    if (endDate) {
+        const endOfDay = new Date(endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        filters.push(lte(dailyVisitReports.reportDate, endOfDay.toISOString()));
+    }
+
+    const whereClause = and(...filters);
+
+    // Group by User to aggregate metric counts per SO based on daily_visit_reports
+    const rawResults = await db
+        .select({
+            userId: users.id,
+            salesmanName: sql<string>`COALESCE(NULLIF(TRIM(CONCAT(${users.firstName}, ' ', ${users.lastName})), ''), ${users.email})`,
+            region: users.region,
+            area: users.area,
+            totalVisits: sql<number>`CAST(COUNT(${dailyVisitReports.id}) AS INTEGER)`,
+            dealerVisits: sql<number>`CAST(SUM(CASE WHEN ${dailyVisitReports.dealerType} ILIKE 'Dealer%' THEN 1 ELSE 0 END) AS INTEGER)`,
+            subDealerVisits: sql<number>`CAST(SUM(CASE WHEN ${dailyVisitReports.dealerType} ILIKE 'Sub%Dealer%' THEN 1 ELSE 0 END) AS INTEGER)`,
+        })
+        .from(dailyVisitReports)
+        .leftJoin(users, eq(dailyVisitReports.userId, users.id))
+        .where(whereClause)
+        .groupBy(users.id, users.firstName, users.lastName, users.email, users.region, users.area)
+        .orderBy(desc(sql`COUNT(${dailyVisitReports.id})`))
+        .limit(pageSize)
+        .offset(page * pageSize);
+
+    const totalCountQuery = await db
+        .select({ userId: users.id })
+        .from(dailyVisitReports)
+        .leftJoin(users, eq(dailyVisitReports.userId, users.id))
+        .where(whereClause)
+        .groupBy(users.id);
+
+    const totalCount = totalCountQuery.length;
+
+    const calcPct = (mtd: number, aop: number) => aop > 0 ? Math.round((mtd / aop) * 100) : 0;
+
+    const results = rawResults.map((r) => ({
+        userId: r.userId,
+        salesmanName: r.salesmanName,
+        region: r.region,
+        area: r.area,
+        totalVisits: r.totalVisits,
+        metrics: {
+            dealerVisits: { aop: SO_AOP_TARGETS.dealerVisits, mtd: r.dealerVisits || 0, pct: calcPct(r.dealerVisits || 0, SO_AOP_TARGETS.dealerVisits) },
+            subDealerVisits: { aop: SO_AOP_TARGETS.subDealerVisits, mtd: r.subDealerVisits || 0, pct: calcPct(r.subDealerVisits || 0, SO_AOP_TARGETS.subDealerVisits) },
+        }
+    }));
+
+    return { data: results, totalCount };
+}
+
+export async function GET(request: NextRequest) {
+    if (typeof connection === 'function') await connection();
+
+    try {
+        const session = await verifySession();
+        if (!session || !session.userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        if (!session.permissions.includes("READ")) {
+            return NextResponse.json({ error: 'Forbidden: READ access required' }, { status: 403 });
+        }
+
+        const { searchParams } = new URL(request.url);
+        const page = Number(searchParams.get('page') ?? 0);
+        const pageSize = Math.min(Number(searchParams.get('pageSize') ?? 100), 500);
+
+        const search = searchParams.get('search');
+        const area = searchParams.get('area');
+        const region = searchParams.get('region');
+
+        let startDate = searchParams.get('startDate');
+        let endDate = searchParams.get('endDate');
+
+        if (!startDate || !endDate) {
+            const now = new Date();
+            // 1st day of current month
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            // Last day of current month
+            const lastDay = new Date();
+            lastDay.setHours(23, 59, 59, 999);
+
+            startDate = startDate || firstDay.toISOString();
+            endDate = endDate || lastDay.toISOString();
+        }
+
+        const result = await getCachedSoPerformanceMetrics(
+            session.companyId, page, pageSize, search, area, region, startDate, endDate
+        );
+
+        const validated = z.array(soPerformanceMetricSchema).safeParse(result.data);
+
+        return NextResponse.json({
+            data: validated.success ? validated.data : result.data,
+            totalCount: result.totalCount,
+            page,
+            pageSize,
+        });
+    } catch (error) {
+        return NextResponse.json(
+            { message: 'Failed to fetch SO performance metrics', error: (error as Error).message },
+            { status: 500 }
+        );
+    }
+}

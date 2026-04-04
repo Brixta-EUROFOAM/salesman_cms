@@ -10,6 +10,7 @@ import DailyVisitReportsPage from './dailyVisitReports';
 import TechnicalVisitReportsPage from './technicalVisitReports';
 import HybridReportsPage from './dvrAndTvr';
 import TsoPerformanceMetricsPage from './tsoPerformanceMetrics';
+import SoPerformanceMetricsPage from './soPerformanceMetrics';
 
 // This component receives the permissions as props
 // from the server component (page.tsx)
@@ -20,6 +21,7 @@ interface ReportsTabsProps {
   canSeeSalesOrders: boolean;
   canSeeCompetition: boolean;
   canSeeTsoPerformanceMetrics: boolean;
+  canSeeSoPerformanceMetrics: boolean;
 }
 
 export function ReportsTabs({
@@ -28,7 +30,8 @@ export function ReportsTabs({
   canSeeDvrTvr,
   canSeeSalesOrders,
   canSeeCompetition,
-  canSeeTsoPerformanceMetrics
+  canSeeTsoPerformanceMetrics,
+  canSeeSoPerformanceMetrics
 }: ReportsTabsProps) {
 
   // 1. State to track hydration completion
@@ -59,8 +62,9 @@ export function ReportsTabs({
     if (canSeeSalesOrders) return "salesOrderReport";
     if (canSeeCompetition) return "competitionReport";
     if (canSeeTsoPerformanceMetrics) return "tsoPerformanceMetrics";
+    if (canSeeSoPerformanceMetrics) return "soPerformanceMetrics";
     return ""; // Should not happen if canSeeAnyReport is checked in parent
-  }, [searchParams, canSeeDVR, canSeeTVR, canSeeDvrTvr, canSeeSalesOrders, canSeeCompetition, canSeeTsoPerformanceMetrics]);
+  }, [searchParams, canSeeDVR, canSeeTVR, canSeeDvrTvr, canSeeSalesOrders, canSeeCompetition, canSeeTsoPerformanceMetrics, canSeeSoPerformanceMetrics]);
 
 
   // 3. Prevent rendering the component that generates unstable IDs during SSR
@@ -88,6 +92,9 @@ export function ReportsTabs({
         )}
         {canSeeTsoPerformanceMetrics && (
           <TabsTrigger value="tsoPerformanceMetrics">TSO Metrics</TabsTrigger>
+        )}
+        {canSeeSoPerformanceMetrics && (
+          <TabsTrigger value="soPerformanceMetrics">SO Metrics</TabsTrigger>
         )}
         {canSeeSalesOrders && (
           <TabsTrigger value="salesOrderReport">Sales Orders</TabsTrigger>
@@ -117,6 +124,11 @@ export function ReportsTabs({
       {canSeeTsoPerformanceMetrics && (
         <TabsContent value="tsoPerformanceMetrics" className="space-y-4">
           <TsoPerformanceMetricsPage />
+        </TabsContent>
+      )}
+      {canSeeSoPerformanceMetrics && (
+        <TabsContent value="soPerformanceMetrics" className="space-y-4">
+          <SoPerformanceMetricsPage />
         </TabsContent>
       )}
       {canSeeSalesOrders && (

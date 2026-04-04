@@ -38,8 +38,9 @@ export async function ReportsDynamicContent() {
   const canSeeSalesOrders = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
   const canSeeCompetition = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
   const canSeeTsoPerformanceMetrics = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
+  const canSeeSoPerformanceMetrics = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
 
-  const canSeeAnyReport = canSeeDVR || canSeeTVR || canSeeSalesOrders || canSeeCompetition || canSeeTsoPerformanceMetrics;
+  const canSeeAnyReport = canSeeDVR || canSeeTVR || canSeeSalesOrders || canSeeCompetition || canSeeTsoPerformanceMetrics || canSeeSoPerformanceMetrics;
 
   // 3. Handle users who can't see anything
   if (!canSeeAnyReport) {
@@ -64,6 +65,7 @@ export async function ReportsDynamicContent() {
         canSeeSalesOrders={canSeeSalesOrders}
         canSeeCompetition={canSeeCompetition}
         canSeeTsoPerformanceMetrics={canSeeTsoPerformanceMetrics}
+        canSeeSoPerformanceMetrics={canSeeSoPerformanceMetrics}
       />
     </div>
   );
