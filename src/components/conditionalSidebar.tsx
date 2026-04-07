@@ -14,9 +14,11 @@ interface CurrentUser {
   id: number;
   role: string; // Now 'Admin', 'manager', etc.
   permissions: string[]; // ['READ', 'WRITE', 'UPDATE']
+  jobRoles: string[];
   firstName: string;
   lastName: string;
   email: string;
+  companyId?: number;
   companyName: string;
 }
 
@@ -52,6 +54,7 @@ export function ConditionalSidebar({ children }: ConditionalSidebarProps) {
             id: sessionData.userId,
             role: sessionData.orgRole,
             permissions: sessionData.permissions || [],
+            jobRoles: sessionData.jobRoles || [],
             firstName: sessionData.firstName || '',
             lastName: sessionData.lastName || '',
             email: sessionData.email || '',
@@ -92,6 +95,8 @@ export function ConditionalSidebar({ children }: ConditionalSidebarProps) {
       <AppSidebar 
         userRole={currentUser?.role || 'junior-executive'} 
         permissions={currentUser?.permissions || []}
+        jobRoles={currentUser?.jobRoles || []}
+        companyId={currentUser?.companyId}
       />
       <main className="flex-1 w-full">
         {children}

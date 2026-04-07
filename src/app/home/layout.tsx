@@ -138,6 +138,7 @@ export async function AuthenticatedHomeLayout({
       company={mappedUser.company}
       role={primaryRoleDisplay}
       permissions={hydratedPermissions}
+      jobRoles={userJobRoles}
     >
       {children}
     </HomeShell>
