@@ -130,15 +130,15 @@ export const tablesMetadata: TableMeta[] = [
             'volumeConvertedMT(Bags)', 'enrollmentLifting', 'siteServiceSlab', 'technicalMeet'
         ]
     },
-    // {
-    //     id: 'soPerformanceMetrics',
-    //     title: 'SO Metrics (Current Month|1st -> today)',
-    //     icon: Store, 
-    //     columns: [
-    //         'userId', 'salesmanName', 'region', 'area',
-    //         'totalVisits', 'dealerVisits', 'subDealerVisits'
-    //     ]
-    // },
+    {
+        id: 'soPerformanceMetrics',
+        title: 'SO Metrics (Current Month|1st -> today)',
+        icon: Store, 
+        columns: [
+            'userId', 'salesmanName', 'region', 'area',
+            'totalVisits', 'dealerVisits', 'subDealerVisits'
+        ]
+    },
     {
         id: 'technicalSites',
         title: 'Technical Sites',
