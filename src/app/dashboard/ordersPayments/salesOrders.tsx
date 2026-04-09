@@ -196,7 +196,7 @@ export default function SalesOrdersTable() {
     setIsLoading(true);
     setError(null);
     try {
-      const url = new URL(`/api/dashboardPagesAPI/reports/sales-orders`, window.location.origin);
+      const url = new URL(`/api/dashboardPagesAPI/orders-payments/sales-orders`, window.location.origin);
       url.searchParams.append('page', page.toString());
       url.searchParams.append('pageSize', pageSize.toString());
 
@@ -235,7 +235,6 @@ export default function SalesOrdersTable() {
       })) as SalesOrder[];
 
       setData(validatedOrders);
-      toast.success("Sales orders loaded successfully!");
     } catch (error) {
       console.error('Fetch error:', error);
       toast.error((error as Error).message);
