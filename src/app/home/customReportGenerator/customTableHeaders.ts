@@ -55,7 +55,7 @@ export const tablesMetadata: TableMeta[] = [
         title: 'Daily Visit Reports',
         icon: CalendarCheck,
         columns: [
-            'id', 'reportDate', 'salesmanName', 'salesmanEmail', 'dealerType', 'dealerName', 'subDealerName', 'pjpStatus', 'unplannedVisit',
+            'id', 'reportDate', 'salesmanName', 'salesmanEmail', 'area', 'region', 'dealerType', 'dealerName', 'subDealerName', 'pjpStatus', 'unplannedVisit',
             'location', 'latitude', 'longitude', 'visitType', 'dealerTotalPotential', 'dealerBestPotential',
             'brandSelling', 'contactPerson', 'contactPersonPhoneNo', 'todayOrderMt',
             'todayCollectionRupees', 'overdueAmount', 'feedbacks',
@@ -69,7 +69,7 @@ export const tablesMetadata: TableMeta[] = [
         title: 'Kamrup-TSO DVRs',
         icon: ClipboardPen,
         columns: [
-            'sourceReport', 'id', 'reportDate', 'pjpStatus', 'salesmanName', 'salesmanEmail',
+            'sourceReport', 'id', 'reportDate', 'pjpStatus', 'salesmanName', 'salesmanEmail', 'area', 'region',
             'customerType', 'dealerType', 'dealerName', 'subDealerName', 'partyType',
             'nameOfParty', 'contactNoOfParty', 'expectedActivationDate', 'location',
             'latitude', 'longitude', 'visitType', 'dealerTotalPotential', 'dealerBestPotential',

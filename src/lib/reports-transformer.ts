@@ -212,6 +212,8 @@ export async function getFlattenedDailyVisitReports(companyId: number) {
       userFirstName: users.firstName,
       userLastName: users.lastName,
       userEmail: users.email,
+      userArea: users.area,
+      userRegion: users.region,
       dealerName: dealers.name,
       subDealerName: subDealers.name,
     })
@@ -255,6 +257,8 @@ export async function getFlattenedDailyVisitReports(companyId: number) {
       unplannedVisit: unplannedVisitStatus,
 
       location: r.location ?? null,
+      area: r.userArea ?? '',
+      region: r.userRegion ?? '',
       latitude: toNum(r.latitude) || 0,
       longitude: toNum(r.longitude) || 0,
       visitType: r.visitType ?? null,
@@ -548,6 +552,8 @@ export async function getFlattenedKamrupDvrs(companyId: number) {
       userFirstName: users.firstName,
       userLastName: users.lastName,
       userEmail: users.email,
+      userArea: users.area,
+      userRegion: users.region,
       dealerName: dealers.name,
       subDealerName: subDealers.name,
     })
@@ -587,6 +593,8 @@ export async function getFlattenedKamrupDvrs(companyId: number) {
       dealerName: r.dealerName ?? null,
       subDealerName: r.subDealerName ?? null,
       location: r.location ?? null,
+      area: r.userArea ?? '',
+      region: r.userRegion ?? '',
       latitude: toNum(r.latitude) || 0,
       longitude: toNum(r.longitude) || 0,
       visitType: r.visitType ?? null,
