@@ -187,9 +187,7 @@ export default function SalesmanGeoTrackingPage() {
           displayCheckInTime: formatTime(item.checkInTime),
           displayCheckOutTime: formatTime(item.checkOutTime),
         }));
-
       setTracks(validatedData);
-      toast.success('Geo-tracking reports loaded successfully.');
     } catch (e: any) {
       const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
       setError(errorMessage);

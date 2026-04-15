@@ -153,9 +153,7 @@ export default function SalesmanRatings() {
         ...d,
         id: d.id?.toString() || d.salesPersonName || `${Math.random()}`, 
       })) as SalesmanRating[];
-
       setData(validatedData);
-      toast.success("Salesman ratings loaded successfully!");
     } catch (err: any) {
       setError(err.message);
       toast.error(`Failed to load salesman ratings: ${err.message}`);

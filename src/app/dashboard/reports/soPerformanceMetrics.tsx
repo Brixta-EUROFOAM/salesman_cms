@@ -151,9 +151,7 @@ export default function SoPerformanceMetricsPage() {
                     return null;
                 }
             }).filter(Boolean) as SoPerformanceMetric[];
-
             setMetrics(validatedData);
-            toast.success("SO Metrics loaded successfully!");
         } catch (error: any) {
             toast.error(`Failed to load: ${error.message}`);
         } finally {

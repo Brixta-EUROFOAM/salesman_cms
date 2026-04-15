@@ -65,6 +65,10 @@ export default function CustomReportGeneratorPage() {
   const [downloading, setDownloading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
 
+  const [userJobRoles, setUserJobRoles] = useState<string[]>([]);
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
+  const [isSessionLoading, setIsSessionLoading] = useState(true);
+
   const [selectedTableId, setSelectedTableId] = useState<string>('');
   const [checkedColumns, setCheckedColumns] = useState<SelectedColumnsState>({});
   const [reportColumns, setReportColumns] = useState<TableColumn[]>([]);
@@ -75,6 +79,38 @@ export default function CustomReportGeneratorPage() {
   const [filters, setFilters] = useState<FilterRule[]>([]);
   const [tableDateRange, setTableDateRange] = useState<DateRange | undefined>({from: startOfMonth(new Date()),to: new Date(),});
 
+  // --- Fetch User Session on Mount ---
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const res = await fetch('/api/me');
+        if (res.ok) {
+          const data = await res.json();
+          setUserJobRoles(data.jobRoles || []);
+          setUserPermissions(data.permissions || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch session", err);
+      } finally {
+        setIsSessionLoading(false);
+      }
+    };
+    fetchSession();
+  }, []);
+
+  // --- Filter Tables Based on User Roles ---
+  const accessibleTables = useMemo(() => {
+    const isAdmin = userPermissions.includes('ALL_ACCESS');
+
+    return tablesMetadata.filter(table => {
+      if (isAdmin) return true;
+      if (!table.requiredJobRole || table.requiredJobRole.length === 0) return true;
+      
+      // Check if user has at least one of the required job roles for this table
+      return table.requiredJobRole.some(role => userJobRoles.includes(role));
+    });
+  }, [userJobRoles, userPermissions]);
+  
   // Derived state for current table's columns based on reportColumns
   useEffect(() => {
     if (selectedTableId) {
@@ -90,8 +126,9 @@ export default function CustomReportGeneratorPage() {
   }, [selectedTableId, reportColumns]);
 
   const selectedTable = useMemo(() => {
-    return tablesMetadata.find(t => t.id === selectedTableId);
-  }, [selectedTableId]);
+    // Look up within accessibleTables to ensure hidden tables can't be somehow forced
+    return accessibleTables.find(t => t.id === selectedTableId);
+  }, [selectedTableId, accessibleTables]);
 
   const isAllColumnsSelected = useMemo(() => {
     if (!selectedTable) return false;
@@ -379,7 +416,7 @@ export default function CustomReportGeneratorPage() {
             <h4 className="text-sm font-semibold mb-3 text-foreground/80">1. Available Tables</h4>
             <ScrollArea className="h-[350px] w-full pr-3">
               <div className="space-y-1">
-                {tablesMetadata.map(table => {
+                {accessibleTables.map(table => {
                   const Icon = table.icon;
                   const committedCount = reportColumns.filter(c => c.table === table.id).length;
 

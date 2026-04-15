@@ -170,7 +170,6 @@ export default function TsoMeetingsPage() {
       });
 
       setTsoMeetings(validatedData);
-      toast.success("TSO meetings loaded successfully!");
     } catch (error: any) {
       toast.error(`Failed to fetch TSO meetings: ${error.message}`);
       setError(error.message);

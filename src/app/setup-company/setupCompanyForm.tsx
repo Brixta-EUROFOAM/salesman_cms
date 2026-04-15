@@ -51,7 +51,6 @@ export default function SetupCompanyForm() {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to set up company. Please try again.');
       }
-
       toast.success("Workspace configured successfully! Welcome.");
       router.push('/home'); // Redirect to dashboard since they are now logged in
     } catch (err: any) {

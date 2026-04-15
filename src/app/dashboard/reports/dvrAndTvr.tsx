@@ -206,7 +206,6 @@ export default function HybridReportsPage() {
 
       setDvrs(validatedDvrs);
       setTvrs(validatedTvrs);
-      toast.success("Kamrup-TSO Reports loaded successfully!");
     } catch (e: any) {
       toast.error(e.message);
     } finally {

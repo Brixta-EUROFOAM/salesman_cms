@@ -29,16 +29,24 @@ interface DashboardShellProps {
   children: React.ReactNode;
   role?: string;
   permissions?: string[];
+  jobRoles?: string[];
 }
 
 export default function DashboardShell({ 
   children, 
   role,
+  company,
   permissions = [],
+  jobRoles = [],
 }: DashboardShellProps) {
   return (
     <SidebarProvider>
-      <AppSidebar userRole={role || ''} permissions={permissions} />
+      <AppSidebar 
+        userRole={role || ''} 
+        permissions={permissions} 
+        companyId={company.id} 
+        jobRoles={jobRoles} 
+      />
       <SidebarInset className="pl-4 pt-4 md:pl-6 md:pt-6">
         <SiteHeader />
         <div className="flex flex-1 flex-col">

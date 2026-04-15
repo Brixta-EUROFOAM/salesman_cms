@@ -57,7 +57,7 @@ export default function LoginPage() {
                     </div>
                     <div>
                         <CardTitle className="text-2xl font-bold tracking-tight">
-                            Welcome Back
+                            Welcome
                         </CardTitle>
                         <CardDescription className="mt-2">
                             Enter your credentials to access the Dashboard

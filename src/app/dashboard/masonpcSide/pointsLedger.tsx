@@ -102,8 +102,6 @@ export default function PointsLedgerPage() {
       const result = await response.json();
       setLedgerRecords(result.data || []);
       setTotalCount(result.totalCount || 0);
-      
-      toast.success("Points Ledger records loaded successfully!");
     } catch (error: any) {
       console.error("Failed to fetch Points Ledger records:", error);
       toast.error(`Failed to fetch Points Ledger records: ${error.message}`);

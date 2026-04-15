@@ -59,13 +59,28 @@ async function DashboardContent() {
     return <SimpleWelcomePage firstName={dbUser.firstName || 'Team Member'} />;
   }
 
+  // Extract roles for RBAC in widgets
+  const jobRoles = session.jobRoles || [];
+  const permissions = session.permissions || [];
+
   return (
     <div className="flex flex-col gap-6 w-full max-w-[1600px] mx-auto">
-      {/* Row 1: Full width Pie Chart component (Chart Left, Legend Right) */}
-      <PieGraphs />
-      
-      {/* Row 2: Performance Filters & 2-Column Linear Graphs */}
-      <LinearGraphs />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Overview of your field operations and team metrics.</p>
+        </div>
+      </div>
+
+      {/* Top Row: Pie Charts (Attendance & Leaves) : No RBAC yet */}
+      <div className="w-full">
+        <PieGraphs />
+      </div>
+
+      {/* Bottom Row: Linear/Area Graphs (Sales, Techical-Sales, Reports-MIS) */}
+      <div className="w-full">
+        <LinearGraphs jobRoles={jobRoles} permissions={permissions} />
+      </div>
     </div>
   );
 }

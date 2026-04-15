@@ -38,8 +38,14 @@ export async function POST(request: NextRequest) {
     const companyName = row.companyName;
 
     // 2. IMMEDIATE SECURITY CHECK
-    if (!user.isDashboardUser || user.dashboardHashedPassword !== password) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+    // Check if they are allowed to use the dashboard
+    if (!user.isDashboardUser) {
+      return NextResponse.json({ error: 'Invalid email or ID' }, { status: 403 });
+    }
+
+    // Check if the password is correct
+    if (user.dashboardHashedPassword !== password) {
+      return NextResponse.json({ error: 'Invalid password' }, { status: 401 });
     }
 
     // 3. FETCH ROLES & PERMISSIONS

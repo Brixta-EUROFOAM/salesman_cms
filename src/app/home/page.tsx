@@ -99,7 +99,7 @@ async function HomeContent() {
 
                         {/* Sales Orders & Insights Card - Added query param ?tab=salesOrders */}
                         <Card className="group hover:shadow-lg transition-all duration-300 hover:border-primary/50 cursor-pointer flex flex-col">
-                            <Link href="/dashboard/reports?tab=salesOrders" className="flex-1 flex flex-col p-6">
+                            <Link href="/dashboard/ordersPayments?tab=salesOrders" className="flex-1 flex flex-col p-6">
                                 <div className="w-14 h-14 bg-linear-to-br from-purple-500 to-purple-700 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-md">
                                     <BarChart3 className="w-7 h-7 text-white" />
                                 </div>

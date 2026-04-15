@@ -171,9 +171,7 @@ export default function TsoPerformanceMetricsPage() {
                     return null;
                 }
             }).filter(Boolean) as TsoPerformanceMetric[];
-
             setMetrics(validatedData);
-            toast.success("Metrics loaded successfully!");
         } catch (error: any) {
             toast.error(`Failed to load: ${error.message}`);
         } finally {

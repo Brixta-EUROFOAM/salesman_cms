@@ -18,13 +18,17 @@ import Image from 'next/image';
 
 interface Props {
   userRole: string; // Changed from WorkOSRole to string
-  permissions: string[]; // New: ['READ', 'WRITE', 'UPDATE']
+  companyId?: number; 
+  permissions: string[]; // ['READ', 'WRITE', 'UPDATE']
+  jobRoles?: string[]; // Array of user's job roles
 }
 
 interface MenuItem {
   title: string;
   url?: string;
   requiredPerm?: string | string[] | 'public' | 'logout'; 
+  allowedCompanyIds?: number[]; 
+  requiredJobRole?: string[]; // Array of required job roles to view this item
   items?: MenuItem[];
 }
 
@@ -55,7 +59,8 @@ const menuItems: MenuItem[] = [
       {
         title: "Users & Team",
         url: "/dashboard/usersAndTeam",
-        requiredPerm: ['READ', 'WRITE', 'UPDATE']
+        requiredPerm: ['READ', 'WRITE', 'UPDATE'],
+        requiredJobRole: ['Admin']
       },
       {
         title: "Dealers",
@@ -65,7 +70,8 @@ const menuItems: MenuItem[] = [
       {
         title: "Technical Sites",
         url: "/dashboard/technicalSites",
-        requiredPerm: ['READ']
+        requiredPerm: ['READ'],
+        requiredJobRole: ['Technical-Sales']
       },
       {
         title: "Reports",
@@ -75,12 +81,14 @@ const menuItems: MenuItem[] = [
       {
         title: "PJPs (Sales Side)", // Assign Tasks hander
         url: "/dashboard/assignTasks",
-        requiredPerm: ['READ', 'WRITE', 'UPDATE']
+        requiredPerm: ['READ', 'WRITE', 'UPDATE'],
+        requiredJobRole: ['Sales-Marketing', 'Reports-MIS']
       },
       {
         title: "PJPs (Technical Side)", // Permanent Journey Plan handler
         url: "/dashboard/permanentJourneyPlan",
-        requiredPerm: ['READ', 'WRITE', 'UPDATE']
+        requiredPerm: ['READ', 'WRITE', 'UPDATE'],
+        requiredJobRole: ['Technical-Sales', 'Reports-MIS']
       },
       {
         title: "Salesman Geotracking",
@@ -105,8 +113,15 @@ const menuItems: MenuItem[] = [
       {
         title: "Mason - PC Side",
         url: "/dashboard/masonpcSide",
-        requiredPerm: ['READ', 'WRITE', 'UPDATE']
+        requiredPerm: ['READ', 'WRITE', 'UPDATE'],
+        requiredJobRole: ['Technical-Sales', 'Reports-MIS']
       },
+      // {
+      //   title: "Sales Orders - Payments",
+      //   url: "/dashboard/ordersPayments",
+      //   requiredPerm: ['READ', 'WRITE', 'UPDATE'],
+      //   requiredJobRole: ['Accounting']
+      // },
       // {
       //   title: "Logistics IO",
       //   url: "/dashboard/logisticsIO",
@@ -128,7 +143,7 @@ const menuItems: MenuItem[] = [
   },
 ]
 
-export function AppSidebar({ userRole, permissions = [] }: Props) {
+export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [] }: Props) {
 
   const [userName, setUserName] = useState<string>("Loading...");
   const [companyName, setCompanyName] = useState<string>("Loading...");
@@ -159,24 +174,38 @@ export function AppSidebar({ userRole, permissions = [] }: Props) {
 
   // Filter based on the 'permissions' array from the DB
   const filterItems = useCallback((items: MenuItem[]): MenuItem[] => {
-    //console.log("My Current Permissions:", permissions);
-    
     if (!permissions) return [];
 
-    return items.reduce((acc, item) => {
-      const { requiredPerm } = item;
+    const isAdmin = permissions.includes('ALL_ACCESS');
 
-      // 1. Handle Public/Special items
+    return items.reduce((acc, item) => {
+      const { requiredPerm, allowedCompanyIds, requiredJobRole } = item;
+
+      // 1. MULTI-TENANT CHECK
+      if (allowedCompanyIds && allowedCompanyIds.length > 0) {
+        if (!companyId || !allowedCompanyIds.includes(companyId)) {
+          return acc; 
+        }
+      }
+
+      // 2. JOB ROLE CHECK
+      if (requiredJobRole && requiredJobRole.length > 0) {
+        // If user doesn't have ANY of the required job roles AND isn't an Admin, hide it
+        const hasRequiredRole = requiredJobRole.some(role => jobRoles.includes(role));
+        if (!hasRequiredRole && !isAdmin) {
+          return acc;
+        }
+      }
+
+      // 3. PERMISSIONS CHECK
       if (!requiredPerm || requiredPerm === 'public' || requiredPerm === 'logout') {
         acc.push(item.items ? { ...item, items: filterItems(item.items) } : item);
         return acc;
       }
 
-      // 2. Handle Multiple Permissions (Check if user has ALL)
+      // Handle Multiple Permissions (Check if user has ALL)
       const requiredArray = Array.isArray(requiredPerm) ? requiredPerm : [requiredPerm];
-      
-      // Now 'permissions' is correctly scoped from the props
-      const hasAllAccess = requiredArray.some(p => permissions.includes(p));
+      const hasAllAccess = requiredArray.some(p => permissions.includes(p) || isAdmin);
 
       if (hasAllAccess) {
         if (item.items) {

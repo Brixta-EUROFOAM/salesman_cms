@@ -21,6 +21,8 @@ export interface TableMeta {
     title: string;
     icon: LucideIcon;
     columns: string[];
+    requiredPerm?: string | string[]; // Permissions check
+    requiredJobRole?: string[];       // Job Role check
 }
 
 export const tablesMetadata: TableMeta[] = [
@@ -28,7 +30,9 @@ export const tablesMetadata: TableMeta[] = [
         id: 'users',
         title: 'Users',
         icon: User,
-        columns: ['id', 'orgRole', 'jobRoles', 'email', 'firstName', 'lastName', 'phoneNumber', 'region', 'area']
+        columns: ['id', 'orgRole', 'jobRoles', 'email', 'firstName', 'lastName', 'phoneNo', 'address', 'region', 'area'],
+        requiredPerm: ['Admin'],
+        requiredJobRole: ['Admin']
     },
     {
         id: 'dealers',
@@ -68,6 +72,7 @@ export const tablesMetadata: TableMeta[] = [
         id: 'kamrupTsoDvrs',
         title: 'Kamrup-TSO DVRs',
         icon: ClipboardPen,
+        requiredJobRole: ['Reports-MIS'],
         columns: [
             'sourceReport', 'id', 'reportDate', 'pjpStatus', 'salesmanName', 'salesmanEmail', 'area', 'region',
             'customerType', 'dealerType', 'dealerName', 'subDealerName', 'partyType',
@@ -83,6 +88,7 @@ export const tablesMetadata: TableMeta[] = [
         id: 'kamrupTsoTvrs',
         title: 'Kamrup-TSO TVRs',
         icon: ClipboardPenLine,
+        requiredJobRole: ['Reports-MIS'],
         columns: [
             'sourceReport', 'id', 'reportDate', 'salesmanName', 'salesmanEmail',
             'customerType', 'visitCategory', 'visitType', 'purposeOfVisit',
@@ -104,6 +110,7 @@ export const tablesMetadata: TableMeta[] = [
         id: 'technicalVisitReports',
         title: 'Technical Visit Reports',
         icon: PencilRuler,
+        requiredJobRole: ['Technical-Sales', 'Reports-MIS'],
         columns: [
             'id', 'reportDate', 'salesmanName', 'salesmanEmail', 'customerType',
             'siteNameConcernedPerson', 'phoneNo', 'visitType', 'siteVisitType', 'visitCategory',
@@ -123,6 +130,7 @@ export const tablesMetadata: TableMeta[] = [
         id: 'tsoPerformanceMetrics',
         title: 'TSO Metrics (Current Month|1st -> today)',
         icon: Activity,
+        requiredJobRole: ['Technical-Sales', 'Reports-MIS'],
         columns: [
             'userId', 'salesmanName', 'region', 'area',
             'totalVisits', 'siteVisitsNew', 'siteVisitsOld',
@@ -133,7 +141,8 @@ export const tablesMetadata: TableMeta[] = [
     {
         id: 'soPerformanceMetrics',
         title: 'SO Metrics (Current Month|1st -> today)',
-        icon: Store, 
+        icon: Store,
+        requiredJobRole: ['Sales-Marketing', 'Reports-MIS'], 
         columns: [
             'userId', 'salesmanName', 'region', 'area',
             'totalVisits', 'dealerVisits', 'subDealerVisits'
@@ -143,6 +152,7 @@ export const tablesMetadata: TableMeta[] = [
         id: 'technicalSites',
         title: 'Technical Sites',
         icon: MapPin,
+        requiredJobRole: ['Technical-Sales'],
         columns: [
             'id', 'siteName', 'concernedPerson', 'phoneNo', 'address',
             'latitude', 'longitude', 'siteType', 'area', 'region',
@@ -156,6 +166,7 @@ export const tablesMetadata: TableMeta[] = [
         id: 'dailyTasks',
         title: 'PJPs (Sales Side)',
         icon: ListTodo,
+        requiredJobRole: ['Sales-Marketing', 'Reports-MIS'],
         columns: [
             'id', 'pjpBatchId', 'assignedSalesmanName', 'assignedSalesmanEmail', 'dealerVisitingName', 'dealerMobile',
             'zone', 'area', 'route', 'objective', 'visitType', 'requiredVisitCount', 'week',
@@ -165,6 +176,7 @@ export const tablesMetadata: TableMeta[] = [
         id: 'permanentJourneyPlans',
         title: 'PJPs (Technical Side)',
         icon: ListChecks,
+        requiredJobRole: ['Technical-Sales', 'Reports-MIS'],
         columns: [
             'id', 'planDate', 'assignedSalesmanName', 'areaToBeVisited', 'route', 'status', 'plannedNewSiteVisits',
             'plannedFollowUpSiteVisits', 'plannedNewDealerVisits', 'plannedInfluencerVisits', 'influencerName', 'influencerPhone',
@@ -246,6 +258,7 @@ export const tablesMetadata: TableMeta[] = [
         id: 'tsoMeetings',
         title: 'TSO Meetings',
         icon: UsersRound,
+        requiredJobRole: ['Technical-Sales'],
         columns: [
             'id', 'creatorName', 'type', 'date', 'market', 'zone', 'dealerName', 'conductedBy',
             'participantsCount', 'giftType', 'accountJsbJud'
@@ -255,6 +268,7 @@ export const tablesMetadata: TableMeta[] = [
         id: 'rewards',
         title: 'Rewards Inventory',
         icon: Gift,
+        requiredJobRole: ['Technical-Sales', 'Reports-MIS'],
         columns: [
             'id', 'itemName', 'pointCost', 'totalAvailableQuantity'
         ],
@@ -263,6 +277,7 @@ export const tablesMetadata: TableMeta[] = [
         id: 'rewardRedemptions',
         title: 'Reward Redemptions',
         icon: HandCoins,
+        requiredJobRole: ['Technical-Sales', 'Reports-MIS'],
         columns: [
             'id', 'masonId',
             'associatedUserName', 'associatedUserEmail', 'masonName',
@@ -283,6 +298,7 @@ export const tablesMetadata: TableMeta[] = [
         id: 'masonPCSide',
         title: 'Masons & Contractors',
         icon: Construction,
+        requiredJobRole: ['Technical-Sales', 'Reports-MIS'],
         columns: [
             'id', 'name', 'phoneNumber', 'kycDocumentName', 'kycDocumentIdNum', 'kycStatus', 'kycSubmittedAt',
             'bagsLifted', 'pointsBalance', 'isReferred',
@@ -293,6 +309,7 @@ export const tablesMetadata: TableMeta[] = [
         id: 'bagLifts',
         title: 'Bag Lifts',
         icon: ShoppingBag,
+        requiredJobRole: ['Technical-Sales', 'Reports-MIS'],
         columns: [
             'id', 'masonId', 'masonName', 'phoneNumber', 'dealerId', 'dealerName',
             'siteId', 'siteName', 'siteAddress', 'siteKeyPersonName', 'siteKeyPersonPhone',
@@ -304,9 +321,9 @@ export const tablesMetadata: TableMeta[] = [
         id: 'pointsLedger',
         title: 'Points Ledger',
         icon: ScrollText,
+        requiredJobRole: ['Technical-Sales', 'Reports-MIS'],
         columns: [
             'id', 'masonId', 'masonName', 'sourceType', 'points',
-
         ],
     },
     // {

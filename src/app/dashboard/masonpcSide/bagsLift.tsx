@@ -168,7 +168,6 @@ export default function BagsLiftPage() {
       });
 
       setBagLiftRecords(validatedData);
-      toast.success("Bag Lift records loaded successfully!");
     } catch (error: any) {
       console.error("Failed to fetch Bag Lift records:", error);
       toast.error(`Failed to fetch Bag Lift records: ${error.message}`);

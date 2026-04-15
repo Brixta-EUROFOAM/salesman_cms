@@ -135,6 +135,7 @@ export async function AuthenticatedLayout({
       company={mappedUser.company}
       role={primaryRoleDisplay}
       permissions={hydratedPermissions}
+      jobRoles={userJobRoles}
     >
       {children}
     </DashboardShell>

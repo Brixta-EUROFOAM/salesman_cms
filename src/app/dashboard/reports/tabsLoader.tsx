@@ -5,7 +5,6 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSearchParams } from 'next/navigation';
 import CompetitionReportsPage from './competitionReports';
-import SalesOrdersTable from './salesOrders';
 import DailyVisitReportsPage from './dailyVisitReports';
 import TechnicalVisitReportsPage from './technicalVisitReports';
 import HybridReportsPage from './dvrAndTvr';
@@ -18,7 +17,6 @@ interface ReportsTabsProps {
   canSeeDVR: boolean;
   canSeeTVR: boolean;
   canSeeDvrTvr: boolean;
-  canSeeSalesOrders: boolean;
   canSeeCompetition: boolean;
   canSeeTsoPerformanceMetrics: boolean;
   canSeeSoPerformanceMetrics: boolean;
@@ -28,7 +26,6 @@ export function ReportsTabs({
   canSeeDVR,
   canSeeTVR,
   canSeeDvrTvr,
-  canSeeSalesOrders,
   canSeeCompetition,
   canSeeTsoPerformanceMetrics,
   canSeeSoPerformanceMetrics
@@ -45,26 +42,16 @@ export function ReportsTabs({
 
   // Determine the default tab based on URL params first, then permissions
   const defaultTab = React.useMemo(() => {
-    const requestedTab = searchParams.get('tab');
-    
-    // Map URL friendly strings to your exact TabsTrigger values
-    let mappedTab = "";
-    if (requestedTab === 'salesOrders') mappedTab = 'salesOrderReport';
-    // Add more mappings here if you add deep-links for other tabs in the future
-    
-    // Prioritize the requested tab if the user has permission
-    if (mappedTab === 'salesOrderReport' && canSeeSalesOrders) return 'salesOrderReport';
 
     // Fallback logic if no valid URL param or lacking permission
     if (canSeeDVR) return "dailyVisitReport";
     if (canSeeTVR) return "technicalVisitReport";
     if (canSeeDvrTvr) return "dvrAndTvr"
-    if (canSeeSalesOrders) return "salesOrderReport";
     if (canSeeCompetition) return "competitionReport";
     if (canSeeTsoPerformanceMetrics) return "tsoPerformanceMetrics";
     if (canSeeSoPerformanceMetrics) return "soPerformanceMetrics";
     return ""; // Should not happen if canSeeAnyReport is checked in parent
-  }, [searchParams, canSeeDVR, canSeeTVR, canSeeDvrTvr, canSeeSalesOrders, canSeeCompetition, canSeeTsoPerformanceMetrics, canSeeSoPerformanceMetrics]);
+  }, [searchParams, canSeeDVR, canSeeTVR, canSeeDvrTvr, canSeeCompetition, canSeeTsoPerformanceMetrics, canSeeSoPerformanceMetrics]);
 
 
   // 3. Prevent rendering the component that generates unstable IDs during SSR
@@ -96,9 +83,6 @@ export function ReportsTabs({
         {canSeeSoPerformanceMetrics && (
           <TabsTrigger value="soPerformanceMetrics">SO Metrics</TabsTrigger>
         )}
-        {canSeeSalesOrders && (
-          <TabsTrigger value="salesOrderReport">Sales Orders</TabsTrigger>
-        )}
         {/* {canSeeCompetition && (
           <TabsTrigger value="competitionReport">Competition Report</TabsTrigger>
         )} */}
@@ -129,11 +113,6 @@ export function ReportsTabs({
       {canSeeSoPerformanceMetrics && (
         <TabsContent value="soPerformanceMetrics" className="space-y-4">
           <SoPerformanceMetricsPage />
-        </TabsContent>
-      )}
-      {canSeeSalesOrders && (
-        <TabsContent value="salesOrderReport" className="space-y-4">
-          <SalesOrdersTable />
         </TabsContent>
       )}
       {/* {canSeeCompetition && (

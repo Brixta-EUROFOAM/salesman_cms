@@ -184,9 +184,7 @@ export default function TechnicalVisitReportsPage() {
           return null;
         }
       }).filter(Boolean) as TechnicalVisitReport[];
-
       setTechnicalReports(validatedData);
-      toast.success("Reports loaded successfully!");
     } catch (error: any) {
       toast.error(`Failed to load: ${error.message}`);
       setError(error.message);

@@ -123,7 +123,6 @@ export default function ListVerifiedDealersPage() {
 
       const validatedDealers = z.array(extendedVerifiedDealersSchema).parse(rawData);
       setDealers(validatedDealers);
-      toast.success('Verified dealers loaded successfully!');
     } catch (e: any) {
       console.error('Failed to fetch verified dealers:', e);
       const msg = e instanceof z.ZodError

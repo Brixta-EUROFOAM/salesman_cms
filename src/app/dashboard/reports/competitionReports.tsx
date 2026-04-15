@@ -77,7 +77,6 @@ export default function CompetitionReportsPage() {
       }).filter(Boolean) as CompetitionReport[]; 
 
       setReports(validatedData);
-      toast.success("Competition reports loaded successfully!");
     } catch (e: any) {
       console.error("Failed to fetch competition reports:", e);
       setError(e.message || "Failed to fetch reports.");

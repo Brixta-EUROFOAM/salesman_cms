@@ -162,9 +162,7 @@ export default function SlmLeavesPage() {
           return null;
         }
       }).filter(Boolean) as SalesmanLeaveApplication[];
-
       setLeaveApplications(validatedData);
-      toast.success("Salesman leave applications loaded successfully!");
     } catch (e: any) {
       console.error("Failed to fetch salesman leave applications:", e);
       setError(e.message || "Failed to fetch leave applications.");

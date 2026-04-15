@@ -178,9 +178,7 @@ export default function DailyVisitReportsPage() {
       const validated = result.data.map((item: any) =>
         extendedDailyVisitReportSchema.parse(item)
       );
-
       setReports(validated);
-      toast.success("Daily Visit Reports loaded successfully!");
     } catch (e: any) {
       toast.error(e.message);
     } finally {
