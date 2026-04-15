@@ -58,7 +58,7 @@ export default function LinearGraphs(
 
       if (canViewSales) {
         fetchPromises.push(
-          fetch(`/api/dashboardPagesAPI/reports/sales-orders?pageSize=1000`, { cache: 'no-store' })
+          fetch(`/api/dashboardPagesAPI/orders-payments/sales-orders?pageSize=1000`, { cache: 'no-store' })
             .then(res => res.json())
             .then(data => setRawSalesOrders(data.data || []))
         );
