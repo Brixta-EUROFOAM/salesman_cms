@@ -35,6 +35,7 @@ export async function verifySession() {
   if (!payload) return null;
 
   return {
+    token,
     userId: payload.userId as number,
     companyId: payload.companyId as number,
     companyName: payload.companyName as string,

@@ -1,5 +1,6 @@
 // src/proxy.ts -- previously middleware.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { decrypt } from './lib/auth';
 
 // Define your list of allowed origins for CORS.
 const allowedOrigins = [
@@ -7,8 +8,6 @@ const allowedOrigins = [
   'http://localhost:3000/auth/callback',
   'https://salesmancms-dashboard.onrender.com',
   'https://salesmancms-dashboard.onrender.com/auth/callback',
-  'http://13.235.130.234',
-  'http://13.235.130.234/auth/callback',
   'http://122.176.219.242',
   'http://122.176.219.242/auth/callback',
   'http://122.176.219.242:55002',
@@ -17,6 +16,8 @@ const allowedOrigins = [
   'http://salesforce.bestcement.co.in/auth/callback',
   'https://salesforce.bestcement.co.in',
   'https://salesforce.bestcement.co.in/auth/callback',
+  'http://localhost:8000',
+  'https://brixta.site',
 ];
 
 export async function proxy(request: NextRequest) {
@@ -29,9 +30,17 @@ export async function proxy(request: NextRequest) {
 
   let response = NextResponse.next();
 
+  // 1. Actually VERIFY the token payload
+  let isValidSession = false;
+  if (token) {
+    const payload = await decrypt(token);
+    if (payload) isValidSession = true;
+  }
+
   // --- ROUTING for AUTHENTICATED & UNAUTHENTICATED paths ----
   if (!token && isProtectedRoutes) {
     response = NextResponse.redirect(new URL('/', request.url));
+    response.cookies.delete('auth_token');
   }
   else if (token && (pathname === '/login' || pathname === '/')){
     response = NextResponse.redirect(new URL('/home', request.url));
