@@ -6,7 +6,7 @@ import EditorUI from './components/editorUI';
 
 export default async function SheetsEditorPage() {
   await connection();
-  
+
   const session = await verifySession();
 
   // Double-checking auth before rendering the UI
@@ -21,9 +21,10 @@ export default async function SheetsEditorPage() {
           Sheets Editor
         </h2>
       </div>
-      
-      {/* Load the Client-Side UI */}
-      <EditorUI />
+
+      <div className="h-[calc(100vh-80px)]">
+        <EditorUI />
+      </div>
     </div>
   );
 }
