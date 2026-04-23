@@ -3,7 +3,7 @@ import 'server-only';
 import { connection, NextResponse, NextRequest } from 'next/server';
 import { cacheTag, cacheLife } from 'next/cache';
 import { db } from '@/lib/drizzle';
-import { users, dealers, salesOrders } from '../../../../../../drizzle';
+import { users, verifiedDealers, salesOrders } from '../../../../../../drizzle';
 import { eq, desc, and, or, ilike, getTableColumns, count, SQL, gte, lte } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 import { z } from 'zod';
@@ -11,6 +11,7 @@ import { selectSalesOrderSchema } from '../../../../../../drizzle/zodSchemas';
 import { verifySession } from '@/lib/auth';
 
 const frontendSalesOrderSchema = selectSalesOrderSchema.extend({
+  orderId: z.string().nullable(),
   salesmanName: z.string(),
   dealerName: z.string(),
   dealerType: z.string(),
@@ -73,13 +74,13 @@ async function getCachedSalesOrders(
     const searchCondition = or(
       ilike(users.firstName, `%${search}%`),
       ilike(users.lastName, `%${search}%`),
-      ilike(dealers.name, `%${search}%`)
+      ilike(verifiedDealers.dealerPartyName, `%${search}%`)
     );
     if (searchCondition) filters.push(searchCondition);
   }
 
-  if (area) filters.push(eq(dealers.area, area));
-  if (region) filters.push(eq(dealers.region, region));
+  if (area) filters.push(eq(verifiedDealers.area, area));
+  if (region) filters.push(eq(verifiedDealers.zone, region));
 
   if (startDate) filters.push(gte(salesOrders.orderDate, startDate));
   if (endDate) filters.push(lte(salesOrders.orderDate, endDate));
@@ -92,16 +93,16 @@ async function getCachedSalesOrders(
       userFirstName: users.firstName,
       userLastName: users.lastName,
       userEmail: users.email,
-      dealerNameStr: dealers.name,
-      dealerType: dealers.type,
-      dealerPhone: dealers.phoneNo,
-      dealerAddress: dealers.address,
-      dealerArea: dealers.area,
-      dealerRegion: dealers.region,
+      dealerNameStr: verifiedDealers.dealerPartyName, 
+      dealerType: verifiedDealers.dealerSegment,      
+      dealerPhone: verifiedDealers.contactNo1,        
+      dealerAddress: verifiedDealers.district,
+      dealerArea: verifiedDealers.area,
+      dealerRegion: verifiedDealers.zone,
     })
     .from(salesOrders)
     .leftJoin(users, eq(salesOrders.userId, users.id))
-    .leftJoin(dealers, eq(salesOrders.dealerId, dealers.id))
+    .leftJoin(verifiedDealers, eq(salesOrders.verifiedDealerId, verifiedDealers.id))
     .where(whereClause)
     .orderBy(desc(salesOrders.createdAt))
     .limit(pageSize)
@@ -111,7 +112,7 @@ async function getCachedSalesOrders(
     .select({ count: count() })
     .from(salesOrders)
     .leftJoin(users, eq(salesOrders.userId, users.id))
-    .leftJoin(dealers, eq(salesOrders.dealerId, dealers.id))
+    .leftJoin(verifiedDealers, eq(salesOrders.verifiedDealerId, verifiedDealers.id))
     .where(whereClause);
 
   const totalCount = Number(totalCountResult[0].count);
@@ -133,6 +134,7 @@ async function getCachedSalesOrders(
 
     return {
       ...row,
+      orderId: row.orderId || null,
       salesmanName,
       salesmanRole: row.userRole || 'Unknown',
       dealerName: row.dealerNameStr || 'Unknown',

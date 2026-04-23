@@ -190,17 +190,12 @@ export const tablesMetadata: TableMeta[] = [
         icon: BadgeIndianRupeeIcon,
         requiredJobRole: ['Accounting'],
         columns: [
-            'id', 'userId', 'dealerId', 'dvrId', 'pjpId',
-            'salesmanName',
+            'orderId', 'salesmanName',
             'dealerName', 'dealerType', 'dealerPhone', 'dealerAddress', 'area', 'region',
-            'orderDate', 'orderPartyName',
-            'partyPhoneNo', 'partyArea', 'partyRegion', 'partyAddress',
-            'deliveryDate', 'deliveryArea', 'deliveryRegion', 'deliveryAddress', 'deliveryLocPincode',
+            'orderDate', 'orderPartyName', 'partyPhoneNo', 'partyArea', 'partyRegion', 'partyAddress',
+            'EstdDoDate', 'deliveryArea', 'deliveryRegion', 'deliveryAddress', 'deliveryLocPincode',
             'paymentMode', 'paymentTerms', 'paymentAmount', 'receivedPayment', 'receivedPaymentDate', 'pendingPayment',
-            'orderQty', 'orderUnit',
-            'itemPrice', 'discountPercentage', 'itemPriceAfterDiscount',
-            'itemType', 'itemGrade',
-            'orderTotal', 'estimatedDelivery',
+            'orderQty', 'orderUnit', 'itemPrice', 'itemType', 'itemGrade', 'orderTotal', 
         ]
     },
     // {
