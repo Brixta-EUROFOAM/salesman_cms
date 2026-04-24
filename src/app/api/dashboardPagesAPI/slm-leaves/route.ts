@@ -38,7 +38,9 @@ async function getCachedLeaves(
   area: string | null,
   region: string | null,
   startDateParam: string | null,
-  endDateParam: string | null
+  endDateParam: string | null,
+  createdStartDate: string | null,
+  createdEndDate: string | null
 ) {
   'use cache';
   cacheLife('hours');
@@ -63,6 +65,7 @@ async function getCachedLeaves(
   if (area && area !== 'all') filters.push(eq(users.area, area));
   if (region && region !== 'all') filters.push(eq(users.region, region));
 
+  // 1. Filter by Leave Duration (Overlap Logic)
   if (startDateParam) {
     const start = new Date(startDateParam);
     const end = endDateParam ? new Date(endDateParam) : new Date(startDateParam);
@@ -71,6 +74,17 @@ async function getCachedLeaves(
     // Filter by the startDate of the leave overlapping the selected range
     filters.push(lte(salesmanLeaveApplications.startDate, end.toISOString()));
     filters.push(gte(salesmanLeaveApplications.endDate, start.toISOString()));
+  }
+
+  // 2. Filter by Application Date (Created At)
+  if (createdStartDate) {
+    const start = new Date(createdStartDate);
+    const end = createdEndDate ? new Date(createdEndDate) : new Date(createdStartDate);
+    end.setHours(23, 59, 59, 999);
+
+    // Strict boundary filter for when the application was submitted
+    filters.push(gte(salesmanLeaveApplications.createdAt, start.toISOString()));
+    filters.push(lte(salesmanLeaveApplications.createdAt, end.toISOString()));
   }
 
   const whereClause = and(...filters);
@@ -140,6 +154,8 @@ export async function GET(request: NextRequest) {
     const region = searchParams.get('region');
     const startDateParam = searchParams.get('startDate');
     const endDateParam = searchParams.get('endDate');
+    const createdStartDate = searchParams.get('createdStartDate');
+    const createdEndDate = searchParams.get('createdEndDate');
 
     const result = await getCachedLeaves(
       session.companyId,
@@ -149,7 +165,9 @@ export async function GET(request: NextRequest) {
       area,
       region,
       startDateParam,
-      endDateParam
+      endDateParam,
+      createdStartDate,
+      createdEndDate
     );
 
     const validatedData = z.array(frontendLeaveSchema).safeParse(result.data);

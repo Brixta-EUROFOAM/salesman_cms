@@ -13,10 +13,11 @@ import { Loader2 } from 'lucide-react';
 
 // Import your Shadcn UI components
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge'; 
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Import standard components
 import { DataTableReusable } from '@/components/data-table-reusable';
@@ -35,8 +36,8 @@ const extendedSalesmanLeaveApplicationSchema = selectSalesmanLeaveApplicationSch
   appRole: z.string().nullable().optional(),
 });
 
-type SalesmanLeaveApplication = Omit<z.infer<typeof extendedSalesmanLeaveApplicationSchema>, 'id'> & { 
-  id: string 
+type SalesmanLeaveApplication = Omit<z.infer<typeof extendedSalesmanLeaveApplicationSchema>, 'id'> & {
+  id: string
 };
 
 const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-locations`;
@@ -60,8 +61,9 @@ export default function SlmLeavesPage() {
   // --- Standardized Filter State ---
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
-  
+
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [dateFilterTarget, setDateFilterTarget] = useState<"leave" | "created">("created");
   const [areaFilters, setAreaFilters] = useState<string[]>([]);
   const [zoneFilters, setZoneFilters] = useState<string[]>([]);
 
@@ -127,12 +129,24 @@ export default function SlmLeavesPage() {
       url.searchParams.append('pageSize', pageSize.toString());
 
       if (debouncedSearchQuery) url.searchParams.append('search', debouncedSearchQuery);
-      
+
       // Multi-select arrays joined by comma
       if (areaFilters.length > 0) url.searchParams.append('area', areaFilters.join(','));
       if (zoneFilters.length > 0) url.searchParams.append('region', zoneFilters.join(','));
 
-      if (dateRange?.from) url.searchParams.append('startDate', format(dateRange.from, 'yyyy-MM-dd'));
+      if (dateRange?.from) {
+        const startStr = format(dateRange.from, 'yyyy-MM-dd');
+        const endStr = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : startStr;
+
+        if (dateFilterTarget === 'leave') {
+          url.searchParams.append('startDate', startStr);
+          url.searchParams.append('endDate', endStr);
+        } else {
+          // Pass different parameters when filtering by Created At
+          url.searchParams.append('createdStartDate', startStr);
+          url.searchParams.append('createdEndDate', endStr);
+        }
+      }
       if (dateRange?.to) {
         url.searchParams.append('endDate', format(dateRange.to, 'yyyy-MM-dd'));
       } else if (dateRange?.from) {
@@ -222,7 +236,7 @@ export default function SlmLeavesPage() {
       type: type,
       salesmanName: app.salesmanName || "Unknown"
     });
-    setActionRemarks(""); 
+    setActionRemarks("");
     setIsDialogOpen(true);
   };
 
@@ -239,6 +253,16 @@ export default function SlmLeavesPage() {
   // --- Table Columns ---
   const salesmanLeaveColumns: ColumnDef<SalesmanLeaveApplication>[] = useMemo(() => [
     { accessorKey: "salesmanName", header: "Salesman" },
+    {
+      accessorKey: "createdAt",
+      header: "Applied On",
+      cell: ({ row }) => {
+        const rawDate = row.original.createdAt;
+        if (!rawDate) return "—";
+        // This will format it as "24-Apr-2026"
+        return format(new Date(rawDate), "dd-MMM-yyyy");
+      }
+    },
     { accessorKey: "leaveType", header: "Leave Type" },
     { accessorKey: "startDate", header: "Start Date" },
     { accessorKey: "endDate", header: "End Date" },
@@ -285,17 +309,17 @@ export default function SlmLeavesPage() {
 
         return (
           <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              onClick={() => openActionDialog(app, 'Approved')} 
+            <Button
+              size="sm"
+              onClick={() => openActionDialog(app, 'Approved')}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
               Accept
             </Button>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={() => openActionDialog(app, 'Rejected')} 
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => openActionDialog(app, 'Rejected')}
               className="border-red-500 text-red-600 hover:bg-red-50"
             >
               Reject
@@ -327,13 +351,13 @@ export default function SlmLeavesPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <div className="flex-1 space-y-8 p-8 pt-6">
-        
+
         <div className="flex items-center justify-between space-y-2">
           <div className="flex items-center gap-4">
-              <h2 className="text-3xl font-bold tracking-tight">Leave Applications</h2>
-              <Badge variant="outline" className="text-base px-4 py-1">
-                 Total Records: {totalCount}
-              </Badge>
+            <h2 className="text-3xl font-bold tracking-tight">Leave Applications</h2>
+            <Badge variant="outline" className="text-base px-4 py-1">
+              Total Records: {totalCount}
+            </Badge>
           </div>
           <RefreshDataButton
             cachePrefix="salesman-leaves"
@@ -341,29 +365,48 @@ export default function SlmLeavesPage() {
           />
         </div>
 
-        {/* --- Unified Global Filter Bar --- */}
-        <GlobalFilterBar 
-          showSearch={true}
-          showDateRange={true}
-          showZone={true}
-          showArea={true}
-          showRole={false}
-          showStatus={false}
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
 
-          searchVal={searchQuery}
-          dateRangeVal={dateRange}
-          zoneVals={zoneFilters}
-          areaVals={areaFilters}
+          {/* The new Target Selector */}
+          <div className="flex flex-col space-y-1.5 shrink-0">
+            <Label className="text-xs text-muted-foreground">Date Filter Target</Label>
+            <Select
+              value={dateFilterTarget}
+              onValueChange={(val: "leave" | "created") => setDateFilterTarget(val)}
+            >
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="Select target" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="created">Applied Date</SelectItem>
+                <SelectItem value="leave">Leave Duration</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          zoneOptions={zoneOptions}
-          areaOptions={areaOptions}
+          {/* --- Unified Global Filter Bar --- */}
+          <GlobalFilterBar
+            showSearch={true}
+            showDateRange={true}
+            showZone={true}
+            showArea={true}
+            showRole={false}
+            showStatus={false}
 
-          onSearchChange={setSearchQuery}
-          onDateRangeChange={setDateRange}
-          onZoneChange={setZoneFilters}
-          onAreaChange={setAreaFilters}
-        />
+            searchVal={searchQuery}
+            dateRangeVal={dateRange}
+            zoneVals={zoneFilters}
+            areaVals={areaFilters}
 
+            zoneOptions={zoneOptions}
+            areaOptions={areaOptions}
+
+            onSearchChange={setSearchQuery}
+            onDateRangeChange={setDateRange}
+            onZoneChange={setZoneFilters}
+            onAreaChange={setAreaFilters}
+          />
+        </div>
         {(locationError) && (
           <div className="mb-4">
             <p className="text-xs text-red-500">Location Filter Error: {locationError}</p>
@@ -378,12 +421,12 @@ export default function SlmLeavesPage() {
               columns={salesmanLeaveColumns}
               data={leaveApplications}
               enableRowDragging={false}
-              onRowOrderChange={() => {}}
+              onRowOrderChange={() => { }}
             />
           )}
         </div>
       </div>
-  
+
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px] bg-background">
           <DialogHeader>

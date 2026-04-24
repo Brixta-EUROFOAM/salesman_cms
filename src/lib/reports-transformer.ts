@@ -9,7 +9,7 @@ import {
   kycSubmissions, tsoAssignments, bagLifts, rewardRedemptions, pointsLedger, logisticsIO,
   siteAssociatedUsers, siteAssociatedDealers, siteAssociatedMasons
 } from '../../drizzle/schema';
-import { eq, desc, and, or, inArray, getTableColumns, aliasedTable, sql, isNull, notIlike, SQL } from 'drizzle-orm';
+import { eq, desc, and, or, inArray, getTableColumns, aliasedTable, sql, isNull, notIlike, SQL, lte, gte } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 
 // --- HELPERS ---
@@ -994,7 +994,40 @@ export async function getFlattenedSalesmanAttendance(companyId: number) {
   }));
 }
 
-export async function getFlattenedSalesmanLeaveApplication(companyId: number) {
+export const formatToShortTextDate = (date: Date | string | null | undefined): string => {
+  if (!date) return '';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '';
+
+  const day = String(d.getDate()).padStart(2, '0');
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = monthNames[d.getMonth()];
+  const year = d.getFullYear();
+
+  return `${day}-${month}-${year}`; // Outputs exactly: "24-Apr-2026"
+};
+
+export async function getFlattenedSalesmanLeaveApplication(
+  companyId: number,
+  startDate?: Date,
+  endDate?: Date
+) {
+  const filters: SQL[] = [eq(users.companyId, companyId)];
+
+  // Apply the same overlapping logic as the main dashboard route
+  if (startDate && endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    filters.push(
+      and(
+        lte(salesmanLeaveApplications.startDate, end.toISOString()),
+        gte(salesmanLeaveApplications.endDate, start.toISOString())
+      )!
+    );
+  }
+
   const rawReports = await db
     .select({
       ...getTableColumns(salesmanLeaveApplications),
@@ -1004,7 +1037,7 @@ export async function getFlattenedSalesmanLeaveApplication(companyId: number) {
     })
     .from(salesmanLeaveApplications)
     .leftJoin(users, eq(salesmanLeaveApplications.userId, users.id))
-    .where(eq(users.companyId, companyId))
+    .where(and(...(filters.filter(Boolean) as SQL[])))
     .orderBy(desc(salesmanLeaveApplications.startDate));
 
   return rawReports.map((r) => ({
@@ -1015,7 +1048,7 @@ export async function getFlattenedSalesmanLeaveApplication(companyId: number) {
     adminRemarks: r.adminRemarks ?? null,
     startDate: formatJustDate(r.startDate) || '',
     endDate: formatJustDate(r.endDate) || '',
-    createdAt: formatJustDate(r.createdAt),
+    createdAt: formatToShortTextDate(r.createdAt),
     updatedAt: formatDateTimeIST(r.updatedAt),
     salesmanName: formatUserName({ firstName: r.userFirstName, lastName: r.userLastName, email: r.userEmail }),
     salesmanEmail: r.userEmail || '',
