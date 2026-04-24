@@ -1015,7 +1015,7 @@ export async function getFlattenedSalesmanLeaveApplication(companyId: number) {
     adminRemarks: r.adminRemarks ?? null,
     startDate: formatJustDate(r.startDate) || '',
     endDate: formatJustDate(r.endDate) || '',
-    createdAt: formatDateTimeIST(r.createdAt),
+    createdAt: formatJustDate(r.createdAt),
     updatedAt: formatDateTimeIST(r.updatedAt),
     salesmanName: formatUserName({ firstName: r.userFirstName, lastName: r.userLastName, email: r.userEmail }),
     salesmanEmail: r.userEmail || '',
