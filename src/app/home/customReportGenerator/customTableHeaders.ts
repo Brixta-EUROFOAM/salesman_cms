@@ -168,7 +168,9 @@ export const tablesMetadata: TableMeta[] = [
         icon: ListTodo,
         requiredJobRole: ['Sales-Marketing', 'Reports-MIS'],
         columns: [
-            'id', 'pjpBatchId', 'assignedSalesmanName', 'assignedSalesmanEmail', 'dealerVisitingName', 'dealerMobile',
+            'id', 'pjpBatchId', 'taskDate', 'createdAt',
+            'assignedSalesmanName', 'assignedSalesmanEmail', 
+            'dealerVisitingName', 'dealerMobile',
             'zone', 'area', 'route', 'objective', 'visitType', 'requiredVisitCount', 'week',
         ],
     },

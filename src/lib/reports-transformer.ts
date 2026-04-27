@@ -934,7 +934,7 @@ export async function getFlattenedDailyTasks(companyId: number) {
 
     // Dates
     taskDate: formatDateIST(r.taskDate) || '',
-    createdAt: formatDateTimeIST(r.createdAt),
+    createdAt: formatJustDate(r.createdAt),
     updatedAt: formatDateTimeIST(r.updatedAt),
 
     // Assigned User Details
