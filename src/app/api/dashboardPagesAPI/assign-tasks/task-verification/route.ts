@@ -3,11 +3,12 @@ import 'server-only';
 import { NextResponse, NextRequest, connection } from 'next/server';
 import { db } from '@/lib/drizzle';
 import { users, dailyTasks, dealers } from '../../../../../../drizzle';
-import { eq, and, asc, getTableColumns } from 'drizzle-orm';
+import { eq, and, asc, getTableColumns, SQL } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 import { z } from 'zod';
 import { selectDailyTaskSchema } from '../../../../../../drizzle/zodSchemas';
 import { verifySession } from '@/lib/auth';
+import { MEGHALAYA_OVERSEER_ID } from '@/lib/Reusable-constants';
 
 const getISTDate = (date: string | Date | null) => {
     if (!date) return '';
@@ -33,7 +34,16 @@ type PendingTaskRow = InferSelectModel<typeof dailyTasks> & {
     dealerName: string | null;
 };
 
-async function getPendingTasks(companyId: number) {
+async function getPendingTasks(companyId: number, requesterId: number) {
+    const filters: SQL[] = [
+        eq(users.companyId, companyId),
+        eq(dailyTasks.status, 'PENDING'),
+    ];
+
+    if (requesterId === MEGHALAYA_OVERSEER_ID) {
+        filters.push(eq(users.region, 'Meghalaya'));
+    }
+
     const results: PendingTaskRow[] = await db
         .select({
             ...getTableColumns(dailyTasks),
@@ -47,12 +57,7 @@ async function getPendingTasks(companyId: number) {
         .from(dailyTasks)
         .leftJoin(users, eq(dailyTasks.userId, users.id))
         .leftJoin(dealers, eq(dailyTasks.dealerId, dealers.id))
-        .where(
-            and(
-                eq(users.companyId, companyId),
-                eq(dailyTasks.status, 'PENDING'),
-            )
-        )
+        .where(and(...filters))
         .orderBy(asc(dailyTasks.taskDate));
 
     return results.map((row) => {
@@ -84,7 +89,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });
         }
 
-        const formattedTasks = await getPendingTasks(session.companyId);
+        const formattedTasks = await getPendingTasks(session.companyId, session.userId);
         const validatedTasks = z.array(frontendTaskSchema.loose()).safeParse(formattedTasks);
 
         if (!validatedTasks.success) {

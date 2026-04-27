@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { selectPermanentJourneyPlanSchema } from '../../../../../drizzle/zodSchemas';
 import { refreshCompanyCache } from '@/app/actions/cache';
 import { verifySession } from '@/lib/auth';
+import { MEGHALAYA_OVERSEER_ID } from '@/lib/Reusable-constants';
 
 const getISTDate = (date: string | Date | null) => {
   if (!date) return '';
@@ -40,6 +41,7 @@ type PJPRow = InferSelectModel<typeof permanentJourneyPlans> & {
 
 async function getCachedPJPs(
   companyId: number,
+  userId: number,
   page: number,
   pageSize: number,
   search: string | null,
@@ -62,6 +64,10 @@ async function getCachedPJPs(
   
   if (verificationStatus && verificationStatus !== 'all' && verificationStatus !== 'null') {
     filters.push(ilike(permanentJourneyPlans.verificationStatus, verificationStatus));
+  }
+
+  if (userId === MEGHALAYA_OVERSEER_ID) {
+      filters.push(eq(users.region, 'Meghalaya'));
   }
 
   if (search) {
@@ -202,6 +208,7 @@ export async function GET(request: NextRequest) {
 
     const result = await getCachedPJPs(
       session.companyId,
+      session.userId,
       page,
       pageSize,
       search,

@@ -4,6 +4,8 @@ export const BASE_URL = process.env.NEXT_PUBLIC_APP_URL;
 export const RESEND_API_KEY = process.env.RESEND_MAIL_API;
 export const JWT_KEY = process.env.JWT_SECRET;
 
+export const MEGHALAYA_OVERSEER_ID = 256
+
 export const brands = [
   "Star", "Amrit", "Dalmia", 
   "Topcem", "Black Tiger", "Surya Gold", 

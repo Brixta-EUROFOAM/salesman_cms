@@ -8,6 +8,7 @@ import { eq, desc, and, or, ilike, SQL, sql, gte, lte } from 'drizzle-orm';
 import { z } from 'zod';
 import { TSO_AOP_TARGETS } from '@/lib/Reusable-constants';
 import { verifySession } from '@/lib/auth';
+import { MEGHALAYA_OVERSEER_ID } from '@/lib/Reusable-constants';
 
 // Reusable schema for the metric nodes
 const metricNode = z.object({
@@ -38,6 +39,7 @@ const tsoPerformanceMetricSchema = z.object({
 
 async function getCachedTsoPerformanceMetrics(
   companyId: number,
+  userId: number,
   page: number,
   pageSize: number,
   search: string | null,
@@ -55,7 +57,13 @@ async function getCachedTsoPerformanceMetrics(
 
   // --- BUILD THE MEETINGS SUBQUERY ---
   const meetingFilters: (SQL | undefined)[] = [];
+
+  if (userId === MEGHALAYA_OVERSEER_ID) {
+              meetingFilters.push(eq(users.region, 'Meghalaya'));
+  }
+
   if (startDate) meetingFilters.push(gte(tsoMeetings.date, startDate));
+
   if (endDate) {
     const endOfDay = new Date(endDate);
     const endStr = endOfDay.toISOString().split('T')[0]; // Extract YYYY-MM-DD for date() column
@@ -199,7 +207,10 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await getCachedTsoPerformanceMetrics(
-      session.companyId, page, pageSize, search, area, region, startDate, endDate
+      session.companyId, session.userId,
+      page, 
+      pageSize, 
+      search, area, region, startDate, endDate
     );
 
     const validated = z.array(tsoPerformanceMetricSchema).safeParse(result.data);

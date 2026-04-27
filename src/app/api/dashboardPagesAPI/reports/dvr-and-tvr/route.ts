@@ -14,9 +14,11 @@ import {
   eq, desc, and, or, ilike, aliasedTable, getTableColumns, count, SQL, inArray, gte, lte
 } from 'drizzle-orm';
 import { verifySession } from '@/lib/auth';
+import { MEGHALAYA_OVERSEER_ID } from '@/lib/Reusable-constants';
 
 async function getCachedHybridReports(
   companyId: number,
+  userId: number,
   page: number,
   pageSize: number,
   search: string | null,
@@ -43,6 +45,10 @@ async function getCachedHybridReports(
     eq(users.companyId, companyId),
     kamrupAreaFilter
   ];
+
+  if (userId === MEGHALAYA_OVERSEER_ID) {
+        dvrFilters.push(eq(users.region, 'Meghalaya'));
+  }
 
   if (search) {
     dvrFilters.push(
@@ -196,6 +202,7 @@ export async function GET(request: NextRequest) {
 
     const cachedResult = await getCachedHybridReports(
       session.companyId,
+      session.userId,
       page,
       pageSize,
       search,

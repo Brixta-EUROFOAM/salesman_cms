@@ -8,6 +8,7 @@ import { eq, desc, and, or, ilike, SQL, sql, gte, lte } from 'drizzle-orm';
 import { z } from 'zod';
 import { SO_AOP_TARGETS } from '@/lib/Reusable-constants';
 import { verifySession } from '@/lib/auth';
+import { MEGHALAYA_OVERSEER_ID } from '@/lib/Reusable-constants';
 
 // Reusable schema for the metric nodes
 const metricNode = z.object({
@@ -31,6 +32,7 @@ const soPerformanceMetricSchema = z.object({
 
 async function getCachedSoPerformanceMetrics(
     companyId: number,
+    userId: number,
     page: number,
     pageSize: number,
     search: string | null,
@@ -47,6 +49,10 @@ async function getCachedSoPerformanceMetrics(
     cacheTag(`so-performance-metrics-${companyId}-${page}-${filterKey}`);
 
     const filters: (SQL | undefined)[] = [eq(users.companyId, companyId)];
+
+    if (userId === MEGHALAYA_OVERSEER_ID) {
+              filters.push(eq(users.region, 'Meghalaya'));
+    }
 
     if (search) {
         const searchCondition = or(
@@ -153,7 +159,11 @@ export async function GET(request: NextRequest) {
         }
 
         const result = await getCachedSoPerformanceMetrics(
-            session.companyId, page, pageSize, search, area, region, startDate, endDate
+            session.companyId,
+            session.userId,
+            page, 
+            pageSize, 
+            search, area, region, startDate, endDate
         );
 
         const validated = z.array(soPerformanceMetricSchema).safeParse(result.data);

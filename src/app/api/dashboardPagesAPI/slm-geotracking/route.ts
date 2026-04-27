@@ -9,6 +9,7 @@ import type { InferSelectModel } from 'drizzle-orm';
 import { z } from 'zod';
 import { selectJourneyOpsSchema } from '../../../../../drizzle/zodSchemas';
 import { verifySession } from '@/lib/auth';
+import { MEGHALAYA_OVERSEER_ID } from '@/lib/Reusable-constants';
 
 const frontendTrackingSchema = selectJourneyOpsSchema.extend({
   id: z.string(),
@@ -52,7 +53,12 @@ type TrackingRow = InferSelectModel<typeof journeyOps> & {
   userSalesmanLoginId: string | null;
 };
 
-async function getCachedTracking(companyId: number, startDateParam: string | null, endDateParam: string | null) {
+async function getCachedTracking(
+  userId: number,
+  companyId: number, 
+  startDateParam: string | null, 
+  endDateParam: string | null
+) {
   'use cache';
   cacheLife('minutes');
   cacheTag(`slm-geotracking-${companyId}`);
@@ -69,6 +75,10 @@ async function getCachedTracking(companyId: number, startDateParam: string | nul
       eq(journeyOps.type, 'STOP')
     )
   );
+
+  if (userId === MEGHALAYA_OVERSEER_ID) {
+    filters.push(eq(users.region, 'Meghalaya'));
+  }
 
   if (startDateParam) {
     const start = new Date(startDateParam);
@@ -152,7 +162,11 @@ export async function GET(request: NextRequest) {
     const startDateParam = searchParams.get('startDate');
     const endDateParam = searchParams.get('endDate');
 
-    const formattedReports = await getCachedTracking(session.companyId, startDateParam, endDateParam);
+    const formattedReports = await getCachedTracking(
+      session.companyId, 
+      session.userId,
+      startDateParam, 
+      endDateParam);
 
     const validatedData = z.array(frontendTrackingSchema).safeParse(formattedReports);
 

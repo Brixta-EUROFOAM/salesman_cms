@@ -9,6 +9,7 @@ import type { InferSelectModel } from 'drizzle-orm';
 import { z } from 'zod';
 import { selectDailyVisitReportSchema } from '../../../../../../drizzle/zodSchemas';
 import { verifySession } from '@/lib/auth';
+import { MEGHALAYA_OVERSEER_ID } from '@/lib/Reusable-constants';
 
 const frontendDVRSchema = selectDailyVisitReportSchema.extend({
   id: z.string(),
@@ -54,6 +55,7 @@ type DVRRow = InferSelectModel<typeof dailyVisitReports> & {
 
 async function getCachedDailyVisitReports(
   companyId: number,
+  userId: number,
   page: number,
   pageSize: number,
   search: string | null,
@@ -74,6 +76,10 @@ async function getCachedDailyVisitReports(
   const subDealers = aliasedTable(dealers, 'subDealers');
 
   const filters: (SQL | undefined)[] = [eq(users.companyId, companyId)];
+
+  if (userId === MEGHALAYA_OVERSEER_ID) {
+        filters.push(eq(users.region, 'Meghalaya'));
+  }
 
   if (search) {
     const searchCondition = or(
@@ -240,6 +246,7 @@ export async function GET(request: NextRequest) {
 
     const result = await getCachedDailyVisitReports(
       session.companyId,
+      session.userId,
       page,
       pageSize,
       search,

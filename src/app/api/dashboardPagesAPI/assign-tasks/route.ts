@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { selectDailyTaskSchema } from '../../../../../drizzle/zodSchemas';
 import crypto from 'crypto';
 import { verifySession } from '@/lib/auth';
+import { MEGHALAYA_OVERSEER_ID } from '@/lib/Reusable-constants';
 
 const assignableRoles = [
   'senior-regional-manager', 'regional-manager', 'deputy-manager', 'senior-area-manager', 'area-manager',
@@ -46,6 +47,7 @@ type DailyTaskRow = InferSelectModel<typeof dailyTasks> & {
 // --- CACHED FETCH FUNCTION ---
 async function getCachedDailyTasks(
   companyId: number,
+  userId: number,
   page: number,
   pageSize: number,
   search: string | null,
@@ -67,6 +69,10 @@ async function getCachedDailyTasks(
     eq(users.companyId, companyId),
     notIlike(dailyTasks.visitType, 'unplanned')
   ];
+
+  if (userId === MEGHALAYA_OVERSEER_ID) {
+      filters.push(eq(users.region, 'Meghalaya'));
+  }
 
   if (search) {
     const searchCondition = or(
@@ -246,6 +252,7 @@ export async function GET(request: NextRequest) {
 
     const result = await getCachedDailyTasks(
       session.companyId,
+      session.userId,
       page,
       pageSize,
       search,

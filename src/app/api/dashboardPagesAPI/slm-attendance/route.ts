@@ -9,6 +9,7 @@ import type { InferSelectModel } from 'drizzle-orm';
 import { z } from 'zod';
 import { selectSalesmanAttendanceSchema } from '../../../../../drizzle/zodSchemas';
 import { verifySession } from '@/lib/auth';
+import { MEGHALAYA_OVERSEER_ID } from '@/lib/Reusable-constants';
 
 const frontendAttendanceSchema = selectSalesmanAttendanceSchema.extend({
   salesmanName: z.string(),
@@ -46,6 +47,7 @@ type AttendanceRow = InferSelectModel<typeof salesmanAttendance> & {
 
 async function getCachedAttendance(
   companyId: number,
+  userId: number,
   page: number,
   pageSize: number,
   search: string | null,
@@ -64,6 +66,10 @@ async function getCachedAttendance(
   cacheTag(`salesman-attendance-${companyId}-${page}-${filterKey}`);
 
   const filters: SQL[] = [eq(users.companyId, companyId)];
+
+  if (userId === MEGHALAYA_OVERSEER_ID) {
+      filters.push(eq(users.region, 'Meghalaya'));
+  }
 
   if (search) {
     const searchCondition = or(
@@ -177,6 +183,7 @@ export async function GET(request: NextRequest) {
 
     const result = await getCachedAttendance(
       session.companyId,
+      session.userId,
       page,
       pageSize,
       search,

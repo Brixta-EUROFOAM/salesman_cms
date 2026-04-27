@@ -11,6 +11,7 @@ import { aliasedTable } from 'drizzle-orm';
 import { z } from 'zod';
 import { selectSalesmanLeaveApplicationSchema, insertSalesmanLeaveApplicationSchema } from '../../../../../drizzle/zodSchemas';
 import { verifySession } from '@/lib/auth';
+import { MEGHALAYA_OVERSEER_ID } from '@/lib/Reusable-constants';
 
 const frontendLeaveSchema = selectSalesmanLeaveApplicationSchema.extend({
   salesmanName: z.string(),
@@ -37,9 +38,9 @@ type LeaveRow = InferSelectModel<typeof salesmanLeaveApplications> & {
 };
 
 const approvers = aliasedTable(users, 'approvers');
-
 async function getCachedLeaves(
   companyId: number,
+  userId: number,
   page: number,
   pageSize: number,
   search: string | null,
@@ -59,6 +60,10 @@ async function getCachedLeaves(
   cacheTag(`salesman-leaves-${companyId}`); // Broad tag for simple invalidation
 
   const filters: SQL[] = [eq(users.companyId, companyId)];
+
+  if (userId === MEGHALAYA_OVERSEER_ID) {
+    filters.push(eq(users.region, 'Meghalaya'));
+  }
 
   if (search) {
     const searchCondition = or(
@@ -176,6 +181,7 @@ export async function GET(request: NextRequest) {
 
     const result = await getCachedLeaves(
       session.companyId,
+      session.userId,
       page,
       pageSize,
       search,

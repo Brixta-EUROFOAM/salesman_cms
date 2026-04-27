@@ -9,6 +9,7 @@ import type { InferSelectModel } from 'drizzle-orm';
 import { z } from 'zod';
 import { selectTechnicalVisitReportSchema } from '../../../../../../drizzle/zodSchemas';
 import { verifySession } from '@/lib/auth';
+import { MEGHALAYA_OVERSEER_ID } from '@/lib/Reusable-constants';
 
 const getISTDateString = (date: string | Date | null) => {
   if (!date) return '';
@@ -52,6 +53,7 @@ type TechnicalReportRow = InferSelectModel<typeof technicalVisitReports> & {
 
 async function getCachedTechnicalVisitReports(
   companyId: number,
+  userId: number,
   page: number,
   pageSize: number,
   search: string | null,
@@ -70,6 +72,10 @@ async function getCachedTechnicalVisitReports(
 
   // Strictly type as SQL[] to prevent undefined errors in and()
   const filters: SQL[] = [eq(users.companyId, companyId)];
+
+  if (userId === MEGHALAYA_OVERSEER_ID) {
+          filters.push(eq(users.region, 'Meghalaya'));
+  }
 
   if (search) {
     const searchCondition = or(
@@ -182,6 +188,7 @@ export async function GET(request: NextRequest) {
 
     const result = await getCachedTechnicalVisitReports(
       session.companyId,
+      session.userId,
       page,
       pageSize,
       search,

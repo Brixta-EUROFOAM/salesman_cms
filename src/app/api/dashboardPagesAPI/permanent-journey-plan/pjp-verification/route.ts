@@ -3,11 +3,12 @@ import 'server-only';
 import { NextResponse, NextRequest, connection } from 'next/server';
 import { db } from '@/lib/drizzle';
 import { users, permanentJourneyPlans, dealers, technicalSites } from '../../../../../../drizzle';
-import { eq, and, or, asc, aliasedTable, getTableColumns } from 'drizzle-orm';
+import { eq, and, or, asc, SQL, aliasedTable, getTableColumns } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 import { z } from 'zod';
 import { selectPermanentJourneyPlanSchema } from '../../../../../../drizzle/zodSchemas';
 import { verifySession } from '@/lib/auth';
+import { MEGHALAYA_OVERSEER_ID } from '@/lib/Reusable-constants';
 
 const getISTDate = (date: string | Date | null) => {
     if (!date) return '';
@@ -44,8 +45,20 @@ type PendingPJPRow = InferSelectModel<typeof permanentJourneyPlans> & {
 };
 
 // 3. The Function (Cache Removed)
-async function getPendingPJPs(companyId: number) {
+async function getPendingPJPs(companyId: number, requesterId: number) {
     const createdByUsers = aliasedTable(users, 'createdByUsers');
+
+    const filters: SQL[] = [
+        eq(users.companyId, companyId),
+        or(
+            eq(permanentJourneyPlans.status, 'PENDING'),
+            eq(permanentJourneyPlans.verificationStatus, 'PENDING')
+        )!
+    ];
+
+    if (requesterId === MEGHALAYA_OVERSEER_ID) {
+        filters.push(eq(users.region, 'Meghalaya'));
+    }
 
     // Use getTableColumns and explicit typing to prevent `never[]`
     const results: PendingPJPRow[] = await db
@@ -67,15 +80,7 @@ async function getPendingPJPs(companyId: number) {
         .leftJoin(createdByUsers, eq(permanentJourneyPlans.createdById, createdByUsers.id))
         .leftJoin(dealers, eq(permanentJourneyPlans.dealerId, dealers.id))
         .leftJoin(technicalSites, eq(permanentJourneyPlans.siteId, technicalSites.id))
-        .where(
-            and(
-                eq(users.companyId, companyId),
-                or(
-                    eq(permanentJourneyPlans.status, 'PENDING'),
-                    eq(permanentJourneyPlans.verificationStatus, 'PENDING')
-                )
-            )
-        )
+        .where(and(...filters))
         .orderBy(asc(permanentJourneyPlans.planDate));
 
     return results.map((row) => {
@@ -119,9 +124,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Forbidden: READ access required' }, { status: 403 });
         }
 
-        const formattedPlans = await getPendingPJPs(session.companyId);
-
-        // Validate using the strictly extended schema, allowing loose pass-through if needed
+        const formattedPlans = await getPendingPJPs(session.companyId, session.userId);
         const validatedPlans = z.array(frontendPJPSchema.loose()).safeParse(formattedPlans);
 
         if (!validatedPlans.success) {
