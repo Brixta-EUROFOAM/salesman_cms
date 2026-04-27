@@ -7,12 +7,14 @@ import { db } from '@/lib/drizzle';
 import { users, salesmanLeaveApplications } from '../../../../../drizzle';
 import { eq, and, or, ilike, gte, lte, desc, getTableColumns, count, SQL } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
+import { aliasedTable } from 'drizzle-orm';
 import { z } from 'zod';
 import { selectSalesmanLeaveApplicationSchema, insertSalesmanLeaveApplicationSchema } from '../../../../../drizzle/zodSchemas';
 import { verifySession } from '@/lib/auth';
 
 const frontendLeaveSchema = selectSalesmanLeaveApplicationSchema.extend({
   salesmanName: z.string(),
+  approverName: z.string(),
   area: z.string(),
   region: z.string(),
   startDate: z.string(),
@@ -28,7 +30,13 @@ type LeaveRow = InferSelectModel<typeof salesmanLeaveApplications> & {
   userEmail: string | null;
   userArea: string | null;
   userRegion: string | null;
+
+  approverFirstName?: string | null;
+  approverLastName?: string | null;
+  approverEmail?: string | null;
 };
+
+const approvers = aliasedTable(users, 'approvers');
 
 async function getCachedLeaves(
   companyId: number,
@@ -97,9 +105,13 @@ async function getCachedLeaves(
       userEmail: users.email,
       userArea: users.area,
       userRegion: users.region,
+      approverFirstName: approvers.firstName,
+      approverLastName: approvers.lastName,
+      approverEmail: approvers.email,
     })
     .from(salesmanLeaveApplications)
     .leftJoin(users, eq(salesmanLeaveApplications.userId, users.id))
+    .leftJoin(approvers, eq(users.reportsToId, approvers.id))
     .where(whereClause)
     .orderBy(desc(salesmanLeaveApplications.createdAt))
     .limit(pageSize)
@@ -118,9 +130,14 @@ async function getCachedLeaves(
       .filter(Boolean)
       .join(' ') || row.userEmail || 'N/A';
 
+    const approverName = [row.approverFirstName, row.approverLastName]
+    .filter(Boolean)
+    .join(' ') || row.approverEmail || 'Not Assigned';
+
     return {
       ...row,
       salesmanName,
+      approverName,
       startDate: row.startDate ? new Date(row.startDate).toISOString().split('T')[0] : '',
       endDate: row.endDate ? new Date(row.endDate).toISOString().split('T')[0] : '',
       createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString(),

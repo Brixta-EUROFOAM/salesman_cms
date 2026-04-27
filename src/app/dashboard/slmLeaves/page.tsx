@@ -29,6 +29,7 @@ import { selectSalesmanLeaveApplicationSchema } from '../../../../drizzle/zodSch
 
 const extendedSalesmanLeaveApplicationSchema = selectSalesmanLeaveApplicationSchema.extend({
   salesmanName: z.string().optional().catch("Unknown"),
+  approverName: z.string().optional().catch("Not Assigned"),
   area: z.string().nullable().optional().catch("N/A"),
   region: z.string().nullable().optional().catch("N/A"),
   startDate: z.string().optional(),
@@ -252,7 +253,8 @@ export default function SlmLeavesPage() {
 
   // --- Table Columns ---
   const salesmanLeaveColumns: ColumnDef<SalesmanLeaveApplication>[] = useMemo(() => [
-    { accessorKey: "salesmanName", header: "Salesman" },
+    { accessorKey: "salesmanName", header: "Salesman Name" },
+    { accessorKey: "approverName", header: "Approver Name" },
     {
       accessorKey: "createdAt",
       header: "Applied On",

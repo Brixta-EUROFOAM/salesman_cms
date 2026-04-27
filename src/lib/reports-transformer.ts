@@ -1007,6 +1007,7 @@ export const formatToShortTextDate = (date: Date | string | null | undefined): s
   return `${day}-${month}-${year}`; // Outputs exactly: "24-Apr-2026"
 };
 
+const approvers = aliasedTable(users, 'approvers');
 export async function getFlattenedSalesmanLeaveApplication(
   companyId: number,
   startDate?: Date,
@@ -1034,9 +1035,13 @@ export async function getFlattenedSalesmanLeaveApplication(
       userFirstName: users.firstName,
       userLastName: users.lastName,
       userEmail: users.email,
+      approverFirstName: approvers.firstName,
+      approverLastName: approvers.lastName,
+      approverEmail: approvers.email,
     })
     .from(salesmanLeaveApplications)
     .leftJoin(users, eq(salesmanLeaveApplications.userId, users.id))
+    .leftJoin(approvers, eq(users.reportsToId, approvers.id))
     .where(and(...(filters.filter(Boolean) as SQL[])))
     .orderBy(desc(salesmanLeaveApplications.startDate));
 
@@ -1052,6 +1057,7 @@ export async function getFlattenedSalesmanLeaveApplication(
     updatedAt: formatDateTimeIST(r.updatedAt),
     salesmanName: formatUserName({ firstName: r.userFirstName, lastName: r.userLastName, email: r.userEmail }),
     salesmanEmail: r.userEmail || '',
+    approverName: formatUserName({ firstName: r.approverFirstName, lastName: r.approverLastName, }) || 'Not Assigned',
   }));
 }
 

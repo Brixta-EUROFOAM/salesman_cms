@@ -235,7 +235,7 @@ export const tablesMetadata: TableMeta[] = [
         title: 'Leave Applications',
         icon: BandageIcon,
         columns: [
-            'id', 'createdAt', 'salesmanName', 'leaveType',
+            'id', 'createdAt', 'salesmanName', 'approverName', 'leaveType',
             'startDate', 'endDate', 'reason', 'status',
         ],
     },
