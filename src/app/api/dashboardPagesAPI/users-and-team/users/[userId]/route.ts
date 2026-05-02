@@ -122,8 +122,8 @@ export async function PUT(
         drizzleUpdateData.isDashboardUser = true;
         drizzleUpdateData.dashboardLoginId = standardData.email || targetUser.email;
         drizzleUpdateData.dashboardHashedPassword = dashPassword;
-        emailPayload.dashboardEmail = drizzleUpdateData.dashboardLoginId;
-        emailPayload.dashboardTempPassword = dashPassword;
+        payload.dashboardEmail = drizzleUpdateData.dashboardLoginId;
+        payload.dashboardTempPassword = dashPassword;
         needsEmail = true;
       } else if (isDashboardUser !== undefined) {
         drizzleUpdateData.isDashboardUser = isDashboardUser;
@@ -142,8 +142,8 @@ export async function PUT(
         drizzleUpdateData.isSalesAppUser = true;
         drizzleUpdateData.salesmanLoginId = newSalesmanId;
         drizzleUpdateData.hashedPassword = newSalesmanPassword;
-        emailPayload.salesmanLoginId = newSalesmanId;
-        emailPayload.salesmanTempPassword = newSalesmanPassword;
+        payload.salesmanLoginId = newSalesmanId;
+        payload.salesmanTempPassword = newSalesmanPassword;
         needsEmail = true;
       } else if (isSalesAppUser !== undefined) {
         drizzleUpdateData.isSalesAppUser = isSalesAppUser;
@@ -162,8 +162,8 @@ export async function PUT(
         drizzleUpdateData.isTechnicalRole = true;
         drizzleUpdateData.techLoginId = newTechLoginId;
         drizzleUpdateData.techHashPassword = newTechPassword;
-        emailPayload.techLoginId = newTechLoginId;
-        emailPayload.techTempPassword = newTechPassword;
+        payload.techLoginId = newTechLoginId;
+        payload.techTempPassword = newTechPassword;
         needsEmail = true;
       } else if (isTechnical !== undefined) {
         drizzleUpdateData.isTechnicalRole = isTechnical;
@@ -182,8 +182,8 @@ export async function PUT(
         drizzleUpdateData.isAdminAppUser = true;
         drizzleUpdateData.adminAppLoginId = newAdminLoginId;
         drizzleUpdateData.adminAppHashedPassword = newAdminPassword;
-        emailPayload.adminAppLoginId = newAdminLoginId;
-        emailPayload.adminAppTempPassword = newAdminPassword;
+        payload.adminAppLoginId = newAdminLoginId;
+        payload.adminAppTempPassword = newAdminPassword;
         needsEmail = true;
       } else if (isAdminAppUser !== undefined) {
         drizzleUpdateData.isAdminAppUser = isAdminAppUser;
