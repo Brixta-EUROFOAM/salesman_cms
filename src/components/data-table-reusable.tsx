@@ -207,14 +207,6 @@ export function DataTableReusable<TData extends { id: UniqueIdentifier }, TValue
 
           {/* Column Visibility Toggle */}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <IconLayoutColumns className="mr-2" />
-                <span className="hidden lg:inline">Customize Columns</span>
-                <span className="lg:hidden">Columns</span>
-                <IconChevronDown className="ml-2" />
-              </Button>
-            </DropdownMenuTrigger>
             <DropdownMenuContent 
               align="end" 
               className="w-56 bg-popover/50 backdrop-blur-lg text-popover-foreground border-border/30"
