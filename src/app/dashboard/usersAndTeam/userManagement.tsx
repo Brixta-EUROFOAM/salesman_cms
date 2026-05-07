@@ -401,32 +401,55 @@ export default function UsersManagement({ adminUser }: Props) {
       cell: ({ row }) => {
         const user = row.original;
 
-        // Purely local check using our new flags
-        const isAppOnly = !user.isDashboardUser && (user.isSalesAppUser || user.isTechnicalRole || user.isAdminAppUser);
-        const isActive = isUserEffectivelyActive(user);
+        const isAppOnly =
+          !user.isDashboardUser &&
+          (user.isSalesAppUser || user.isTechnicalRole);
 
         if (isAppOnly) {
           return (
             <div className="flex items-center space-x-2">
               <Smartphone className="w-4 h-4 text-blue-500" />
-              <span className="text-blue-600 text-sm font-medium">App-Only</span>
+              <span className="text-blue-600 text-sm font-medium">
+                App-Only
+              </span>
             </div>
           );
         }
 
+        const status = user.status?.trim() || "Unknown";
+        const normalized = status.toLowerCase();
+
+        // Active
+        if (normalized === "active") {
+          return (
+            <div className="flex items-center space-x-2">
+              <UserCheck className="w-4 h-4 text-green-500" />
+              <span className="text-green-600 text-sm">
+                Active
+              </span>
+            </div>
+          );
+        }
+
+        // Pending
+        if (normalized.startsWith("pending")) {
+          return (
+            <div className="flex items-center space-x-2">
+              <Loader2 className="w-4 h-4 text-orange-500" />
+              <span className="text-orange-600 text-sm">
+                {status}
+              </span>
+            </div>
+          );
+        }
+
+        // Everything else (Resigned, Inactive, Suspended, etc.)
         return (
           <div className="flex items-center space-x-2">
-            {isActive ? (
-              <>
-                <UserCheck className="w-4 h-4 text-green-500" />
-                <span className="text-green-600 text-sm">Active</span>
-              </>
-            ) : (
-              <>
-                <UserX className="w-4 h-4 text-orange-500" />
-                <span className="text-orange-600 text-sm">Pending</span>
-              </>
-            )}
+            <UserX className="w-4 h-4 text-red-500" />
+            <span className="text-red-600 text-sm font-medium">
+              {status}
+            </span>
           </div>
         );
       }
