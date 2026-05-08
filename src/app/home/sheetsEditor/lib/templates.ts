@@ -41,3 +41,36 @@ export const OUTSTANDING_TEMPLATE = {
     }
   }
 };
+
+export const SALES_TEMPLATE = {
+  name: "Sales Reports",
+  color: "",
+  index: 0,
+  status: 1,
+  order: 0,
+  hide: 0,
+  row: 1000,
+  column: 15,
+  defaultRowHeight: 25, 
+  defaultColWidth: 125, 
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Report Date (YYYY-MM-DD)", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "area", m: "Area", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "dealerName", m: "Dealer Name", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 3, v: { v: "responsiblePerson", m: "Responsible Person", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 4, v: { v: "currentMonthMTDSales", m: "MTD Sales", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 5, v: { v: "currentMonthTarget", m: "Target", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 6, v: { v: "percentageTargetAchieved", m: "% Achieved", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 7, v: { v: "balance", m: "Balance", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 8, v: { v: "prorataSalesTarget", m: "Prorata Target", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 9, v: { v: "percentageAsPerProrata", m: "% Prorata", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 10, v: { v: "askingRate", m: "Asking Rate", bg: "#dcfce3", bl: 1 } },
+  ],
+  config: {
+    columnlen: { 
+      "0": 110, 
+      "2": 250, 
+      "3": 180 
+    }
+  }
+};

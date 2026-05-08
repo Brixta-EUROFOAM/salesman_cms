@@ -1,4 +1,4 @@
-// src/app/home/sheetsEditor/serverActions/saveReports.ts
+// src/app/home/sheetsEditor/serverActions/saveOutstandingReports.ts
 'use server';
 
 import { NEXT_PUBLIC_MYCOCOSERVER_URL } from '@/lib/Reusable-constants';
@@ -6,10 +6,7 @@ import { verifySession } from '@/lib/auth';
 
 export async function saveOutstandingReportsAction(records: any[]) {
   const backendUrl = NEXT_PUBLIC_MYCOCOSERVER_URL;
-
-  // 1. Grab the actual user's session token from Next.js cookies
   const session = await verifySession();
-
   if (!session || !session.token) {
     throw new Error("Unauthorized: No valid session token found.");
   }

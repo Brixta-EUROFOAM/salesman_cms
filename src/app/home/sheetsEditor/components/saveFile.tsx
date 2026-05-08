@@ -1,7 +1,7 @@
-// src/app/home/sheetsEditor/components/saveFile.tsx
 'use client';
 import { useState } from "react";
-import { saveOutstandingReportsAction } from "../serverActions/saveReports";
+import { saveOutstandingReportsAction } from "../serverActions/saveOutstandingReports";
+import { saveSalesReportsAction } from "../serverActions/saveSalesReports";
 
 export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, reportType: string }) {
   const [isSaving, setIsSaving] = useState(false);
@@ -12,14 +12,14 @@ export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, repo
 
     try {
       const allSheets = sheetRef.current.getAllSheets();
-      const activeSheet = allSheets[0]; 
+      const activeSheet = allSheets[0];
 
       if (!activeSheet || !activeSheet.data) {
         console.warn("No data found in sheet");
         return;
       }
 
-      const gridData = activeSheet.data; 
+      const gridData = activeSheet.data;
       const transformedData = [];
 
       for (let r = 1; r < gridData.length; r++) {
@@ -32,23 +32,21 @@ export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, repo
           return cell ? (cell.v !== undefined ? cell.v : cell.m) : null;
         };
 
-        if (reportType === 'outstanding') {
-          // 🛠️ DATE FIX: Handle Excel Serial Numbers vs Strings safely
-          const dateCell = row[0];
-          let finalDate = null;
+        // 🛠️ DATE FIX: Extracted so both reports can use it
+        const dateCell = row[0];
+        let finalDate = null;
 
-          if (dateCell) {
-            if (typeof dateCell.m === 'string' && dateCell.m.includes('-')) {
-               // If Fortune sheet already formatted it perfectly (e.g. "2026-04-20")
-               finalDate = dateCell.m.split('T')[0]; 
-            } else if (!isNaN(Number(dateCell.v))) {
-               // If it's a raw Excel serial number, convert it mathematically
-               const excelEpoch = new Date(1899, 11, 30);
-               const dateObj = new Date(excelEpoch.getTime() + Number(dateCell.v) * 86400000);
-               finalDate = dateObj.toISOString().split('T')[0];
-            }
+        if (dateCell) {
+          if (typeof dateCell.m === 'string' && dateCell.m.includes('-')) {
+            finalDate = dateCell.m.split('T')[0];
+          } else if (!isNaN(Number(dateCell.v))) {
+            const excelEpoch = new Date(1899, 11, 30);
+            const dateObj = new Date(excelEpoch.getTime() + Number(dateCell.v) * 86400000);
+            finalDate = dateObj.toISOString().split('T')[0];
           }
+        }
 
+        if (reportType === 'outstanding') {
           const institution = getVal(1);
           const verifiedDealerId = getVal(2);
           const dealerName = getVal(3);
@@ -56,24 +54,17 @@ export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, repo
           const pendingAmt = getVal(5);
 
           const ageingData = {
-            "< 10 days": getVal(6),
-            "10-15 days": getVal(7),
-            "15 - 21 days": getVal(8),
-            "21 - 30 days": getVal(9),
-            "15-30 days": getVal(10),
-            "30-45 days": getVal(11),
-            "45-60 days": getVal(12),
-            "60-75 days": getVal(13),
-            "75-90 days": getVal(14),
-            "60-90 days": getVal(15),
-            ">90 days": getVal(16),
+            "< 10 days": getVal(6), "10-15 days": getVal(7), "15 - 21 days": getVal(8),
+            "21 - 30 days": getVal(9), "15-30 days": getVal(10), "30-45 days": getVal(11),
+            "45-60 days": getVal(12), "60-75 days": getVal(13), "75-90 days": getVal(14),
+            "60-90 days": getVal(15), ">90 days": getVal(16),
           };
 
           if (dealerName || pendingAmt) {
             transformedData.push({
               reportDate: finalDate,
               institution: institution ? String(institution) : null,
-              verifiedDealerId: verifiedDealerId ? parseInt(verifiedDealerId) : null,
+              verifiedDealerId: verifiedDealerId ? parseInt(String(verifiedDealerId)) : null,
               dealerName: String(dealerName || ""),
               securityDepositAmt: securityDepositAmt ? String(securityDepositAmt) : null,
               pendingAmt: pendingAmt ? String(pendingAmt) : null,
@@ -81,10 +72,43 @@ export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, repo
             });
           }
         }
+        else if (reportType === 'sales') {
+          const area = getVal(1);
+          const dealerName = getVal(2);
+          const responsiblePerson = getVal(3);
+
+          if (dealerName && String(dealerName).trim() !== "") {
+            transformedData.push({
+              reportDate: finalDate,
+              area: area ? String(area) : null,
+              dealerName: String(dealerName),
+              responsiblePerson: responsiblePerson ? String(responsiblePerson) : null,
+              currentMonthMTDSales: Number(getVal(4)) || 0,
+              currentMonthTarget: Number(getVal(5)) || 0,
+              // Cast numeric Postgres fields to String as expected by the backend schema
+              percentageTargetAchieved: getVal(6) !== null ? String(getVal(6)) : null,
+              balance: Number(getVal(7)) || 0,
+              prorataSalesTarget: Number(getVal(8)) || 0,
+              percentageAsPerProrata: getVal(9) !== null ? String(getVal(9)) : null,
+              askingRate: getVal(10) !== null ? String(getVal(10)) : null,
+
+              // Maintain required JSONB fields
+              rawPayload: { rawRow: row.map((c: any) => c ? (c.v || c.m) : null) },
+              salesDataPayload: {}, // No dynamic daily data in this template
+              collectionDataPayload: {},
+              nonTradeDataPayload: {}
+            });
+          }
+        }
       }
 
-      // Call the secure Next.js Server Action
-      const result = await saveOutstandingReportsAction(transformedData);
+      // Fire the correct API Action based on the report type
+      let result;
+      if (reportType === 'outstanding') {
+        result = await saveOutstandingReportsAction(transformedData);
+      } else if (reportType === 'sales') {
+        result = await saveSalesReportsAction(transformedData);
+      }
 
       alert(`Success! Inserted ${result.insertedIds.length} records into the database.`);
 
