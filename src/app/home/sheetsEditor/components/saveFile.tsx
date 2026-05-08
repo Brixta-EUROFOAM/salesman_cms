@@ -81,18 +81,25 @@ export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, repo
           const dealerName = getVal(2);
           
           if (dealerName && String(dealerName).trim() !== "") {
+            const dayPayload: Record<string, string | null> = {};
+            for (let i = 1; i <= 31; i++) {
+              const val = getVal(i + 3); 
+              dayPayload[`day${i}`] = val !== null ? String(val) : null;
+            }
+
             transformedData.push({
               reportDate: finalDate,
               area: area ? String(area).trim() : null,
               dealerName: String(dealerName),
               responsiblePerson: getVal(3) ? String(getVal(3)) : null,
-              currentMonthMTDSales: getVal(4) !== null ? String(getVal(4)) : null,
-              currentMonthTarget: getVal(5) !== null ? String(getVal(5)) : null,
-              percentageTargetAchieved: getVal(6) !== null ? String(getVal(6)) : null,
-              balance: getVal(7) !== null ? String(getVal(7)) : null,
-              prorataSalesTarget: getVal(8) !== null ? String(getVal(8)) : null,
-              percentageAsPerProrata: getVal(9) !== null ? String(getVal(9)) : null,
-              askingRate: getVal(10) !== null ? String(getVal(10)) : null,
+              ...dayPayload,
+              currentMonthMTDSales: getVal(35) !== null ? String(getVal(35)) : null,
+              currentMonthTarget: getVal(36) !== null ? String(getVal(36)) : null,
+              percentageTargetAchieved: getVal(37) !== null ? String(getVal(37)) : null,
+              balance: getVal(38) !== null ? String(getVal(38)) : null,
+              prorataSalesTarget: getVal(39) !== null ? String(getVal(39)) : null,
+              percentageAsPerProrata: getVal(40) !== null ? String(getVal(40)) : null,
+              askingRate: getVal(41) !== null ? String(getVal(41)) : null,
               rawPayload: { rawRow: row.map((c: any) => c ? (c.v || c.m) : null) },
             });
           }
