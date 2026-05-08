@@ -55,7 +55,8 @@ const menuItems: MenuItem[] = [
         title: "Sheets Editor",
         url: "/home/sheetsEditor",
         newTab: true,
-        requiredPerm: ['READ']
+        requiredPerm: ['READ'],
+        requiredJobRole: ['Reports-MIS']
       },
     ],
   },
