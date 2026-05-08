@@ -3,6 +3,7 @@
 export const BASE_URL = process.env.NEXT_PUBLIC_APP_URL;
 export const RESEND_API_KEY = process.env.RESEND_MAIL_API;
 export const JWT_KEY = process.env.JWT_SECRET;
+export const NEXT_PUBLIC_MYCOCOSERVER_URL = process.env.NEXT_PUBLIC_MYCOCOSERVER_URL;
 
 export const MEGHALAYA_OVERSEER_ID = 256
 

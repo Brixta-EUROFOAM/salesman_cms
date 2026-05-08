@@ -15,10 +15,11 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 import Image from 'next/image';
+import { ExternalLink } from 'lucide-react';
 
 interface Props {
   userRole: string; // Changed from WorkOSRole to string
-  companyId?: number; 
+  companyId?: number;
   permissions: string[]; // ['READ', 'WRITE', 'UPDATE']
   jobRoles?: string[]; // Array of user's job roles
 }
@@ -26,10 +27,11 @@ interface Props {
 interface MenuItem {
   title: string;
   url?: string;
-  requiredPerm?: string | string[] | 'public' | 'logout'; 
-  allowedCompanyIds?: number[]; 
+  requiredPerm?: string | string[] | 'public' | 'logout';
+  allowedCompanyIds?: number[];
   requiredJobRole?: string[]; // Array of required job roles to view this item
   items?: MenuItem[];
+  newTab?: boolean;
 }
 
 // Define menu items with the new nested structure
@@ -47,6 +49,12 @@ const menuItems: MenuItem[] = [
       {
         title: "Custom Report Generator",
         url: "/home/customReportGenerator",
+        requiredPerm: ['READ']
+      },
+      {
+        title: "Sheets Editor",
+        url: "/home/sheetsEditor",
+        newTab: true,
         requiredPerm: ['READ']
       },
     ],
@@ -184,7 +192,7 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
       // 1. MULTI-TENANT CHECK
       if (allowedCompanyIds && allowedCompanyIds.length > 0) {
         if (!companyId || !allowedCompanyIds.includes(companyId)) {
-          return acc; 
+          return acc;
         }
       }
 
@@ -214,7 +222,7 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
           acc.push(item);
         }
       }
-      
+
       return acc;
     }, [] as MenuItem[]);
   }, [permissions]); // Re-run if permissions change
@@ -250,8 +258,15 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
                   <SidebarMenuItem key={item.title}>
                     {item.url ? (
                       <SidebarMenuButton asChild>
-                        <a href={item.url} className="py-4 my-2.5">
+                        <a
+                          href={item.url}
+                          className="py-6.5 my-2 flex items-center gap-2"
+                          target={item.newTab ? "_blank" : undefined}
+                          rel={item.newTab ? "noopener noreferrer" : undefined}
+                        >
                           {item.title}
+                          {/* Conditionally render the icon */}
+                          {item.newTab && <ExternalLink className="w-3 h-3 text-white!" />}
                         </a>
                       </SidebarMenuButton>
                     ) : (
@@ -265,8 +280,15 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
                             <SidebarMenuSubItem key={subItem.title}>
                               {subItem.url ? (
                                 <SidebarMenuSubButton asChild>
-                                  <a href={subItem.url} className="py-5 my-2">
+                                  <a
+                                    href={subItem.url}
+                                    className="py-4 my-1 flex items-center gap-2"
+                                    target={subItem.newTab ? "_blank" : undefined}
+                                    rel={subItem.newTab ? "noopener noreferrer" : undefined}
+                                  >
                                     {subItem.title}
+                                    {/* Conditionally render the icon */}
+                                    {subItem.newTab && <ExternalLink className="w-3 h-3 text-white!" />}
                                   </a>
                                 </SidebarMenuSubButton>
                               ) : (
@@ -276,8 +298,15 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
                                 {subItem.items.map((subSubItem: MenuItem) => (
                                   <SidebarMenuSubItem key={subSubItem.title}>
                                     <SidebarMenuSubButton asChild>
-                                      <a href={subSubItem.url} className="py-6.5 my-2">
+                                      <a
+                                        href={subSubItem.url}
+                                        className="py-6.5 my-2 flex items-center gap-2"
+                                        target={subSubItem.newTab ? "_blank" : undefined}
+                                        rel={subSubItem.newTab ? "noopener noreferrer" : undefined}
+                                      >
                                         {subSubItem.title}
+                                        {/* Conditionally render the icon */}
+                                        {subItem.newTab && <ExternalLink className="w-3 h-3 text-white!" />}
                                       </a>
                                     </SidebarMenuSubButton>
                                   </SidebarMenuSubItem>
@@ -302,8 +331,15 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
                                 </form>
                               ) : (
                                 <SidebarMenuSubButton asChild>
-                                  <a href={subItem.url} className="py-4 my-1">
+                                  <a
+                                    href={subItem.url}
+                                    className="py-4 my-1 flex items-center gap-2"
+                                    target={subItem.newTab ? "_blank" : undefined}
+                                    rel={subItem.newTab ? "noopener noreferrer" : undefined}
+                                  >
                                     {subItem.title}
+                                    {/* Conditionally render the icon */}
+                                    {subItem.newTab && <ExternalLink className="w-3 h-3 text-white!" />}
                                   </a>
                                 </SidebarMenuSubButton>
                               )}
@@ -319,7 +355,12 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <a href={item.url} className="py-3 my-1">
+                      <a
+                        href={item.url}
+                        className="py-3 my-1"
+                        target={item.newTab ? "_blank" : undefined}
+                        rel={item.newTab ? "noopener noreferrer" : undefined}
+                      >
                         {item.title}
                       </a>
                     </SidebarMenuButton>

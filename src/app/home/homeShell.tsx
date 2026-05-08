@@ -1,6 +1,6 @@
 // src/app/home/homeShell.tsx
 'use client';
-
+import { usePathname } from 'next/navigation';
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import {
@@ -39,6 +39,16 @@ export default function HomeShell({
   permissions = [],
   jobRoles = [],
 }: HomeShellProps) {
+  const pathname = usePathname();
+  
+  // Determine if we should hide the sidebar
+  const isSheetsEditor = pathname.startsWith('/home/sheetsEditor');
+
+  // If it's the sheets editor, return just the children (no sidebar, no header)
+  if (isSheetsEditor) {
+    return <>{children}</>;
+  }
+
   return (
     <SidebarProvider>
       <AppSidebar 

@@ -33,7 +33,8 @@ export function ConditionalSidebar({ children }: ConditionalSidebarProps) {
                     || pathname === '/dashboard' // keep for layout formatting
                     || pathname.startsWith('/auth')
                     || pathname.startsWith('/setup-company')
-                    || pathname.startsWith('/login'); 
+                    || pathname.startsWith('/login') 
+                    || pathname.startsWith('/home/sheetsEditor'); 
 
   useEffect(() => {
     // STOP the fetch if we are on a public/logged-out page

@@ -57,7 +57,7 @@ const num = (v: number | null | undefined) =>
 const dateStr = (v: string | null | undefined) => v || '-';
 
 export const salesOrderColumns: ColumnDef<SalesOrder, any>[] = [
-  columnHelper.accessor('id', {
+  columnHelper.accessor('orderId', {
     header: 'Order ID',
     cell: info => info.getValue(),
     meta: { filterType: 'search' },

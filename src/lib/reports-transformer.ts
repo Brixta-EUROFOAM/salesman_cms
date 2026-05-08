@@ -1,7 +1,7 @@
 // src/lib/reports-transformer.ts
 import { db } from '@/lib/drizzle';
 import {
-  users, roles, userRoles, dealers, dailyVisitReports, technicalVisitReports, technicalSites,
+  users, roles, userRoles, dealers, verifiedDealers, dailyVisitReports, technicalVisitReports, technicalSites,
   salesOrders, permanentJourneyPlans, competitionReports, dailyTasks,
   salesmanAttendance, salesmanLeaveApplications, journeyOps, dealerReportsAndScores,
   ratings, dealerBrandMapping, brands, tsoMeetings, rewards, giftAllocationLogs,
@@ -1068,15 +1068,15 @@ export async function getFlattenedSalesOrders(companyId: number) {
       userFirstName: users.firstName,
       userLastName: users.lastName,
       userEmail: users.email,
-      dealerNameStr: dealers.name,
-      dealerRegion: dealers.region,
-      dealerArea: dealers.area,
-      dealerPhone: dealers.phoneNo,
-      dealerAddressStr: dealers.address,
+      dealerNameStr: verifiedDealers.dealerPartyName,
+      dealerRegion: verifiedDealers.zone,
+      dealerArea: verifiedDealers.area,
+      dealerPhone: verifiedDealers.contactNo1,
+      dealerAddressStr: verifiedDealers.district,
     })
     .from(salesOrders)
     .leftJoin(users, eq(salesOrders.userId, users.id))
-    .leftJoin(dealers, eq(salesOrders.dealerId, dealers.id))
+    .leftJoin(verifiedDealers, eq(salesOrders.verifiedDealerId, verifiedDealers.id))
     .where(eq(users.companyId, companyId))
     .orderBy(desc(salesOrders.createdAt));
 
@@ -1090,6 +1090,7 @@ export async function getFlattenedSalesOrders(companyId: number) {
 
     return {
       id: o.id,
+      orderId: o.orderId ?? null,
       userId: o.userId ?? null,
       dealerId: o.dealerId ?? null,
       dvrId: o.dvrId ?? null,
@@ -1109,7 +1110,7 @@ export async function getFlattenedSalesOrders(companyId: number) {
       partyRegion: o.partyRegion ?? null,
       partyAddress: o.partyAddress ?? null,
 
-      deliveryDate: formatDateIST(o.deliveryDate),
+      EstdDoDate: formatDateIST(o.deliveryDate),
       deliveryArea: o.deliveryArea ?? null,
       deliveryRegion: o.deliveryRegion ?? null,
       deliveryAddress: o.deliveryAddress ?? null,
