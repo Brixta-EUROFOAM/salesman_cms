@@ -1,7 +1,9 @@
+// src/app/home/sheetsEditor/components/saveFile.tsx
 'use client';
 import { useState } from "react";
 import { saveOutstandingReportsAction } from "../serverActions/saveOutstandingReports";
 import { saveSalesReportsAction } from "../serverActions/saveSalesReports";
+import { saveCollectionReportsAction } from "../serverActions/saveCollectionReports";
 
 export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, reportType: string }) {
   const [isSaving, setIsSaving] = useState(false);
@@ -32,8 +34,10 @@ export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, repo
           return cell ? (cell.v !== undefined ? cell.v : cell.m) : null;
         };
 
-        // 🛠️ DATE FIX: Extracted so both reports can use it
-        const dateCell = row[0];
+        // Determine which column holds the Date based on report type
+        const dateColIdx = reportType === 'collection' ? 2 : 0;
+        const dateCell = row[dateColIdx];
+        
         let finalDate = null;
 
         if (dateCell) {
@@ -75,28 +79,41 @@ export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, repo
         else if (reportType === 'sales') {
           const area = getVal(1);
           const dealerName = getVal(2);
-          const responsiblePerson = getVal(3);
-
+          
           if (dealerName && String(dealerName).trim() !== "") {
             transformedData.push({
               reportDate: finalDate,
-              area: area ? String(area) : null,
+              area: area ? String(area).trim() : null,
               dealerName: String(dealerName),
-              responsiblePerson: responsiblePerson ? String(responsiblePerson) : null,
-              currentMonthMTDSales: Number(getVal(4)) || 0,
-              currentMonthTarget: Number(getVal(5)) || 0,
-              // Cast numeric Postgres fields to String as expected by the backend schema
+              responsiblePerson: getVal(3) ? String(getVal(3)) : null,
+              currentMonthMTDSales: getVal(4) !== null ? String(getVal(4)) : null,
+              currentMonthTarget: getVal(5) !== null ? String(getVal(5)) : null,
               percentageTargetAchieved: getVal(6) !== null ? String(getVal(6)) : null,
-              balance: Number(getVal(7)) || 0,
-              prorataSalesTarget: Number(getVal(8)) || 0,
+              balance: getVal(7) !== null ? String(getVal(7)) : null,
+              prorataSalesTarget: getVal(8) !== null ? String(getVal(8)) : null,
               percentageAsPerProrata: getVal(9) !== null ? String(getVal(9)) : null,
               askingRate: getVal(10) !== null ? String(getVal(10)) : null,
-
-              // Maintain required JSONB fields
               rawPayload: { rawRow: row.map((c: any) => c ? (c.v || c.m) : null) },
-              salesDataPayload: {}, // No dynamic daily data in this template
-              collectionDataPayload: {},
-              nonTradeDataPayload: {}
+            });
+          }
+        }
+        else if (reportType === 'collection') {
+          const institution = getVal(0);
+          const voucher = getVal(1);
+          const party = getVal(3);
+
+          if (voucher && party && String(voucher).trim() !== "") {
+            transformedData.push({
+              institution: institution ? String(institution).trim() : null,
+              voucherNo: String(voucher).trim(),
+              voucherDate: finalDate,
+              partyName: String(party),
+              zone: getVal(4) ? String(getVal(4)) : null,
+              district: getVal(5) ? String(getVal(5)) : null,
+              salesPromoterName: getVal(6) ? String(getVal(6)) : null,
+              bankAccount: getVal(7) ? String(getVal(7)) : null,
+              amount: getVal(8) !== null ? String(getVal(8)) : null,
+              remarks: getVal(9) ? String(getVal(9)) : null,
             });
           }
         }
@@ -108,6 +125,8 @@ export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, repo
         result = await saveOutstandingReportsAction(transformedData);
       } else if (reportType === 'sales') {
         result = await saveSalesReportsAction(transformedData);
+      } else if (reportType === 'collection') {
+        result = await saveCollectionReportsAction(transformedData);
       }
 
       alert(`Success! Inserted ${result.insertedIds.length} records into the database.`);

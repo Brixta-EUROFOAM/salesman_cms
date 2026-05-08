@@ -51,8 +51,8 @@ export const SALES_TEMPLATE = {
   hide: 0,
   row: 1000,
   column: 15,
-  defaultRowHeight: 25, 
-  defaultColWidth: 125, 
+  defaultRowHeight: 25,
+  defaultColWidth: 125,
   celldata: [
     { r: 0, c: 0, v: { v: "reportDate", m: "Report Date (YYYY-MM-DD)", bg: "#f3f4f6", bl: 1 } },
     { r: 0, c: 1, v: { v: "area", m: "Area", bg: "#f3f4f6", bl: 1 } },
@@ -67,10 +67,43 @@ export const SALES_TEMPLATE = {
     { r: 0, c: 10, v: { v: "askingRate", m: "Asking Rate", bg: "#dcfce3", bl: 1 } },
   ],
   config: {
-    columnlen: { 
-      "0": 110, 
-      "2": 250, 
-      "3": 180 
+    columnlen: {
+      "0": 110,
+      "2": 250,
+      "3": 180
+    }
+  }
+};
+
+export const COLLECTION_TEMPLATE = {
+  name: "Collection Reports",
+  color: "",
+  index: 0,
+  status: 1,
+  order: 0,
+  hide: 0,
+  row: 300,
+  column: 15,
+  defaultRowHeight: 25,
+  defaultColWidth: 120,
+  celldata: [
+    { r: 0, c: 0, v: { v: "institution", m: "Institution (JSB/JUD)", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "voucherNo", m: "Voucher No.", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "date", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 3, v: { v: "partyName", m: "Party name", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 4, v: { v: "zone", m: "Zone", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 5, v: { v: "district", m: "District", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 6, v: { v: "salesPromoter", m: "Sales Promoter", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 7, v: { v: "bankAccount", m: "Bank Account", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 8, v: { v: "amount", m: "Amount", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 9, v: { v: "remarks", m: "Remarks (Optional)", bg: "#f3f4f6", bl: 1 } },
+  ],
+  config: {
+    columnlen: {
+      "1": 150,
+      "3": 250,
+      "6": 180,
+      "7": 250
     }
   }
 };
