@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import EditorUI from './editorUI';
-import { COLLECTION_TEMPLATE, OUTSTANDING_TEMPLATE, SALES_TEMPLATE } from '../lib/templates';
+import { COLLECTION_TEMPLATE, JUD_OUTSTANDING, JSB_OUTSTANDING, SALES_TEMPLATE } from '../lib/templates';
 
 export default function SheetWrapper() {
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
@@ -12,7 +12,7 @@ export default function SheetWrapper() {
   const handleSelect = (reportType: string) => {
     setSelectedReport(reportType);
     if (reportType === 'outstanding') {
-      setInitialData([OUTSTANDING_TEMPLATE]);
+      setInitialData([JSB_OUTSTANDING, JUD_OUTSTANDING]);
     } else if (reportType === 'sales') {
       setInitialData([SALES_TEMPLATE]);
     } else if (reportType === 'collection') {
