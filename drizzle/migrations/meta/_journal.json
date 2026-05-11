@@ -113,6 +113,13 @@
       "when": 1776951223027,
       "tag": "0015_public_kitty_pryde",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1778333178574,
+      "tag": "0016_cheerful_thanos",
+      "breakpoints": true
     }
   ]
 }

@@ -112,9 +112,7 @@ export const SALES_TEMPLATE = {
   ],
   config: {
     columnlen: {
-      "0": 110,
-      "2": 250,
-      "3": 180
+      "0": 110, "2": 250, "3": 180
     }
   }
 };
@@ -144,10 +142,329 @@ export const COLLECTION_TEMPLATE = {
   ],
   config: {
     columnlen: {
-      "1": 150,
-      "3": 250,
-      "6": 180,
-      "7": 250
+      "1": 150, "3": 250, "6": 180,  "7": 250
     }
   }
+};
+
+export const ACCOUNTS_TEMPLATE = {
+  name: "Accounts Dashboard",
+  color: "#14b8a6", // Teal
+  index: 0, status: 1, order: 0, hide: 0, row: 500, column: 15,
+  defaultRowHeight: 25, defaultColWidth: 120,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "colTarget", m: "Collection Target", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 2, v: { v: "colAch", m: "Collection Achv.", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 3, v: { v: "spendTarget", m: "Spend Target", bg: "#fee2e2", bl: 1 } },
+    { r: 0, c: 4, v: { v: "spendAch", m: "Spend Achv.", bg: "#fee2e2", bl: 1 } },
+    { r: 0, c: 5, v: { v: "pettyCash", m: "Petty Cash", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 6, v: { v: "billsPending", m: "Bills Pending", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 7, v: { v: "tenDaysReq", m: "10 Days Cash Req", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 8, v: { v: "expInflow", m: "Exp. Inflow", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 9, v: { v: "cmdDue", m: "CMD Due", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 10, v: { v: "cbJUD", m: "CB JUD", bg: "#e0f2fe", bl: 1 } },
+    { r: 0, c: 11, v: { v: "cbJSB", m: "CB JSB", bg: "#e0f2fe", bl: 1 } },
+    { r: 0, c: 12, v: { v: "remarks", m: "Remarks", bg: "#fef3c7", bl: 1 } },
+  ],
+  config: { columnlen: { 
+    "0": 100, "1": 130, "2": 130, 
+    "3": 130, "4": 130, "12": 200 
+  } }
+};
+
+export const FINANCE_PLBS = {
+  name: "P&L & BS Status",
+  color: "#2563eb", // Blue
+  index: 0, status: 1, order: 0, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "particulars", m: "Particulars", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "prevMonth", m: "Previous Month", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 3, v: { v: "currMonth", m: "Current Month", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 4, v: { v: "remarks", m: "Remarks / Action", bg: "#fef3c7", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 250, "2": 150, "3": 150, "4": 250 } }
+};
+
+export const FINANCE_COST_JUD = {
+  name: "Cost Sheet - JUD",
+  color: "#3b82f6", 
+  index: 1, status: 0, order: 1, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "particulars", m: "Particulars", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "prevMonth", m: "Previous Month", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 3, v: { v: "currMonth", m: "Current Month", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 4, v: { v: "remarks", m: "Remarks / Action", bg: "#fef3c7", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 250, "2": 150, "3": 150, "4": 250 } }
+};
+
+export const FINANCE_COST_JSB = {
+  name: "Cost Sheet - JSB",
+  color: "#60a5fa", 
+  index: 2, status: 0, order: 2, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "particulars", m: "Particulars", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "prevMonth", m: "Previous Month", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 3, v: { v: "currMonth", m: "Current Month", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 4, v: { v: "remarks", m: "Remarks / Action", bg: "#fef3c7", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 250, "2": 150, "3": 150, "4": 250 } }
+};
+
+export const FINANCE_INVESTOR = {
+  name: "Investor Queries",
+  color: "#93c5fd", 
+  index: 3, status: 0, order: 3, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "query", m: "Query Description", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "status", m: "Status / Resolution", bg: "#dcfce3", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 350, "2": 250, "3": 250 } }
+};
+
+export const HR_VACCANCIES = {
+  name: "Total Vaccancies",
+  color: "#d946ef", 
+  index: 0, status: 1, order: 0, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    // Headers
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "noOfVaccancies", m: "Total No of vaccancies", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "ho", m: "Head Office", bg: "#e0f2fe", bl: 1 } },
+    { r: 0, c: 3, v: { v: "jsb", m: "JSB", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 4, v: { v: "jud", m: "JUD", bg: "#e0f2fe", bl: 1 } },
+    { r: 0, c: 5, v: { v: "remarks", m: "Remarks / Action", bg: "#fef3c7", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 250, "4": 250 } }
+};
+
+export const HR_INTERVIEWS = {
+  name: "Interview Candidates",
+  color: "#86198f", 
+  index: 3, status: 0, order: 3, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "candidate", m: "Candidate Name", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "position", m: "Position", bg: "#e0f2fe", bl: 1 } },
+    { r: 0, c: 3, v: { v: "location", m: "Location", bg: "#fef3c7", bl: 1 } },
+    { r: 0, c: 4, v: { v: "status", m: "Status", bg: "#dcfce3", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 250, "2": 200, "3": 150, "4": 150 } }
+};
+
+export const HR_PLANT = {
+  name: "Top Underperformers - Plant",
+  color: "#d946ef", 
+  index: 0, status: 1, order: 0, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    // Headers
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "plant", m: "Plant Name", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "empName", m: "Employee Name", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 3, v: { v: "department", m: "Department", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 4, v: { v: "designation", m: "Designation", bg: "#e0f2fe", bl: 1 } },
+    { r: 0, c: 5, v: { v: "remarks", m: "Remarks / Action", bg: "#fef3c7", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 250, "4": 250 } }
+};
+
+export const HR_HO = {
+  name: "Top Underperformers - HO",
+  color: "#c026d3", 
+  index: 1, status: 0, order: 1, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "empName", m: "Employee Name", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "department", m: "Department", bg: "#fee2e2", bl: 1 } },
+    { r: 0, c: 3, v: { v: "designation", m: "Designation", bg: "#e0f2fe", bl: 1 } },
+    { r: 0, c: 3, v: { v: "remarks", m: "Remarks / Action", bg: "#fef3c7", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 250, "2": 200, "3": 250 } }
+};
+
+export const HR_STATUTORY = {
+  name: "Statutory Clearances",
+  color: "#a21caf", 
+  index: 2, status: 0, order: 2, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "plantName", m: "Plant Name", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "clearance", m: "Clearance Type", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 3, v: { v: "dueDate", m: "Due Date", bg: "#fef3c7", bl: 1 } },
+    { r: 0, c: 4, v: { v: "status", m: "Status", bg: "#e0f2fe", bl: 1 } },
+    
+    { r: 1, c: 1, v: { v: "Pollution Control", m: "Pollution Control" } }, 
+    { r: 2, c: 1, v: { v: "Factory License", m: "Factory License" } },
+    { r: 3, c: 1, v: { v: "Labour Compliance", m: "Labour Compliance" } },
+    { r: 4, c: 1, v: { v: "Environmantal Clearance", m: "Environmantal Clearance" } },
+    { r: 5, c: 1, v: { v: "Safety Compliance", m: "Safety Compliance" } },
+  ],
+  config: { columnlen: { "0": 110, "1": 250, "2": 150, "4": 250 } }
+};
+
+export const PURCHASE_DAILY = {
+  name: "Daily Materials (Top 5)",
+  color: "#f59e0b", // Amber
+  index: 0, status: 1, order: 0, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "material", m: "Material Name", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "vendor", m: "Vendor Name", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 3, v: { v: "amount", m: "Amount", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 4, v: { v: "status", m: "Status / Remarks", bg: "#fef3c7", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 250, "2": 250, "3": 150, "4": 250 } }
+};
+
+export const PURCHASE_MONTHLY = {
+  name: "Monthly Important (Top 10)",
+  color: "#d97706", 
+  index: 1, status: 0, order: 1, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "material", m: "Material Name", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "vendor", m: "Vendor Name", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 3, v: { v: "qty", m: "Expected Qty / Value", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 4, v: { v: "status", m: "Status / Remarks", bg: "#fef3c7", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 250, "2": 250, "3": 200, "4": 250 } }
+};
+
+export const PURCHASE_STATUS = {
+  name: "Report Status",
+  color: "#b45309", 
+  index: 2, status: 0, order: 2, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "reportName", m: "Report Name", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "status", m: "Status", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 3, v: { v: "remarks", m: "Remarks", bg: "#fef3c7", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 300, "2": 200, "3": 250 } }
+};
+
+export const PROCESS_STATUS = {
+  name: "Daily Status",
+  color: "#f43f5e", 
+  index: 0, status: 1, order: 0, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "item", m: "Item", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "status", m: "Status", bg: "#e0f2fe", bl: 1 } },
+    { r: 0, c: 3, v: { v: "timeRef", m: "Time / Ref.", bg: "#fef3c7", bl: 1 } },
+    { r: 0, c: 4, v: { v: "remarks", m: "Remarks", bg: "#f3f4f6", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 300, "2": 150, "3": 150, "4": 250 } }
+};
+
+export const PROCESS_STOCK = {
+  name: "Closing Stock",
+  color: "#e11d48", 
+  index: 1, status: 0, order: 1, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "material", m: "Material", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "unit", m: "Unit", bg: "#e0f2fe", bl: 1 } },
+    { r: 0, c: 3, v: { v: "closingStock", m: "Closing Stock", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 4, v: { v: "remarks", m: "Remarks", bg: "#fef3c7", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 300, "2": 100, "3": 150, "4": 250 } }
+};
+
+export const PROCESS_COAL = {
+  name: "Coal Consumption",
+  color: "#be123c", 
+  index: 2, status: 0, order: 2, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "metric", m: "Metric", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "unit", m: "Unit", bg: "#e0f2fe", bl: 1 } },
+    { r: 0, c: 3, v: { v: "value", m: "Value", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 4, v: { v: "remarks", m: "Remarks", bg: "#fef3c7", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 350, "2": 100, "3": 150, "4": 250 } }
+};
+
+export const PROCESS_TARGET_ACHV = {
+  name: "Target vs Achievement",
+  color: "#9f1239", 
+  index: 3, status: 0, order: 3, hide: 0, row: 100, column: 12,
+  defaultRowHeight: 25, defaultColWidth: 120,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "item", m: "Item", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "unit", m: "Unit", bg: "#e0f2fe", bl: 1 } },
+    { r: 0, c: 3, v: { v: "target", m: "Target", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 4, v: { v: "achievement", m: "Achievement", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 5, v: { v: "variance", m: "Variance", bg: "#fee2e2", bl: 1 } },
+    { r: 0, c: 6, v: { v: "achvPct", m: "Achv. %", bg: "#e0f2fe", bl: 1 } },
+    { r: 0, c: 7, v: { v: "remarks", m: "Remarks", bg: "#fef3c7", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 200, "2": 100, "7": 250 } }
+};
+
+export const LOGISTICS_DISPATCH = {
+  name: "Cement Dispatch (FOR)",
+  color: "#4f46e5", // Indigo
+  index: 0, status: 1, order: 0, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "area", m: "Area", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "target", m: "Target Dispatch Qty (MT)", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 3, v: { v: "achievement", m: "Ach. Dispatch Qty (MT)", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 4, v: { v: "remarks", m: "Remarks", bg: "#fef3c7", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 200, "2": 180, "3": 180, "4": 250 } }
+};
+
+export const LOGISTICS_STOCK = {
+  name: "Raw Materials Closing Stock",
+  color: "#6366f1", 
+  index: 1, status: 0, order: 1, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "material", m: "Material", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "unit", m: "Unit", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 3, v: { v: "jsbStock", m: "JSB Closing Stock", bg: "#e0f2fe", bl: 1 } },
+    { r: 0, c: 4, v: { v: "judStock", m: "JUD Closing Stock", bg: "#e0f2fe", bl: 1 } },
+    { r: 0, c: 5, v: { v: "totalStock", m: "Total Stock", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 6, v: { v: "remarks", m: "Remarks", bg: "#fef3c7", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 200, "2": 100, "3": 150, "4": 150, "5": 150, "6": 200 } }
+};
+
+export const LOGISTICS_TRANSPORTER = {
+  name: "Transporter Payments",
+  color: "#818cf8", 
+  index: 2, status: 0, order: 2, hide: 0, row: 100, column: 10,
+  defaultRowHeight: 25, defaultColWidth: 150,
+  celldata: [
+    { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 1, v: { v: "transporterName", m: "Transporter Name", bg: "#f3f4f6", bl: 1 } },
+    { r: 0, c: 2, v: { v: "amount", m: "Payment Amount (₹)", bg: "#dcfce3", bl: 1 } },
+    { r: 0, c: 3, v: { v: "remarks", m: "Remarks", bg: "#fef3c7", bl: 1 } },
+  ],
+  config: { columnlen: { "0": 110, "1": 300, "2": 200, "3": 250 } }
 };
