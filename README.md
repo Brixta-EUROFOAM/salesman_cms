@@ -1,292 +1,172 @@
-# Brixta Salesman CMS
+<h1 align="center"> salesman_cms </h1>
+<p align="center"> An Enterprise-Grade Sales Force Automation and Operations Management System for the Cement Industry </p>
 
-Multi-Tenant SaaS for Brixta Salesman CMS project. This is a comprehensive Sales Force Automation (SFA) and Customer Relationship Management (CRM) platform, appearing to be tailored for the cement industry ("Brixta Bestcement").
 
-It functions as a multi-tenant SaaS application, enabling different companies to manage their sales teams, track field activities, manage dealer networks, and report on sales data. The system is built with a modern web stack and features a sophisticated, multi-layered Role-Based Access Control (RBAC) system for managing permissions.
+## 📑 Table of Contents
+- [Overview](#-overview)
+- [Key Features](#-key-features)
+- [Tech Stack & Architecture](#-tech-stack--architecture)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+- [Usage](#-usage)
 
------
+---
 
-## Core Features (Based on Database Schema)
+## 🌟 Overview
 
-The application's functionality is extensive, with the database schema revealing the following core modules:
+**salesman_cms** is a comprehensive, enterprise-level management platform designed to streamline and automate the complex operations of sales forces, dealer networks, and influencer programs within the cement industry. By centralizing field data, logistics, and performance metrics, the platform empowers administrators and management teams to make data-driven decisions in real-time.
 
-  * **Multi-Tenancy:** The system is built around `Company` and `User` models, where each user is tied to a specific company, and each company is linked to a WorkOS organization (`workosOrganizationId`) for authentication.
-  * **User Hierarchy:** Users have roles (e.g., 'Manager', 'Executive') and a clear reporting structure (`reportsToId`), allowing for managerial oversight.
-  * **Dealer Management:** A complex `Dealer` model that supports both dealers and sub-dealers (via a self-referencing `parentDealerId`). It stores extensive details, including:
-      * Verification Status (`verificationStatus`)
-      * Location & Potential (`latitude`, `longitude`, `totalPotential`)
-      * Detailed Godown, Residential, and Bank information
-      * Document URLs (Trade License, Shop Pic, etc.)
-  * **Field Activity Reporting:**
-      * **Daily Visit Reports (DVR):** Salesmen log visits to dealers/sub-dealers, recording check-in/out times, location, order values, collections, and feedback.
-      * **Technical Visit Reports (TVR):** For technical staff to log site visits, including site stage, brand in use, quality complaints, and promotional activities.
-  * **Planning & Tasking:**
-      * **Permanent Journey Plans (PJP):** Managers (`createdById`) can create weekly/monthly visit plans for their team members (`userId`), which can then be verified (`verificationStatus`).
-      * **Daily Tasks:** A simpler system for assigning daily tasks from managers to salesmen.
-  * **Sales & Operations:**
-      * **Sales Orders:** Allows salesmen to place orders, capturing party details, delivery info, payment terms, and item specifics (PPC/OPC, grade).
-      * **Competition Reporting:** A dedicated module for logging competitor brand activity, pricing, and schemes.
-  * **Salesman Tracking & HR:**
-      * **Attendance:** A `SalesmanAttendance` module for daily clock-in/out with location and image capture.
-      * **Geo-Tracking:** A `GeoTracking` table logs detailed, time-based location data for users, including speed, altitude, and distance traveled.
-      * **Leave Applications:** A standard leave request and approval system.
-  * **Promotions:** A gift inventory (`GiftInventory`) and allocation log (`GiftAllocationLog`) to track the distribution of promotional items.
+### ⚠️ The Problem
+> Managing a distributed sales force in the construction materials sector involves significant challenges: tracking salesman field visits, verifying permanent journey plans (PJP), managing dealer relationships across regions, and coordinating influencer programs for masons and contractors. Traditional manual reporting often leads to data silos, delayed responses to market competition, and inaccuracies in performance tracking and rewards distribution.
 
------
+### ✅ The Solution
+**salesman_cms** provides a unified dashboard that integrates every facet of the sales lifecycle. From real-time geotracking of salesmen and attendance management to automated dealer verification and influencer loyalty programs (Mason/PC), the system ensures operational transparency. With integrated spreadsheet editing for financial reporting and a specialized logistics module, it transforms raw field data into actionable business intelligence.
 
-## Technical Stack
+**Architecture Overview:** The application is built using a modern **Component-based Architecture** leveraging **React 19** and **Next.js 16**. It utilizes **Drizzle ORM** for robust database interactions with **PostgreSQL**, and **Tailwind CSS** for a responsive, high-performance user interface.
 
-This project is built with a modern, type-safe stack:
+---
 
-  * **Framework:** Next.js (v16.0.1)
-  * **Language:** TypeScript
-  * **Database:** PostgreSQL
-  * **ORM:** Prisma (v6.18.0)
-  * **Authentication:** WorkOS (using `@workos-inc/authkit-nextjs` and `@workos-inc/node`)
-  * **UI Components:** shadcn-ui, built on Radix UI and Tailwind CSS (inferred from dependencies like `@radix-ui/react-dialog`, `clsx`, `tailwind-merge`).
-  * **Data Tables:** TanStack Table (`@tanstack/react-table`)
-  * **Charts:** Recharts
-  * **Maps:** Leaflet & React Leaflet
-  * **Deployment:** Docker (see `docker-compose.yaml`)
+## ✨ Key Features
 
------
+### 📡 Real-Time Field Intelligence
+*   **Salesman Geotracking:** Monitor the live location of field personnel via an integrated mapping interface, ensuring optimized route adherence and safety.
+*   **Permanent Journey Plan (PJP) Verification:** Automated workflows for verifying and auditing scheduled field visits (PJP), including bulk verification capabilities to save administrative time.
+*   **Attendance & Leave Management:** Dedicated modules for salesmen to log attendance and request leaves, with streamlined approval workflows for managers.
 
-## Authentication & Multi-Tenancy (WorkOS)
+### 🏗️ Dealer & Influencer Ecosystem
+*   **Comprehensive Dealer Management:** Tools for listing, verifying, and mapping dealers to specific brands and types. Includes location-based dealer tracking to visualize distribution networks.
+*   **Mason & PC (Influencer) Program:** A specialized "MasonPC" side for managing influencers. Features include point ledgers, reward redemption tracking, bags-lift reporting, and technical meeting management.
+*   **Reward & Scheme Management:** Dynamically manage rewards, schemes, and offers to drive loyalty among dealers and masons.
 
-Authentication is handled by **WorkOS**, which is purpose-built for multi-tenant SaaS applications.
+### 📊 Performance & Analytics
+*   **Advanced Reporting Suite:** Generate detailed Daily Visit Reports (DVR), Technical Visit Reports (TVR), and competition reports to stay ahead of market trends.
+*   **Performance Metrics:** Granular tracking of Technical Sales Officers (TSO) and Sales Officers (SO) performance against key KPIs.
+*   **Custom Report Generator:** An interactive tool allowing users to generate tailored tables and sync location data for specific business needs.
 
-1.  **Organizational Link:** The core of the multi-tenant structure lies in the link between the local `Company` model and a WorkOS Organization, using the `workosOrganizationId` field.
-2.  **User Identity Link:** Similarly, the local `User` model is linked to a WorkOS User via the `workosUserId` field.
-3.  **Auth Flow:**
-      * A user logs in via the WorkOS Authkit.
-      * Upon successful login, the app receives a set of claims (JWT). The API route `/api/me` uses `getTokenClaims()` to securely read these claims on the server.
-      * The app uses the `sub` (subject) claim from the token to find the corresponding user in its own database (`where: { workosUserId: claims.sub }`).
-      * This local `User` record contains the `role` and `companyId`, which are then used for all subsequent authorization checks.
-4.  **Callback Handling:** The route `/auth/callback` properly handles the OAuth redirect from WorkOS, correctly reconstructing the URL in a proxied environment before passing it to the WorkOS `handleAuth` function.
+### 🚚 Logistics & Operations
+*   **Logistics IO:** Manage logistics records and user permissions specifically for dispatch and supply chain operations.
+*   **Orders & Payments:** Track sales orders and payment statuses to ensure a healthy cash flow and order fulfillment cycle.
+*   **Technical Site Tracking:** Maintain a detailed registry of technical sites and construction projects for targeted sales efforts.
 
------
+### 🛠️ Integrated Productivity Tools
+*   **Collaborative Sheets Editor:** A built-in spreadsheet engine (powered by Fortune Sheet) for managing outstanding reports, collections, and financial data directly within the CMS.
+*   **AI-Powered Chatbot:** "CemtemChat" provides an interactive interface for users to query data or access system help.
+*   **Data Portability:** Comprehensive utilities for reading and writing Excel files, as well as CSV exporting for external analysis.
 
-## Advanced Role-Based Access Control (RBAC) System
+---
 
-The project features a sophisticated, dual-layer RBAC system that is both powerful and secure. It separates the concepts of *hierarchical authority* (who can manage whom) from *feature permissions* (what a user can do).
+## 🛠️ Tech Stack & Architecture
 
-### Layer 1: Role Hierarchy (Hierarchical Authority)
+### Verified Core Technologies
+The system is built on a high-performance stack selected for scalability, type safety, and real-time capabilities.
 
-This layer, defined in `src/lib/roleHierarchy.ts`, governs the organizational structure and limits the scope of managerial actions.
+| Technology | Purpose | Why it was Chosen |
+| :--- | :--- | :--- |
+| **React 19** | UI Library | Modern hooks and concurrent rendering for a fluid user experience. |
+| **Next.js 16** | Framework | Server-side rendering (SSR) and App Router for optimized performance and SEO. |
+| **PostgreSQL** | Database | Relational data integrity for complex sales and dealer structures. |
+| **Drizzle ORM** | Data Access | Type-safe SQL execution and migrations with minimal overhead. |
+| **Tailwind CSS** | Styling | Utility-first CSS for rapid, consistent UI development. |
+| **Leaflet** | Maps/GIS | Lightweight, powerful mapping for geotracking and dealer locations. |
+| **Fortune Sheet** | Spreadsheet | High-performance, Excel-like functionality for financial reporting. |
+| **NextAuth / JWT** | Security | Secure, industry-standard authentication and session management. |
+| **Docker** | Deployment | Containerization for consistent environments across dev and production. |
 
-  * **Fixed Hierarchy:** It defines a single, authoritative list of roles in order of seniority, from `president` (highest) to `junior-executive` (lowest).
-  * **Purpose:** To control *who can manage whom*.
-  * **Key Functions:**
-      * `getVisibleRoles(currentUserRole)`: Used by the frontend to populate dropdowns, ensuring a manager can only see and assign roles that are *junior* to their own.
-      * `canAssignRole(currentUserRole, targetRole)`: A critical server-side validation function that checks if a user has the authority to assign a specific role (i.e., their role index is *less than* the target role's index).
+---
 
-### Layer 2: Feature Permissions (Feature Access)
+## 📁 Project Structure
 
-This layer, defined in `src/lib/permissions.ts`, controls access to specific features, pages, and data within the application.
-
-  * **Granular Permissions:** It defines a `DashboardPermissions` interface, which is a detailed tree structure mapping out every single feature of the application (e.g., `dealerManagement.verifyDealers`, `reports.salesOrders`, `teamOverview.salesmanLiveLocation`).
-  * **Permission Matrix:** The `WORKOS_ROLE_PERMISSIONS` object acts as a giant matrix, mapping each defined `WorkOSRole` to a specific `DashboardPermissions` object, which sets `true` or `false` for every feature.
-  * **Purpose:** To control *what a user can see and do*.
-  * **Key Function:**
-      * `hasPermission(role, feature)`: A utility function used (primarily by the frontend) to check if the current user's role has access to a specific feature path. This is used to conditionally render sidebar links, buttons, and entire pages.
-
-### System in Action: Role Synchronization
-
-The API endpoint `/api/dashboardPagesAPI/team-overview/editRole` provides a perfect example of this dual-layer system working together. When a manager changes another user's role:
-
-1.  **Authentication:** The server first gets the *manager's* role from their WorkOS token claims.
-2.  **Layer 1 Check (Hierarchy):** It calls `canAssignRole(currentUserRole, newRole)`. If the manager is trying to assign a role equal or senior to their own, the request is rejected with a 403 Forbidden error. This check is performed on the server, not the client.
-3.  **Synchronization Transaction:** If the hierarchy check passes, the server executes a transaction:
-    a.  It updates the user's `roleSlug` in WorkOS using the WorkOS Node SDK (`workos.userManagement.updateOrganizationMembership`).
-    b.  It updates the `role` in the local Prisma `User` table.
-
-This ensures that the role is consistent between the authentication provider (WorkOS) and the application database (Prisma), and that all actions respect the strict organizational hierarchy.
-
------
-
-## Deployment
-
-The project is configured for deployment using Docker. The `docker-compose.yaml` file defines a service named `slmcmsdashboard` using the `goswamirohit/slmcmsdashboard:vX` image. It maps port `4000` on the host to port `3000` inside the container and injects environment variables from `.env` and `.env.local` files.
-
-### Example: Deploying to Ubuntu with Nginx Reverse Proxy
-
-This guide outlines the steps to deploy the application on a standard Ubuntu server (e.g., an AWS EC2 instance) using Docker Compose and Nginx as a reverse proxy.
-
-**1. Prerequisites**
-
-  * **Server:** A running Ubuntu 22.04 (or later) server with SSH access and a non-root user with `sudo` privileges.
-  * **Domain:** A registered domain name (e.g., `cms.yourcompany.com`) with its DNS "A" record pointed to your server's public IP address.
-  * **Firewall:** A firewall (like `ufw`) configured to allow SSH (port 22), HTTP (port 80), and HTTPS (port 443).
-
-**2. Install Docker and Docker Compose**
-
-Follow the official instructions to set up Docker's repository and install Docker Engine and the Docker Compose plugin.
-
-```bash
-# 1. Uninstall old versions
-for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove $pkg; done
-
-# 2. Set up Docker's apt repository
-sudo apt-get update
-sudo apt-get install ca-certificates curl gnupg
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# 3. Install Docker Engine and Compose
-sudo apt-get update
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+salesman_cms/
+├── 📁 drizzle/                  # Database schema and migration management
+│   ├── 📄 schema.ts            # Core database table definitions
+│   ├── 📄 relations.ts         # Table relationship mappings
+│   └── 📁 migrations/           # SQL migration history
+├── 📁 public/                   # Static assets (images, icons)
+│   └── 📄 bestcement.webp      # Main branding asset
+├── 📁 src/
+│   ├── 📁 actions/             # Server-side actions and caching logic
+│   ├── 📁 app/                 # Next.js App Router (Pages & API Routes)
+│   │   ├── 📁 api/             # Backend API endpoints
+│   │   │   ├── 📁 auth/        # Login/Logout logic
+│   │   │   ├── 📁 company/     # Company profile management
+│   │   │   ├── 📁 dashboardPagesAPI/ # Module-specific API logic
+│   │   │   └── 📁 masonpc-side/ # Influencer program endpoints
+│   │   ├── 📁 dashboard/       # Core application dashboard UI
+│   │   │   ├── 📁 slmAttendance/ # Attendance tracking UI
+│   │   │   ├── 📁 dealerManagement/ # Dealer verification UI
+│   │   │   └── 📁 reports/     # Reporting dashboard modules
+│   │   ├── 📁 home/            # Landing pages and specialized tools
+│   │   │   ├── 📁 sheetsEditor/ # Embedded spreadsheet tool
+│   │   │   └── 📁 cemtemChat/  # Interactive chatbot UI
+│   │   └── 📄 layout.tsx       # Root application layout
+│   ├── 📁 components/          # Reusable UI components
+│   │   ├── 📁 ui/              # Primitive UI components (Radix/Shadcn)
+│   │   ├── 📄 app-sidebar.tsx  # Main navigation sidebar
+│   │   └── 📄 data-table-reusable.tsx # Universal data display component
+│   ├── 📁 lib/                 # Utility functions and shared services
+│   │   ├── 📄 pointsCalcLogic.ts # Business logic for reward calculations
+│   │   └── 📄 roleHierarchy.ts  # RBAC (Role-Based Access Control) logic
+│   └── 📁 hooks/               # Custom React hooks (search, mobile detection)
+├── 📄 docker-compose.yaml       # Multi-container orchestration config
+├── 📄 drizzle.config.ts         # Database migration configuration
+├── 📄 next.config.ts            # Next.js framework configuration
+├── 📄 package.json              # Dependency and script manifest
+└── 📄 tsconfig.json             # TypeScript compiler settings
 ```
 
-**OR refer to the official DOCS at [https://docs.docker.com/engine/install/ubuntu/](https://docs.docker.com/engine/install/ubuntu/)**
+---
 
-**3. Install Nginx**
+## 🚀 Getting Started
 
+### Prerequisites
+- **Node.js**: v20 or higher (compatible with React 19)
+- **Package Manager**: npm
+- **Database**: A PostgreSQL instance (local or via Neon)
+- **Docker**: Optional, for containerized deployment
+
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/your-org/salesman_cms.git
+   cd salesman_cms
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Database Setup:**
+   Configure your database connection in `drizzle.config.ts` or via environment variables, then push the schema:
+   ```bash
+   npx drizzle-kit push
+   ```
+
+4. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+
+### Deployment (Docker)
+To run the application in a containerized environment:
 ```bash
-sudo apt-get update
-sudo apt-get install nginx
+docker-compose up --build
 ```
 
-**4. Prepare Application Files**
+---
 
-1.  Clone your repository or upload the project files (`docker-compose.yaml`, `.env`, `.env.local`) to a directory on your server (e.g., `/home/youruser/slmcms`).
+## 🔧 Usage
 
-    ```bash
-    git clone <your-repo-url> /home/youruser/slmcms
-    cd /home/youruser/slmcms
-    ```
+### Accessing the Dashboard
+Upon successful login, users are directed to the main dashboard. Navigation is handled via the `ConditionalSidebar`, which adapts based on the user's role (Manager, TSO, Sales Officer, etc.).
 
-2.  Create your production environment files. This is crucial for security and functionality.
+### Managing Field Operations
+- **Geotracking:** Navigate to `/dashboard/slmGeotracking` to view real-time salesman locations on the map.
+- **PJP Verification:** Admins can visit `/dashboard/permanentJourneyPlan` to approve or reject visit logs.
+- **Dealer Mapping:** Use the `dealerManagement` module to link specific dealers to brands and verify their physical locations.
 
-    ```bash
-    # Create and add your DATABASE_URL, WORKOS_API_KEY, etc.
-    nano .env
-
-    # Create and add your NEXT_PUBLIC_APP_URL
-    nano .env.local
-    ```
-
-    **IMPORTANT:** Your `.env.local` file **must** contain the correct public URL for WorkOS authentication to function, e.g.:
-    `NEXT_PUBLIC_APP_URL=https://cms.yourcompany.com`
-
-**5. Configure Nginx as a Reverse Proxy**
-
-1.  Create a new Nginx configuration file for your site:
-
-    ```bash
-    sudo nano /etc/nginx/sites-available/slmcms
-    ```
-
-2.  Paste the following configuration, replacing `cms.yourcompany.com` with your domain. This forwards web traffic to the Docker container's exposed port `4000`.
-
-    ```nginx
-    server {
-        listen 80;
-        server_name cms.yourcompany.com;
-
-        location / {
-            # Forward requests to the local port 4000 mapped by Docker
-            proxy_pass http://127.0.0.1:4000; 
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-
-            # Support for WebSockets (if needed)
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
-        }
-    }
-    ```
-
-3.  Enable this site by creating a symbolic link and test the Nginx configuration:
-
-    ```bash
-    sudo ln -s /etc/nginx/sites-available/slmcms /etc/nginx/sites-enabled/
-    sudo nginx -t
-    ```
-
-4.  If the test is successful (`syntax is ok`), restart Nginx to apply the changes:
-
-    ```bash
-    sudo systemctl restart nginx
-    ```
-
-**6. Run the Application**
-
-Navigate to your project directory and start the application using Docker Compose in detached (`-d`) mode.
-
-```bash
-cd /home/youruser/slmcms
-docker compose up -d
-```
-
-This command will pull the `goswamirohit/slmcmsdashboard` image, create the network, and start the container in the background. Your application is now accessible via `http://cms.yourcompany.com`.
-
-**7. (Recommended) Enable HTTPS with Certbot**
-
-For a production environment, you must use HTTPS. The easiest way is with Certbot, which provides free SSL certificates from Let's Encrypt.
-
-```bash
-# Install Certbot and the Nginx plugin
-sudo apt-get install certbot python3-certbot-nginx
-
-# Run Certbot and follow the on-screen prompts
-sudo certbot --nginx -d cms.yourcompany.com
-```
-
-Certbot will automatically obtain an SSL certificate, update your Nginx configuration to use it, and set up a renewal service. Your site will now be secure and accessible via `https://cms.yourcompany.com`.
-
------
-
-## Getting Started (Local Development)
-
-1.  **Clone the repository:**
-
-    ```bash
-    git clone <repository-url>
-    cd salesman_cms
-    ```
-
-2.  **Install dependencies:**
-
-    ```bash
-    npm install
-    ```
-
-3.  **Set up environment variables:**
-    Create a `.env` file in the root. Based on the schema and API files, you will need:
-
-      * `DATABASE_URL`: Your PostgreSQL connection string.
-      * `WORKOS_API_KEY`: Your WorkOS API Key.
-      * `WORKOS_CLIENT_ID`: Your WorkOS Client ID.
-      * `WORKOS_REDIRECT_URI`: e.g., `http://localhost:3000/auth/callback`
-      * `NEXT_PUBLIC_APP_URL`: e.g., `http://localhost:3000`
-
-4.  **Run database migrations:**
-    This will set up your local PostgreSQL database with the schema from `prisma/schema.prisma`.
-
-    ```bash
-    npx prisma migrate dev
-    ```
-
-5.  **Generate Prisma Client:**
-    The build script handles this, but you can run it manually:
-
-    ```bash
-    npx prisma generate
-    ```
-
-6.  **Run the development server:**
-
-    ```bash
-    npm run dev
-    ```
-
-The application should now be running on `http://localhost:3000`.
+### Financial & Data Analysis
+- **Sheet Editor:** Go to `/home/sheetsEditor` to import Excel files, perform calculations using the `pointsCalcLogic`, and save reports directly to the database.
+- **Custom Reports:** Use the `customReportGenerator` under the home directory to build bespoke data views using drag-and-drop filters.

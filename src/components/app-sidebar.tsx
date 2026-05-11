@@ -41,11 +41,6 @@ const menuItems: MenuItem[] = [
     url: "/home",
     requiredPerm: 'public',
     items: [
-      // {
-      //   title: "CemTem ChatBot",
-      //   url: "/home/cemtemChat",
-      //   permission: ITEM_PERMISSIONS["CemTem ChatBot"]
-      // },
       {
         title: "Custom Report Generator",
         url: "/home/customReportGenerator",
