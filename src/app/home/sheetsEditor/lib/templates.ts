@@ -251,7 +251,7 @@ export const HR_VACCANCIES = {
 export const HR_INTERVIEWS = {
   name: "Interview Candidates",
   color: "#86198f", 
-  index: 3, status: 0, order: 3, hide: 0, row: 100, column: 10,
+  index: 1, status: 0, order: 1, hide: 0, row: 100, column: 10,
   defaultRowHeight: 25, defaultColWidth: 150,
   celldata: [
     { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
@@ -266,7 +266,7 @@ export const HR_INTERVIEWS = {
 export const HR_PLANT = {
   name: "Top Underperformers - Plant",
   color: "#d946ef", 
-  index: 0, status: 1, order: 0, hide: 0, row: 100, column: 10,
+  index: 2, status: 1, order: 2, hide: 0, row: 100, column: 10,
   defaultRowHeight: 25, defaultColWidth: 150,
   celldata: [
     // Headers
@@ -283,14 +283,14 @@ export const HR_PLANT = {
 export const HR_HO = {
   name: "Top Underperformers - HO",
   color: "#c026d3", 
-  index: 1, status: 0, order: 1, hide: 0, row: 100, column: 10,
+  index: 3, status: 0, order: 3, hide: 0, row: 100, column: 10,
   defaultRowHeight: 25, defaultColWidth: 150,
   celldata: [
     { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
     { r: 0, c: 1, v: { v: "empName", m: "Employee Name", bg: "#f3f4f6", bl: 1 } },
     { r: 0, c: 2, v: { v: "department", m: "Department", bg: "#fee2e2", bl: 1 } },
     { r: 0, c: 3, v: { v: "designation", m: "Designation", bg: "#e0f2fe", bl: 1 } },
-    { r: 0, c: 3, v: { v: "remarks", m: "Remarks / Action", bg: "#fef3c7", bl: 1 } },
+    { r: 0, c: 4, v: { v: "remarks", m: "Remarks / Action", bg: "#fef3c7", bl: 1 } },
   ],
   config: { columnlen: { "0": 110, "1": 250, "2": 200, "3": 250 } }
 };
@@ -298,7 +298,7 @@ export const HR_HO = {
 export const HR_STATUTORY = {
   name: "Statutory Clearances",
   color: "#a21caf", 
-  index: 2, status: 0, order: 2, hide: 0, row: 100, column: 10,
+  index: 5, status: 0, order: 5, hide: 0, row: 100, column: 10,
   defaultRowHeight: 25, defaultColWidth: 150,
   celldata: [
     { r: 0, c: 0, v: { v: "reportDate", m: "Date", bg: "#f3f4f6", bl: 1 } },
@@ -307,11 +307,11 @@ export const HR_STATUTORY = {
     { r: 0, c: 3, v: { v: "dueDate", m: "Due Date", bg: "#fef3c7", bl: 1 } },
     { r: 0, c: 4, v: { v: "status", m: "Status", bg: "#e0f2fe", bl: 1 } },
     
-    { r: 1, c: 1, v: { v: "Pollution Control", m: "Pollution Control" } }, 
-    { r: 2, c: 1, v: { v: "Factory License", m: "Factory License" } },
-    { r: 3, c: 1, v: { v: "Labour Compliance", m: "Labour Compliance" } },
-    { r: 4, c: 1, v: { v: "Environmantal Clearance", m: "Environmantal Clearance" } },
-    { r: 5, c: 1, v: { v: "Safety Compliance", m: "Safety Compliance" } },
+    { r: 1, c: 2, v: { v: "Pollution Control", m: "Pollution Control" } }, 
+    { r: 2, c: 2, v: { v: "Factory License", m: "Factory License" } },
+    { r: 3, c: 2, v: { v: "Labour Compliance", m: "Labour Compliance" } },
+    { r: 4, c: 2, v: { v: "Environmantal Clearance", m: "Environmantal Clearance" } },
+    { r: 5, c: 2, v: { v: "Safety Compliance", m: "Safety Compliance" } },
   ],
   config: { columnlen: { "0": 110, "1": 250, "2": 150, "4": 250 } }
 };

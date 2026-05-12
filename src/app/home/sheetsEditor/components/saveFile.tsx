@@ -30,20 +30,20 @@ export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, repo
       const transformedData = [];
       let lastKnownDate: string | null = null;
 
+      // 🛠️ DASHBOARD TRACKERS: Initialized outside the row loop to collect data cleanly
+      let currentSection = "UNKNOWN";
+
+      let financeData = { plbsStatus: [] as any[], costSheetJSB: [] as any[], costSheetJUD: [] as any[], investorQueries: [] as any[], rawRows: [] as any[], detectedMonths: {} };
+      let hrData = { vacancies: [] as any[], underperformersPlant: [] as any[], underperformersHO: [] as any[], statutoryClearances: [] as any[], interviewCandidates: [] as any[], rawRows: [] as any[] };
+      let logisticsData = { cementDispatchData: [] as any[], rawMaterialStockData: [] as any[], transporterPaymentData: [] as any[], rawRows: [] as any[] };
+      let processData = { dailyStatusReports: [] as any[], closingStock: [] as any[], coalConsumption: [] as any[], targetAchievement: [] as any[], rawRows: [] as any[] };
+      let purchaseData = { dailyMaterials: [] as any[], monthlyImportantMaterials: [] as any[], reportStatus: [] as any[], rawRows: [] as any[] };
+
       for (const currentSheet of allSheets) {
         if (!currentSheet || !currentSheet.data) continue;
 
         const gridData = currentSheet.data;
         const headerRow = gridData[0];
-
-        // 🛠️ DASHBOARD TRACKERS: Initialized outside the row loop to collect data cleanly
-        let currentSection = "UNKNOWN";
-
-        let financeData = { plbsStatus: [] as any[], costSheetJSB: [] as any[], costSheetJUD: [] as any[], investorQueries: [] as any[], rawRows: [] as any[], detectedMonths: {} };
-        let hrData = { vacancies: [] as any[], underperformersPlant: [] as any[], underperformersHO: [] as any[], statutoryClearances: [] as any[], interviewCandidates: [] as any[], rawRows: [] as any[] };
-        let logisticsData = { cementDispatchData: [] as any[], rawMaterialStockData: [] as any[], transporterPaymentData: [] as any[], rawRows: [] as any[] };
-        let processData = { dailyStatusReports: [] as any[], closingStock: [] as any[], coalConsumption: [] as any[], targetAchievement: [] as any[], rawRows: [] as any[] };
-        let purchaseData = { dailyMaterials: [] as any[], monthlyImportantMaterials: [] as any[], reportStatus: [] as any[], rawRows: [] as any[] };
 
         if (reportType === 'finance') {
           financeData.detectedMonths = {
@@ -187,12 +187,6 @@ export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, repo
               };
             }
 
-            // Safely skip header row
-            const col1Text = String(getVal(1) || "").toLowerCase();
-            if (col1Text.includes("particulars") || col1Text.includes("query")) {
-              continue;
-            }
-
             if (sheetName.includes("P&L")) {
               const particulars = getVal(1);
               if (particulars && String(particulars).trim() !== "") {
@@ -220,53 +214,74 @@ export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, repo
           }
           else if (reportType === 'hr') {
             hrData.rawRows.push(row.map((c: any) => c ? (c.v || c.m) : null));
-            const sheetName = currentSheet.name;
+            const sheetName = String(currentSheet.name || "").toLowerCase();
 
-            // Skip the header row
-            if (getVal(1) && String(getVal(1)).toLowerCase().includes("name") || String(getVal(1)).toLowerCase().includes("type")) {
-              continue;
-            }
-            if (sheetName.includes("Vaccancies")) {
+            if (sheetName.includes("vac")) {
               const noOfVaccancies = getVal(1);
               if (noOfVaccancies && String(noOfVaccancies).trim() !== "") {
-                hrData.vacancies.push({ noOfVaccancies: String(noOfVaccancies), ho: getVal(2) ? String(getVal(2)) : null, jsb: getVal(3) ? String(getVal(3)) : null, jud: getVal(4) ? String(getVal(4)) : null, remarks: getVal(5) ? String(getVal(5)) : null });
+                hrData.vacancies.push({
+                  noOfVaccancies: String(noOfVaccancies),
+                  ho: getVal(2) ? String(getVal(2)) : null,
+                  jsb: getVal(3) ? String(getVal(3)) : null,
+                  jud: getVal(4) ? String(getVal(4)) : null,
+                  remarks: getVal(5) ? String(getVal(5)) : null
+                });
               }
             }
-            else if (sheetName.includes("Interview")) {
+            else if (sheetName.includes("interview")) {
               const candidate = getVal(1);
               if (candidate && String(candidate).trim() !== "") {
-                hrData.interviewCandidates.push({ candidateName: String(candidate), position: getVal(2) ? String(getVal(2)) : null, location: getVal(3) ? String(getVal(3)) : null, status: getVal(4) ? String(getVal(4)) : null });
+                hrData.interviewCandidates.push({
+                  candidateName: String(candidate),
+                  position: getVal(2) ? String(getVal(2)) : null,
+                  location: getVal(3) ? String(getVal(3)) : null,
+                  status: getVal(4) ? String(getVal(4)) : null
+                });
               }
             }
-            if (sheetName.includes("Plant")) {
-              const plant = getVal(1);
+            else if (sheetName.includes("plant")) {
+              const plantName = getVal(1);
               const empName = getVal(2);
+
               if (empName && String(empName).trim() !== "") {
-                hrData.underperformersPlant.push({ plant: String(plant), employeeName: String(empName), jsb: getVal(3) ? String(getVal(3)) : null, jud: getVal(4) ? String(getVal(4)) : null, remarks: getVal(5) ? String(getVal(5)) : null });
+                hrData.underperformersPlant.push({
+                  plantName: String(plantName || ""),
+                  employeeName: String(empName),
+                  department: getVal(3) ? String(getVal(3)) : null,
+                  designation: getVal(4) ? String(getVal(4)) : null,
+                  remarks: getVal(5) ? String(getVal(5)) : null
+                });
               }
             }
-            else if (sheetName.includes("HO")) {
+            else if (sheetName.includes("ho") || sheetName.includes("office")) {
               const empName = getVal(1);
+
               if (empName && String(empName).trim() !== "") {
-                hrData.underperformersHO.push({ employeeName: String(empName), department: getVal(2) ? String(getVal(2)) : null, remarks: getVal(3) ? String(getVal(3)) : null });
+                hrData.underperformersHO.push({
+                  employeeName: String(empName),
+                  department: getVal(2) ? String(getVal(2)) : null,
+                  designation: getVal(3) ? String(getVal(3)) : null,
+                  remarks: getVal(4) ? String(getVal(4)) : null
+                });
               }
             }
-            else if (sheetName.includes("Statutory")) {
-              const clearance = getVal(1);
+            else if (sheetName.includes("statutory")) {
+              const plantName = getVal(1);
+              const clearance = getVal(2);
+
               if (clearance && String(clearance).trim() !== "") {
-                hrData.statutoryClearances.push({ clearanceType: String(clearance), dueDate: getVal(2) ? String(getVal(2)) : null, status: getVal(3) ? String(getVal(3)) : null, remarks: getVal(4) ? String(getVal(4)) : null });
+                hrData.statutoryClearances.push({
+                  plantName: String(plantName || ""),
+                  clearanceType: String(clearance),
+                  dueDate: getVal(3) ? String(getVal(3)) : null,
+                  status: getVal(4) ? String(getVal(4)) : null
+                });
               }
             }
           }
           else if (reportType === 'logistics') {
             logisticsData.rawRows.push(row.map((c: any) => c ? (c.v || c.m) : null));
             const sheetName = currentSheet.name;
-
-            // Safely skip header row
-            const col1Text = String(getVal(1) || "").toLowerCase();
-            if (col1Text.includes("area") || col1Text.includes("material") || col1Text.includes("transporter")) {
-              continue;
-            }
 
             if (sheetName.includes("Dispatch")) {
               const area = getVal(1);
@@ -290,12 +305,6 @@ export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, repo
           else if (reportType === 'process') {
             processData.rawRows.push(row.map((c: any) => c ? (c.v || c.m) : null));
             const sheetName = currentSheet.name;
-
-            // Safely skip header row
-            const col1Text = String(getVal(1) || "").toLowerCase();
-            if (col1Text.includes("item") || col1Text.includes("material") || col1Text.includes("metric")) {
-              continue;
-            }
 
             if (sheetName.includes("Status")) {
               const item = getVal(1);
@@ -326,12 +335,6 @@ export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, repo
             purchaseData.rawRows.push(row.map((c: any) => c ? (c.v || c.m) : null));
             const sheetName = currentSheet.name;
 
-            // Safely skip header row
-            const col1Text = String(getVal(1) || "").toLowerCase();
-            if (col1Text.includes("material") || col1Text.includes("report name")) {
-              continue;
-            }
-
             if (sheetName.includes("Daily")) {
               const material = getVal(1);
               if (material && String(material).trim() !== "") {
@@ -352,25 +355,24 @@ export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, repo
             }
           }
         } // End of Row Loop
-
-        // ---------------------------------------------------------
-        // PUSH DASHBOARD PAYLOADS AFTER ROW LOOP FINISHES
-        // ---------------------------------------------------------
-        if (lastKnownDate) {
-          if (reportType === 'finance') {
-            transformedData.push({ reportDate: lastKnownDate, rawPayload: { rows: financeData.rawRows }, detectedMonths: financeData.detectedMonths, plbsStatus: financeData.plbsStatus, costSheetJSB: financeData.costSheetJSB, costSheetJUD: financeData.costSheetJUD, investorQueries: financeData.investorQueries });
-          } else if (reportType === 'hr') {
-            transformedData.push({ reportDate: lastKnownDate, rawPayload: { rows: hrData.rawRows }, vacancies: hrData.vacancies, underperformersPlant: hrData.underperformersPlant, underperformersHO: hrData.underperformersHO, statutoryClearances: hrData.statutoryClearances, interviewCandidates: hrData.interviewCandidates });
-          } else if (reportType === 'logistics') {
-            transformedData.push({ reportDate: lastKnownDate, rawPayload: { rows: logisticsData.rawRows }, cementDispatchData: logisticsData.cementDispatchData, rawMaterialStockData: logisticsData.rawMaterialStockData, transporterPaymentData: logisticsData.transporterPaymentData });
-          } else if (reportType === 'process') {
-            transformedData.push({ reportDate: lastKnownDate, rawPayload: { rows: processData.rawRows }, dailyStatusReports: processData.dailyStatusReports, closingStock: processData.closingStock, coalConsumption: processData.coalConsumption, targetAchievement: processData.targetAchievement });
-          } else if (reportType === 'purchase') {
-            transformedData.push({ reportDate: lastKnownDate, rawPayload: { rows: purchaseData.rawRows }, dailyMaterials: purchaseData.dailyMaterials, monthlyImportantMaterials: purchaseData.monthlyImportantMaterials, reportStatus: purchaseData.reportStatus });
-          }
-        }
-
       } // End of Sheet Loop
+
+      // ---------------------------------------------------------
+      // PUSH DASHBOARD PAYLOADS AFTER ROW LOOP FINISHES
+      // ---------------------------------------------------------
+      if (lastKnownDate) {
+        if (reportType === 'finance') {
+          transformedData.push({ reportDate: lastKnownDate, rawPayload: { rows: financeData.rawRows }, detectedMonths: financeData.detectedMonths, plbsStatus: financeData.plbsStatus, costSheetJSB: financeData.costSheetJSB, costSheetJUD: financeData.costSheetJUD, investorQueries: financeData.investorQueries });
+        } else if (reportType === 'hr') {
+          transformedData.push({ reportDate: lastKnownDate, rawPayload: { rows: hrData.rawRows }, vacancies: hrData.vacancies, underperformersPlant: hrData.underperformersPlant, underperformersHO: hrData.underperformersHO, statutoryClearances: hrData.statutoryClearances, interviewCandidates: hrData.interviewCandidates });
+        } else if (reportType === 'logistics') {
+          transformedData.push({ reportDate: lastKnownDate, rawPayload: { rows: logisticsData.rawRows }, cementDispatchData: logisticsData.cementDispatchData, rawMaterialStockData: logisticsData.rawMaterialStockData, transporterPaymentData: logisticsData.transporterPaymentData });
+        } else if (reportType === 'process') {
+          transformedData.push({ reportDate: lastKnownDate, rawPayload: { rows: processData.rawRows }, dailyStatusReports: processData.dailyStatusReports, closingStock: processData.closingStock, coalConsumption: processData.coalConsumption, targetAchievement: processData.targetAchievement });
+        } else if (reportType === 'purchase') {
+          transformedData.push({ reportDate: lastKnownDate, rawPayload: { rows: purchaseData.rawRows }, dailyMaterials: purchaseData.dailyMaterials, monthlyImportantMaterials: purchaseData.monthlyImportantMaterials, reportStatus: purchaseData.reportStatus });
+        }
+      }
 
       if (transformedData.length === 0) {
         alert("No valid data found to save. Please ensure you entered a Date.");

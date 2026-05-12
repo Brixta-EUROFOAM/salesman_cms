@@ -17,11 +17,11 @@ export default function TopBar({ setSheetData, setWorkbookKey, sheetRef, reportT
             <h2 className="font-semibold text-gray-800">{titleMap[reportType] || "Sheet1"}</h2>
 
             <div className="ml-auto flex items-center gap-2">
-                <ImportFile
+                {/* <ImportFile
                     setSheetData={setSheetData}
                     setWorkbookKey={setWorkbookKey}
                     sheetRef={sheetRef}
-                />
+                /> */}
                 <SaveFile sheetRef={sheetRef} reportType={reportType} />
             </div>
         </div>

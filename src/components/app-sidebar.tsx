@@ -61,6 +61,12 @@ const menuItems: MenuItem[] = [
     requiredPerm: 'public',
     items: [
       {
+        title: "Admin Reports",
+        url: "/dashboard/adminAppReports",
+        requiredPerm: ['READ'],
+        requiredJobRole: ['Admin']
+      },
+      {
         title: "Users & Team",
         url: "/dashboard/usersAndTeam",
         requiredPerm: ['READ', 'WRITE', 'UPDATE'],

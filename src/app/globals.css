@@ -151,3 +151,41 @@
   color: inherit !important;
   box-shadow: none !important;
 }
+
+/* MAIN BOTTOM BAR */
+#luckysheet-bottom-controll {
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* SHEET TAB AREA */
+#luckysheet-sheets-item {
+  flex: 1 !important;
+  overflow-x: auto !important;
+  white-space: nowrap !important;
+}
+
+/* HIDE SCROLLBAR */
+#luckysheet-sheets-item::-webkit-scrollbar {
+  display: none;
+}
+
+#luckysheet-sheets-item {
+  width: auto !important;
+  max-width: unset !important;
+}
+
+/* MOVE NAVIGATION BUTTONS TO RIGHT */
+#luckysheet-sheets-leftscroll,
+#luckysheet-sheets-rightscroll,
+#luckysheet-bottom-add-sheet {
+  margin-left: auto !important;
+  position: relative !important;
+  right: unset !important;
+  left: unset !important;
+}
+
+/* KEEP BUTTONS TOGETHER */
+#luckysheet-bottom-add-sheet {
+  margin-left: 8px !important;
+}
