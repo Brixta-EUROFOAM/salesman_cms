@@ -219,24 +219,13 @@ export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, repo
             if (sheetName.includes("vac")) {
               const noOfVaccancies = getVal(1);
               if (noOfVaccancies && String(noOfVaccancies).trim() !== "") {
-                hrData.vacancies.push({
-                  noOfVaccancies: String(noOfVaccancies),
-                  ho: getVal(2) ? String(getVal(2)) : null,
-                  jsb: getVal(3) ? String(getVal(3)) : null,
-                  jud: getVal(4) ? String(getVal(4)) : null,
-                  remarks: getVal(5) ? String(getVal(5)) : null
-                });
+                hrData.vacancies.push({ noOfVaccancies: String(noOfVaccancies), ho: getVal(2) ? String(getVal(2)) : null, jsb: getVal(3) ? String(getVal(3)) : null, jud: getVal(4) ? String(getVal(4)) : null, remarks: getVal(5) ? String(getVal(5)) : null });
               }
             }
             else if (sheetName.includes("interview")) {
               const candidate = getVal(1);
               if (candidate && String(candidate).trim() !== "") {
-                hrData.interviewCandidates.push({
-                  candidateName: String(candidate),
-                  position: getVal(2) ? String(getVal(2)) : null,
-                  location: getVal(3) ? String(getVal(3)) : null,
-                  status: getVal(4) ? String(getVal(4)) : null
-                });
+                hrData.interviewCandidates.push({ candidateName: String(candidate), position: getVal(2) ? String(getVal(2)) : null, location: getVal(3) ? String(getVal(3)) : null, status: getVal(4) ? String(getVal(4)) : null });
               }
             }
             else if (sheetName.includes("plant")) {
@@ -244,25 +233,14 @@ export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, repo
               const empName = getVal(2);
 
               if (empName && String(empName).trim() !== "") {
-                hrData.underperformersPlant.push({
-                  plantName: String(plantName || ""),
-                  employeeName: String(empName),
-                  department: getVal(3) ? String(getVal(3)) : null,
-                  designation: getVal(4) ? String(getVal(4)) : null,
-                  remarks: getVal(5) ? String(getVal(5)) : null
-                });
+                hrData.underperformersPlant.push({ plantName: String(plantName || ""), employeeName: String(empName), department: getVal(3) ? String(getVal(3)) : null, designation: getVal(4) ? String(getVal(4)) : null, remarks: getVal(5) ? String(getVal(5)) : null });
               }
             }
             else if (sheetName.includes("ho") || sheetName.includes("office")) {
               const empName = getVal(1);
 
               if (empName && String(empName).trim() !== "") {
-                hrData.underperformersHO.push({
-                  employeeName: String(empName),
-                  department: getVal(2) ? String(getVal(2)) : null,
-                  designation: getVal(3) ? String(getVal(3)) : null,
-                  remarks: getVal(4) ? String(getVal(4)) : null
-                });
+                hrData.underperformersHO.push({ employeeName: String(empName), department: getVal(2) ? String(getVal(2)) : null, designation: getVal(3) ? String(getVal(3)) : null, remarks: getVal(4) ? String(getVal(4)) : null });
               }
             }
             else if (sheetName.includes("statutory")) {
@@ -270,12 +248,7 @@ export default function SaveFile({ sheetRef, reportType }: { sheetRef: any, repo
               const clearance = getVal(2);
 
               if (clearance && String(clearance).trim() !== "") {
-                hrData.statutoryClearances.push({
-                  plantName: String(plantName || ""),
-                  clearanceType: String(clearance),
-                  dueDate: getVal(3) ? String(getVal(3)) : null,
-                  status: getVal(4) ? String(getVal(4)) : null
-                });
+                hrData.statutoryClearances.push({ plantName: String(plantName || ""), clearanceType: String(clearance), dueDate: getVal(3) ? String(getVal(3)) : null, status: getVal(4) ? String(getVal(4)) : null });
               }
             }
           }
