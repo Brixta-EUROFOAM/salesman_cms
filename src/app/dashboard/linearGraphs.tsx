@@ -8,8 +8,7 @@ import { toast } from 'sonner';
 import { ChartAreaInteractive } from '@/components/chart-area-reusable';
 
 import {
-  RawGeoTrackingRecord, 
-  RawSalesOrderReportRecord,
+  RawGeoTrackingRecord,
 } from './data-format';
 
 // --- Graph Data Types ---
@@ -25,44 +24,25 @@ export default function LinearGraphs(
   { jobRoles = [], permissions = [] }: LinearGraphsProps
 ) {
   const [rawGeoTrackingRecords, setRawGeoTrackingRecords] = useState<RawGeoTrackingRecord[]>([]);
-  const [rawSalesOrders, setRawSalesOrders] = useState<RawSalesOrderReportRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [selectedSalesman] = useState<string | 'all'>('all');
 
   const isAdmin = permissions.includes('ALL_ACCESS');
-  const canViewSales = isAdmin || jobRoles.some(r => ['Accounting'].includes(r));
-  const canViewGeo = isAdmin || jobRoles.some(r => ['Sales-Marketing', 'Technical-Sales', 'Reports-MIS'].includes(r));
 
   const fetchData = useCallback(async () => {
-    // If the user has access to neither, skip fetching entirely
-    if (!canViewGeo && !canViewSales) {
-      setLoading(false);
-      return;
-    }
 
     setLoading(true);
     setError(null);
     try {
       const fetchPromises = [];
 
-      // Conditionally fetch ONLY what the user is allowed to see
-      if (canViewGeo) {
-        fetchPromises.push(
-          fetch(`/api/dashboardPagesAPI/slm-geotracking?pageSize=1000`, { cache: 'no-store' })
-            .then(res => res.json())
-            .then(data => setRawGeoTrackingRecords(data.data || []))
-        );
-      }
-
-      if (canViewSales) {
-        fetchPromises.push(
-          fetch(`/api/dashboardPagesAPI/orders-payments/sales-orders?pageSize=1000`, { cache: 'no-store' })
-            .then(res => res.json())
-            .then(data => setRawSalesOrders(data.data || []))
-        );
-      }
+      fetchPromises.push(
+        fetch(`/api/dashboardPagesAPI/slm-geotracking?pageSize=1000`, { cache: 'no-store' })
+          .then(res => res.json())
+          .then(data => setRawGeoTrackingRecords(data.data || []))
+      );
 
       await Promise.all(fetchPromises);
     } catch (err: any) {
@@ -72,14 +52,13 @@ export default function LinearGraphs(
     } finally {
       setLoading(false);
     }
-  }, [canViewGeo, canViewSales]);
+  }, []);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   const geoGraphData: GeoTrackingData[] = useMemo(() => {
-    if (!canViewGeo) return [];
     let filtered = rawGeoTrackingRecords;
     if (selectedSalesman !== 'all') filtered = filtered.filter(r => r.salesmanName === selectedSalesman);
 
@@ -92,22 +71,7 @@ export default function LinearGraphs(
       agg[key] = (agg[key] || 0) + (item.totalDistanceTravelled ?? 0);
     });
     return Object.keys(agg).sort().map(k => ({ name: k, distance: agg[k] }));
-  }, [rawGeoTrackingRecords, selectedSalesman, canViewGeo]);
-
-  const salesQuantityGraphData: SalesQuantityData[] = useMemo(() => {
-    if (!canViewSales) return [];
-    let filtered = rawSalesOrders;
-    if (selectedSalesman !== 'all') filtered = filtered.filter(r => r.salesmanName === selectedSalesman);
-    const agg: Record<string, number> = {};
-    filtered.forEach(item => {
-      const key = item.orderDate;
-      const qty = item.orderQty ?? 0;
-      agg[key] = (agg[key] || 0) + (isNaN(qty) ? 0 : qty);
-    });
-    return Object.keys(agg).sort().map(k => ({ name: k, quantity: agg[k] }));
-  }, [rawSalesOrders, selectedSalesman, canViewSales]);
-
-  if (!canViewGeo && !canViewSales) return null; // Render nothing if they have no access
+  }, [rawGeoTrackingRecords, selectedSalesman]);
 
   if (loading) return <div className="flex justify-center items-center min-h-[300px]">Loading graph data...</div>;
   if (error)
@@ -121,33 +85,30 @@ export default function LinearGraphs(
   return (
     <div className="space-y-6">
       {/* Dynamic Grid Layout based on permissions */}
-      <div className={`grid grid-cols-1 ${canViewGeo && canViewSales ? 'md:grid-cols-2' : ''} gap-6`}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
         {/* Geo-Tracking Widget */}
-        {canViewGeo && (
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle>Geo-Tracking Activity</CardTitle>
-              <CardDescription>Total distance travelled per day (km).</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartAreaInteractive data={geoGraphData} dataKey="distance" title="Distance Travelled" />
-            </CardContent>
-          </Card>
-        )}
+
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>Geo-Tracking Activity</CardTitle>
+            <CardDescription>Total distance travelled per day (km).</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartAreaInteractive data={geoGraphData} dataKey="distance" title="Distance Travelled" />
+          </CardContent>
+        </Card>
+
 
         {/* Sales Quantity Widget */}
-        {canViewSales && (
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle>Sales Order Quantity</CardTitle>
-              <CardDescription>Total unit quantity ordered per day.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartAreaInteractive data={salesQuantityGraphData} dataKey="quantity" title="Sales (Units)" />
-            </CardContent>
-          </Card>
-        )}
+
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>Sales Order Quantity</CardTitle>
+            <CardDescription>Total unit quantity ordered per day.</CardDescription>
+          </CardHeader>
+        </Card>
+
       </div>
     </div>
   );

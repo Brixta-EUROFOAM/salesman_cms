@@ -29,7 +29,7 @@ async function getAuthClaims() {
     }
 
     const result = await db
-        .select({ companyId: users.companyId, role: users.role })
+        .select({ role: users.role })
         .from(users)
         .where(eq(users.id, session.userId))
         .limit(1);
@@ -227,7 +227,7 @@ export async function POST(req: NextRequest) {
             const fetcher = transformerMap[previewTableId as ReportTableId];
 
             // Fetch full data using the transformer
-            let rows = await (fetcher as any)(currentUser.companyId);
+            let rows = await (fetcher as any)();
 
             // ADDED: Apply filters to preview data server-side (optional but good for consistency)
             // Note: In your current UI, you filter preview client-side, but this ensures API correctness.
@@ -255,7 +255,7 @@ export async function POST(req: NextRequest) {
             if (table in transformerMap) {
                 const fn = transformerMap[table as ReportTableId];
                 // A. Fetch Raw Data
-                const rawRows = await (fn as any)(currentUser.companyId);
+                const rawRows = await (fn as any)();
                 // B. Apply Filters
                 dataPerTable[table] = applyFilters(rawRows, filters || []);
             }

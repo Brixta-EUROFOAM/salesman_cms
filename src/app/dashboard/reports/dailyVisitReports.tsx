@@ -231,15 +231,6 @@ export default function DailyVisitReportsPage() {
 
   const columns = useMemo<ColumnDef<DailyVisitReport>[]>(() => [
     {
-      accessorKey: "customerType",
-      header: "Form Type",
-      cell: ({ row }) => (
-        <Badge variant="outline" className="whitespace-nowrap">
-          {row.original.customerType || 'N/A'}
-        </Badge>
-      ),
-    },
-    {
       accessorKey: "salesmanName",
       header: "Salesman",
       cell: ({ row }) => (
@@ -441,9 +432,6 @@ export default function DailyVisitReportsPage() {
               <DialogTitle className="text-xl flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span>Visit Details</span>
-                  <Badge variant="outline" className="text-sm px-3">
-                    {selectedReport.customerType}
-                  </Badge>
                   <Badge variant={selectedReport.pjpStatus?.toUpperCase() === 'COMPLETED' ? 'default' : 'secondary'} className="text-xs uppercase">
                     {selectedReport.pjpStatus || 'UNPLANNED'}
                   </Badge>
@@ -489,9 +477,6 @@ export default function DailyVisitReportsPage() {
                     <InfoField label="Sub Dealer" value={selectedReport.subDealerName} />
                     <InfoField label="Brand Selling" value={selectedReport.brandSelling?.join(', ')} fullWidth />
                     <Separator className="col-span-2 my-2" />
-                    <InfoField label="Total Potential" value={`${selectedReport.dealerTotalPotential} MT`} />
-                    <InfoField label="Best Potential" value={`${selectedReport.dealerBestPotential} MT`} />
-                    <InfoField label="Today's Order" value={`${selectedReport.todayOrderMt} MT`} />
                     <InfoField label="Today's Collection" value={`₹${selectedReport.todayCollectionRupees}`} />
                     <InfoField label="Overdue Amount" value={`₹${selectedReport.overdueAmount}`} />
                   </CardContent>
@@ -504,14 +489,10 @@ export default function DailyVisitReportsPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="grid grid-cols-2 gap-4 pt-2">
-                    <InfoField label="Party Type" value={selectedReport.partyType} />
                     <InfoField label="Name of Party" value={selectedReport.nameOfParty} />
                     <InfoField label="Contact No." value={selectedReport.contactNoOfParty} />
                     <InfoField label="Expected Activation Date" value={selectedReport.expectedActivationDate} />
                     <InfoField label="Brand in Use" value={selectedReport.brandSelling?.join(', ')} fullWidth />
-                    <Separator className="col-span-2 my-2" />
-                    <InfoField label="Total Potential" value={`${selectedReport.dealerTotalPotential} MT`} />
-                    <InfoField label="Best Potential" value={`${selectedReport.dealerBestPotential} MT`} />
                   </CardContent>
                 </Card>
               )}

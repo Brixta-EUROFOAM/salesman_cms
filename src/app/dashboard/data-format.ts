@@ -4,8 +4,6 @@ import { z } from 'zod';
 import { 
   selectJourneyOpsSchema, 
   selectDailyVisitReportSchema,
-  selectTechnicalVisitReportSchema, 
-  selectSalesOrderSchema, 
   selectSalesmanAttendanceSchema,
   selectSalesmanLeaveApplicationSchema
 } from '../../../drizzle/zodSchemas';
@@ -43,36 +41,6 @@ export const rawDailyVisitReportSchema = selectDailyVisitReportSchema.extend({
   overdueAmount: z.coerce.number().nullable().optional().catch(0),
 });
 
-export const rawSalesOrderSchema = selectSalesOrderSchema.extend({
-  salesmanName: z.string().optional().catch("Unknown"),
-  dealerName: z.string().nullable().optional(),
-  dealerType: z.string().nullable().optional(),
-  dealerPhone: z.string().nullable().optional(),
-  dealerAddress: z.string().nullable().optional(),
-  area: z.string().nullable().optional(),
-  region: z.string().nullable().optional(),
-  paymentAmount: z.coerce.number().nullable().optional().catch(null),
-  receivedPayment: z.coerce.number().nullable().optional().catch(null),
-  pendingPayment: z.coerce.number().nullable().optional().catch(null),
-  orderQty: z.coerce.number().nullable().optional().catch(null),
-  itemPrice: z.coerce.number().nullable().optional().catch(null),
-  discountPercentage: z.coerce.number().nullable().optional().catch(null),
-  itemPriceAfterDiscount: z.coerce.number().nullable().optional().catch(null),
-  orderTotal: z.coerce.number().optional().catch(0),
-  orderUnit: z.string().nullable().optional(),
-  estimatedDelivery: z.string().nullable().optional(),
-  remarks: z.string().nullable().optional(),
-  orderDate: z.string().catch(""),
-  deliveryDate: z.string().nullable().optional(),
-  receivedPaymentDate: z.string().nullable().optional(),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
-});
-
-export const rawTechnicalVisitReportSchema = selectTechnicalVisitReportSchema.extend({
-  salesmanName: z.string().optional().catch("Unknown"),
-});
-
 export const rawAttendanceSchema = selectSalesmanAttendanceSchema.extend({
   id: z.any().optional(),
   date: z.string().optional(),
@@ -94,8 +62,6 @@ export const rawLeaveSchema = selectSalesmanLeaveApplicationSchema.extend({
 // ---------------------------------------------------------------------
 export type RawGeoTrackingRecord = Omit<z.infer<typeof rawGeoTrackingSchema>, 'id'> & { id: string };
 export type RawDailyVisitReportRecord = Omit<z.infer<typeof rawDailyVisitReportSchema>, 'id'> & { id: string };
-export type RawTechnicalVisitReportRecord = Omit<z.infer<typeof rawTechnicalVisitReportSchema>, 'id'> & { id: string };
-export type RawSalesOrderReportRecord = Omit<z.infer<typeof rawSalesOrderSchema>, 'id'> & { id: string };
 export type RawAttendanceRecord = z.infer<typeof rawAttendanceSchema>;
 export type RawLeaveRecord = z.infer<typeof rawLeaveSchema>;
 
@@ -110,19 +76,4 @@ export type DailyVisitsData = {
 export type GeoTrackingData = {
   name: string; // Date
   distance: number;
-};
-
-export type DailyCollectionData = {
-  name: string; // Date
-  collection: number;
-};
-
-export type SalesOrderQuantityData = {
-  name: string;   // Date
-  quantity: number; // Sum of orderQty (MT/Bags units handled in UI)
-};
-
-export type TechnicalConversionData = {
-  name: string; // Date or Day
-  conversionQuantity: number; // Sum of conversionQuantityValue
 };
