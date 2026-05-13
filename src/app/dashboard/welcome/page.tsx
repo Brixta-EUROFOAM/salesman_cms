@@ -9,10 +9,10 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 
 interface WelcomeViewProps {
-  firstName: string;
+  username: string;
 }
 
-export default function SimpleWelcomePage({firstName}:WelcomeViewProps) {
+export default function SimpleWelcomePage({username}:WelcomeViewProps) {
   const searchParams = useSearchParams();
   const name = searchParams.get('name') || 'user';
   const error = searchParams.get('error');
@@ -29,7 +29,7 @@ export default function SimpleWelcomePage({firstName}:WelcomeViewProps) {
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-3xl font-bold">🎉 Welcome to the Team!</CardTitle>
           <CardDescription>
-            Hello, {firstName}!
+            Hello, {username}!
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-center">

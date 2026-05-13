@@ -29,7 +29,7 @@ const extendedJourneyOpsSchema = selectJourneyOpsSchema.partial().extend({
   serverSeq: z.coerce.bigint().optional(),
   salesmanName: z.string().nullable().optional().catch("Unknown"),
   area: z.string().nullable().optional().catch("N/A"),
-  region: z.string().nullable().optional().catch("N/A"),
+  zone: z.string().nullable().optional().catch("N/A"),
   employeeId: z.string().nullable().optional(),
 
   latitude: z.coerce.number().nullable().optional().catch(null),
@@ -37,17 +37,7 @@ const extendedJourneyOpsSchema = selectJourneyOpsSchema.partial().extend({
   recordedAt: z.string().nullable().optional(),
   totalDistanceTravelled: z.coerce.number().nullable().optional().catch(0),
   locationType: z.string().nullable().optional(),
-  activityType: z.string().nullable().optional(),
-  appState: z.string().nullable().optional(),
-  accuracy: z.coerce.number().nullable().optional().catch(null),
-  speed: z.coerce.number().nullable().optional().catch(null),
-  heading: z.coerce.number().nullable().optional().catch(null),
-  altitude: z.coerce.number().nullable().optional().catch(null),
-  batteryLevel: z.coerce.number().nullable().optional().catch(null),
-  isCharging: z.boolean().nullable().optional(),
-  networkStatus: z.string().nullable().optional(),
-  ipAddress: z.string().nullable().optional(),
-  siteName: z.string().nullable().optional(),
+  destName: z.string().nullable().optional(),
   checkInTime: z.string().nullable().optional(),
   checkOutTime: z.string().nullable().optional(),
   isActive: z.boolean().nullable().optional(),
@@ -68,7 +58,7 @@ const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-
 
 interface LocationsResponse {
   areas: string[];
-  regions: string[];
+  zones: string[];
 }
 
 export default function SalesmanGeoTrackingPage() {
@@ -86,7 +76,7 @@ export default function SalesmanGeoTrackingPage() {
 
   // --- Backend Filter Options ---
   const [availableAreas, setAvailableAreas] = useState<string[]>([]);
-  const [availableRegions, setAvailableRegions] = useState<string[]>([]);
+  const [availableZones, setAvailableZones] = useState<string[]>([]);
 
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -132,10 +122,10 @@ export default function SalesmanGeoTrackingPage() {
       const data: LocationsResponse = await response.json();
 
       const safeAreas = Array.isArray(data.areas) ? data.areas.filter(Boolean) : [];
-      const safeRegions = Array.isArray(data.regions) ? data.regions.filter(Boolean) : [];
+      const safeZones = Array.isArray(data.zones) ? data.zones.filter(Boolean) : [];
 
       setAvailableAreas(safeAreas.sort());
-      setAvailableRegions(safeRegions.sort());
+      setAvailableZones(safeZones.sort());
 
     } catch (err: any) {
       console.error('Failed to fetch filter locations:', err);
@@ -206,7 +196,7 @@ export default function SalesmanGeoTrackingPage() {
   }, [fetchLocations]);
 
   // --- Map raw string arrays to `{ label, value }` Options ---
-  const zoneOptions = useMemo(() => availableRegions.map(r => ({ label: r, value: r })), [availableRegions]);
+  const zoneOptions = useMemo(() => availableZones.map(r => ({ label: r, value: r })), [availableZones]);
   const areaOptions = useMemo(() => availableAreas.map(a => ({ label: a, value: a })), [availableAreas]);
 
   // --- Client Side Filtering ---
@@ -215,7 +205,7 @@ export default function SalesmanGeoTrackingPage() {
 
     return tracks.filter(track => {
       const salesmanName = (track.salesmanName || '').toString();
-      const siteName = (track.siteName || '').toString();
+      const siteName = (track.destName || '').toString();
       const displayDate = (track.displayDate || '').toString();
       const checkIn = (track.displayCheckInTime || '').toString();
       const checkOut = (track.displayCheckOutTime || '').toString();
@@ -235,8 +225,8 @@ export default function SalesmanGeoTrackingPage() {
       const reportArea = track.area || '';
       const areaMatch = areaFilters.length === 0 || areaFilters.includes(reportArea);
 
-      const reportRegion = track.region || '';
-      const regionMatch = zoneFilters.length === 0 || zoneFilters.includes(reportRegion);
+      const reportZones = track.zone || '';
+      const regionMatch = zoneFilters.length === 0 || zoneFilters.includes(reportZones);
 
       return matchesSearch && areaMatch && regionMatch;
     });
@@ -302,9 +292,9 @@ export default function SalesmanGeoTrackingPage() {
       header: 'Date',
     },
     {
-      accessorKey: 'siteName',
-      header: 'Site Name',
-      cell: ({ row }) => row.original.siteName ?? 'N/A',
+      accessorKey: 'destName',
+      header: 'Destination Name',
+      cell: ({ row }) => row.original.destName ?? 'N/A',
     },
     {
       accessorKey: 'totalDistanceTravelled',

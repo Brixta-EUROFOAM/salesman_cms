@@ -1,11 +1,11 @@
 // src/app/api/dashboardPagesAPI/users-and-team/users/route.ts
 import "server-only";
 import { connection, NextRequest, NextResponse } from "next/server";
-import { verifySession } from "@/lib/auth";
+import { verifySession, hasPermission } from "@/lib/auth";
 import { db } from "@/lib/drizzle";
-import { users, companies, roles as rolesTable, userRoles } from "../../../../../../drizzle";
+import { users, roles as rolesTable, userRoles } from "../../../../../../drizzle/schema";
 import { eq, and, desc, inArray } from "drizzle-orm";
-import { generateRandomPassword, sendInvitationEmailResend } from "./helpers";
+import { generateRandomPassword } from "./helpers";
 
 // =================
 // POST ROUTE 
@@ -17,73 +17,54 @@ export async function POST(request: NextRequest) {
         if (!session || !session.userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-        if (!session.permissions.includes("WRITE")) {
+        if (!hasPermission(session.permissions, "WRITE")) {
             return NextResponse.json({ error: 'Forbidden: WRITE access required' }, { status: 403 });
         }
 
-        const adminUserResult = await db
-            .select({
-                id: users.id,
-                email: users.email,
-                companyId: users.companyId,
-                firstName: users.firstName,
-                lastName: users.lastName,
-                companyName: companies.companyName
-            })
-            .from(users)
-            .leftJoin(companies, eq(users.companyId, companies.id))
-            .where(eq(users.id, session.userId))
-            .limit(1);
-
-        const adminUser = adminUserResult[0];
-        if (!adminUser) return NextResponse.json({ error: 'Admin record not found' }, { status: 404 });
-
-        // --- 2. PARSE REQUEST DATA ---
+        // --- 1. PARSE REQUEST DATA ---
         const body = await request.json();
         const {
-            email, firstName, lastName, phoneNumber, jobRole, orgRole, region, area,
-            isDashboardUser, isSalesAppUser, isTechnicalRole, isAdminAppUser
+            email, username, phoneNumber, jobRole, orgRole, zone, area,
+            isDashboardUser, isSalesAppUser
         } = body;
 
         // jobRole is likely an array now based on your multi-role requirement
         const jobRolesArray = Array.isArray(jobRole) ? jobRole : [jobRole].filter(Boolean);
 
-        if (!email || !firstName || (!orgRole && !jobRole)) {
+        if (!email || !username || (!orgRole && !jobRole)) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        // --- 3. EXISTING USER CHECK ---
+        // --- 2. EXISTING USER CHECK ---
         const existingUserResult = await db
             .select({ id: users.id })
             .from(users)
-            .where(and(eq(users.companyId, adminUser.companyId), eq(users.email, email)))
+            .where(eq(users.email, email))
             .limit(1);
 
         if (existingUserResult[0]) {
             return NextResponse.json({ error: 'User with this email already exists' }, { status: 409 });
         }
 
-        // --- 4. TRANSACTIONAL INSERT (User + Roles) ---
-        const { newUser, emailPayload } = await db.transaction(async (tx) => {
+        // --- 3. TRANSACTIONAL INSERT (User + Roles) ---
+        const { newUser, generatedCredentials } = await db.transaction(async (tx) => {
 
             const newUserData: any = {
                 email,
-                firstName,
-                lastName,
+                username,
                 phoneNumber,
 
                 // BACKWARD COMPATIBILITY save orgRole to legacy role column
-                role: orgRole || 'junior-executive', 
+                role: orgRole || 'junior-executive',
 
-                region,
+                zone,
                 area,
-                companyId: adminUser.companyId,
                 status: "active",
                 isDashboardUser: !!isDashboardUser,
                 isSalesAppUser: !!isSalesAppUser,
-                isTechnicalRole: !!isTechnicalRole,
-                isAdminAppUser: !!isAdminAppUser,
             };
+
+            const credentials: any = {};
 
             // Credential Generation Logic
             if (newUserData.isDashboardUser) {
@@ -99,27 +80,17 @@ export async function POST(request: NextRequest) {
                 }
                 newUserData.dashboardLoginId = email;
                 newUserData.dashboardHashedPassword = dashPassword;
+                credentials.dashboardEmail = email;
+                credentials.dashboardPassword = dashPassword;
             }
 
             if (newUserData.isSalesAppUser) {
                 let salesmanId = `EMP-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
                 const salesPassword = generateRandomPassword();
                 newUserData.salesmanLoginId = salesmanId;
-                newUserData.hashedPassword = salesPassword;
-            }
-
-            if (newUserData.isTechnicalRole) {
-                let techId = `TSE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-                const techPassword = generateRandomPassword();
-                newUserData.techLoginId = techId;
-                newUserData.techHashPassword = techPassword;
-            }
-
-            if (newUserData.isAdminAppUser) {
-                let adminId = `ADM-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-                const adminAppPassword = generateRandomPassword();
-                newUserData.adminAppLoginId = adminId;
-                newUserData.adminAppHashedPassword = adminAppPassword;
+                newUserData.salesAppPassword = salesPassword; // Swapped to new schema column name
+                credentials.salesmanId = salesmanId;
+                credentials.salesmanPassword = salesPassword;
             }
 
             // A. Insert User
@@ -147,50 +118,14 @@ export async function POST(request: NextRequest) {
                 }
             }
 
-            // Prepare Email Payload
-            const safeOrgRole = (orgRole || '').replace(/-/g, ' ');
-            const safeJobRole = jobRolesArray.join(', ').replace(/-/g, ' ');
-            const displayRole = safeJobRole ? `${safeOrgRole} (${safeJobRole})` : safeOrgRole;
-
-            const payload = {
-                to: email,
-                firstName,
-                lastName,
-                companyName: adminUser.companyName ?? "Best Cement",
-                adminName: `${adminUser.firstName ?? ''} ${adminUser.lastName ?? ''}`.trim(),
-                role: displayRole,
-                dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL}/login`,
-                dashboardEmail: newUserData.isDashboardUser ? email : undefined,
-                dashboardTempPassword: newUserData.dashboardHashedPassword,
-                salesmanLoginId: newUserData.salesmanLoginId,
-                salesmanTempPassword: newUserData.hashedPassword,
-                techLoginId: newUserData.techLoginId,
-                techTempPassword: newUserData.techHashPassword,
-                adminAppLoginId: newUserData.adminAppLoginId,
-                adminAppTempPassword: newUserData.adminAppHashedPassword
-            };
-
-            return { newUser: createdUser, emailPayload: payload };
+            return { newUser: createdUser, generatedCredentials: credentials };
         });
 
-        // --- 5. SEND EMAIL NOTIFICATION ---
-        if (newUser.isDashboardUser || newUser.isSalesAppUser || newUser.isTechnicalRole || newUser.isAdminAppUser) {
-            await sendInvitationEmailResend(emailPayload);
-        }
-
+        // 4. Return Data (No email sending)
         return NextResponse.json({
-            message: 'User created and credentials delivered successfully',
+            message: 'User created successfully',
             user: newUser,
-            credentials: {
-                dashboardEmail: emailPayload.dashboardEmail,
-                dashboardPassword: emailPayload.dashboardTempPassword,
-                salesmanId: emailPayload.salesmanLoginId,
-                salesmanPassword: emailPayload.salesmanTempPassword,
-                techId: emailPayload.techLoginId,
-                techPassword: emailPayload.techTempPassword,
-                adminId: emailPayload.adminAppLoginId,
-                adminPassword: emailPayload.adminAppTempPassword
-            }
+            credentials: generatedCredentials
         }, { status: 201 });
 
     } catch (error: any) {
@@ -204,39 +139,29 @@ export async function POST(request: NextRequest) {
 // =======================================================
 
 export async function GET(request: NextRequest) {
-    await connection();
+    if (typeof connection === 'function') await connection();
+
     try {
         const session = await verifySession();
         if (!session || !session.userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-        if (!session.permissions.includes("READ")) {
+        if (!hasPermission(session.permissions, "READ")) {
             return NextResponse.json({ error: 'Forbidden: READ access required' }, { status: 403 });
         }
 
-        const adminUserResult = await db
-            .select({ companyId: users.companyId })
-            .from(users)
-            .where(eq(users.id, session.userId))
-            .limit(1);
-
-        const adminUser = adminUserResult[0];
-
-        // 1. Fetch all users in the company, explicitly joining roles to get orgRole and jobRole
+        // 1. Fetch all users explicitly joining roles to get orgRole and jobRole
         const rawData = await db
             .select({
                 id: users.id,
                 email: users.email,
-                firstName: users.firstName,
-                lastName: users.lastName,
-                region: users.region,
+                username: users.username,
+                zone: users.zone,
                 area: users.area,
                 status: users.status,
                 createdAt: users.createdAt,
                 updatedAt: users.updatedAt,
                 phoneNumber: users.phoneNumber,
-                isTechnicalRole: users.isTechnicalRole,
-                isAdminAppUser: users.isAdminAppUser,
                 deviceId: users.deviceId,
                 isDashboardUser: users.isDashboardUser,
                 isSalesAppUser: users.isSalesAppUser,
@@ -248,7 +173,6 @@ export async function GET(request: NextRequest) {
             .from(users)
             .leftJoin(userRoles, eq(users.id, userRoles.userId))
             .leftJoin(rolesTable, eq(userRoles.roleId, rolesTable.id))
-            .where(eq(users.companyId, adminUser.companyId))
             .orderBy(desc(users.createdAt));
 
         // 2. Aggregate the multiple rows per user into a single object
@@ -262,16 +186,13 @@ export async function GET(request: NextRequest) {
                 usersMap.set(userId, {
                     id: row.id,
                     email: row.email,
-                    firstName: row.firstName,
-                    lastName: row.lastName,
-                    region: row.region,
+                    username: row.username,
+                    zone: row.zone,
                     area: row.area,
                     status: row.status,
                     createdAt: row.createdAt,
                     updatedAt: row.updatedAt,
                     phoneNumber: row.phoneNumber,
-                    isTechnicalRole: row.isTechnicalRole,
-                    isAdminAppUser: row.isAdminAppUser,
                     deviceId: row.deviceId,
                     isDashboardUser: row.isDashboardUser,
                     isSalesAppUser: row.isSalesAppUser,

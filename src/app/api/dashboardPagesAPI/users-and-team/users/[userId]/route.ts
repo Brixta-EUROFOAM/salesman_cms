@@ -1,27 +1,24 @@
 // src/app/api/dashboardPagesAPI/users-and-team/users/[userId]/route.ts
 import 'server-only';
 import { connection, NextRequest, NextResponse } from 'next/server';
-import { verifySession } from '@/lib/auth';
+import { verifySession, hasPermission } from '@/lib/auth';
 import { db } from '@/lib/drizzle';
-import { users, companies, roles as rolesTable, userRoles } from '../../../../../../../drizzle';
-import { eq, and, ne, inArray } from 'drizzle-orm';
+import { users, roles as rolesTable, userRoles } from '../../../../../../../drizzle/schema';
+import { eq, and, inArray } from 'drizzle-orm';
 import { z } from 'zod';
-import { generateRandomPassword, sendInvitationEmailResend } from '@/app/api/dashboardPagesAPI/users-and-team/users/helpers';
+import { generateRandomPassword } from '@/app/api/dashboardPagesAPI/users-and-team/users/helpers';
 
 const updateUserSchema = z.object({
-  firstName: z.string().min(1).optional(),
-  lastName: z.string().min(1).optional(),
+  username: z.string().min(1).optional(),
   email: z.string().optional(),
   orgRole: z.string().optional(),
-  jobRole: z.union([z.string(), z.array(z.string())]).optional(), // Support array from frontend
+  jobRole: z.union([z.string(), z.array(z.string())]).optional(),
   role: z.string().optional(),
   area: z.string().optional().nullable(),
-  region: z.string().optional().nullable(),
+  zone: z.string().optional().nullable(),
   phoneNumber: z.string().optional().nullable(),
   isDashboardUser: z.boolean().optional(),
   isSalesAppUser: z.boolean().optional(),
-  isTechnical: z.boolean().optional(),
-  isAdminAppUser: z.boolean().optional(),
   clearDevice: z.boolean().optional(),
 }).strict();
 
@@ -37,25 +34,9 @@ export async function PUT(
     if (!session || !session.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const hasRequiredPerms = session.permissions.includes('UPDATE') || session.permissions.includes('WRITE');
-    if (!hasRequiredPerms) {
+    if (!hasPermission(session.permissions, ['UPDATE', 'WRITE'])) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });
     }
-
-    const adminUserResult = await db
-      .select({
-        id: users.id,
-        companyId: users.companyId,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        companyName: companies.companyName,
-      })
-      .from(users)
-      .leftJoin(companies, eq(users.companyId, companies.id))
-      .where(eq(users.id, session.userId))
-      .limit(1);
-
-    const adminUser = adminUserResult[0];
 
     const body = await request.json();
     const parsedBody = updateUserSchema.safeParse(body);
@@ -64,8 +45,8 @@ export async function PUT(
     }
 
     const {
-      orgRole, jobRole, area, region, phoneNumber, clearDevice,
-      isDashboardUser, isSalesAppUser, isTechnical, isAdminAppUser,
+      orgRole, jobRole, area, zone, phoneNumber, clearDevice,
+      isDashboardUser, isSalesAppUser,
       ...standardData
     } = parsedBody.data;
 
@@ -74,36 +55,27 @@ export async function PUT(
     const targetUserResult = await db.select().from(users).where(eq(users.id, targetUserLocalId)).limit(1);
     const targetUser = targetUserResult[0];
 
-    if (!targetUser || targetUser.companyId !== adminUser.companyId) {
-      return NextResponse.json({ error: 'User not found or access denied.' }, { status: 404 });
+    if (!targetUser) {
+      return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     }
 
     // --- TRANSACTION START ---
-    const { updatedUser, emailPayload, sendEmailFlag } = await db.transaction(async (tx) => {
+    const { updatedUser, credentials } = await db.transaction(async (tx) => {
 
       const drizzleUpdateData: any = {
         ...standardData,
         role: orgRole || jobRole,
         area: area !== undefined ? area : targetUser.area,
-        region: region !== undefined ? region : targetUser.region,
+        zone: zone !== undefined ? zone : targetUser.zone,
         phoneNumber: phoneNumber !== undefined ? phoneNumber : targetUser.phoneNumber,
         deviceId: clearDevice === true ? null : targetUser.deviceId,
-        updatedAt: new Date()
       };
 
-      // BACKWARD COMPATIBILITY save orgRole into the legacy role column
       if (orgRole !== undefined) {
         drizzleUpdateData.role = orgRole;
       }
 
-      let needsEmail = false;
-      const payload: any = {
-        to: standardData.email || targetUser.email,
-        firstName: standardData.firstName || targetUser.firstName || 'Team Member',
-        companyName: adminUser.companyName ?? 'Best Cement',
-        adminName: `${adminUser.firstName} ${adminUser.lastName}`,
-        dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL}/login`,
-      };
+      const generatedCreds: any = {};
 
       // --- LOGIC A: Dashboard User Upgrade ---
       if (isDashboardUser === true && !targetUser.dashboardHashedPassword) {
@@ -111,10 +83,8 @@ export async function PUT(
         const emailLocalPart = emailToUse.split('@')[0];
         let dashPassword = "";
 
-        // if email is user.abc@mail.com, pass is user@123
         if (emailLocalPart.includes('.')) {
           dashPassword = emailLocalPart.split('.')[0] + '@123';
-          // if email is userabc@mail.com, pass is userab@123
         } else {
           dashPassword = emailLocalPart.substring(0, 6) + '@123';
         }
@@ -122,9 +92,8 @@ export async function PUT(
         drizzleUpdateData.isDashboardUser = true;
         drizzleUpdateData.dashboardLoginId = standardData.email || targetUser.email;
         drizzleUpdateData.dashboardHashedPassword = dashPassword;
-        payload.dashboardEmail = drizzleUpdateData.dashboardLoginId;
-        payload.dashboardTempPassword = dashPassword;
-        needsEmail = true;
+        generatedCreds.dashboardEmail = drizzleUpdateData.dashboardLoginId;
+        generatedCreds.dashboardPassword = dashPassword;
       } else if (isDashboardUser !== undefined) {
         drizzleUpdateData.isDashboardUser = isDashboardUser;
       }
@@ -141,64 +110,18 @@ export async function PUT(
         const newSalesmanPassword = generateRandomPassword();
         drizzleUpdateData.isSalesAppUser = true;
         drizzleUpdateData.salesmanLoginId = newSalesmanId;
-        drizzleUpdateData.hashedPassword = newSalesmanPassword;
-        payload.salesmanLoginId = newSalesmanId;
-        payload.salesmanTempPassword = newSalesmanPassword;
-        needsEmail = true;
+        drizzleUpdateData.salesAppPassword = newSalesmanPassword;
+        generatedCreds.salesmanId = newSalesmanId;
+        generatedCreds.salesmanPassword = newSalesmanPassword;
       } else if (isSalesAppUser !== undefined) {
         drizzleUpdateData.isSalesAppUser = isSalesAppUser;
       }
 
-      // --- LOGIC C: Technical App Upgrade ---
-      if (isTechnical === true && !targetUser.techLoginId) {
-        let isUnique = false;
-        let newTechLoginId = '';
-        while (!isUnique) {
-          newTechLoginId = `TSE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-          const existing = await db.select({ id: users.id }).from(users).where(eq(users.techLoginId, newTechLoginId)).limit(1);
-          if (!existing[0]) isUnique = true;
-        }
-        const newTechPassword = generateRandomPassword();
-        drizzleUpdateData.isTechnicalRole = true;
-        drizzleUpdateData.techLoginId = newTechLoginId;
-        drizzleUpdateData.techHashPassword = newTechPassword;
-        payload.techLoginId = newTechLoginId;
-        payload.techTempPassword = newTechPassword;
-        needsEmail = true;
-      } else if (isTechnical !== undefined) {
-        drizzleUpdateData.isTechnicalRole = isTechnical;
-      }
-
-      // --- LOGIC D: Admin App Upgrade ---
-      if (isAdminAppUser === true && !targetUser.adminAppLoginId) {
-        let isUnique = false;
-        let newAdminLoginId = '';
-        while (!isUnique) {
-          newAdminLoginId = `ADM-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-          const existingAdmin = await db.select({ id: users.id }).from(users).where(eq(users.adminAppLoginId, newAdminLoginId)).limit(1);
-          if (!existingAdmin[0]) isUnique = true;
-        }
-        const newAdminPassword = generateRandomPassword();
-        drizzleUpdateData.isAdminAppUser = true;
-        drizzleUpdateData.adminAppLoginId = newAdminLoginId;
-        drizzleUpdateData.adminAppHashedPassword = newAdminPassword;
-        payload.adminAppLoginId = newAdminLoginId;
-        payload.adminAppTempPassword = newAdminPassword;
-        needsEmail = true;
-      } else if (isAdminAppUser !== undefined) {
-        drizzleUpdateData.isAdminAppUser = isAdminAppUser;
-      }
-
-      // 1. Sync Job Roles in user_roles table
-      // 1. Sync Job Roles in user_roles table STRICTLY matching the active orgRole
       if (jobRole !== undefined) {
-        // Delete existing links
         await tx.delete(userRoles).where(eq(userRoles.userId, targetUserLocalId));
 
-        // Insert new links securely with orgRole requirement
         if (jobRolesArray.length > 0) {
           const resolvedOrgRole = orgRole || '';
-          
           const dbRoles = await tx.select({ id: rolesTable.id })
              .from(rolesTable)
              .where(
@@ -214,34 +137,14 @@ export async function PUT(
         }
       }
 
-      // 2. Update User Record
       const updated = await tx.update(users).set(drizzleUpdateData).where(eq(users.id, targetUserLocalId)).returning();
-
-      // Format display role for email
-      const safeOrgRole = (orgRole || '').replace(/-/g, ' ');
-      const safeJobRole = jobRolesArray.length > 0 ? jobRolesArray.join(', ').replace(/-/g, ' ') : '';
-      payload.role = safeJobRole ? `${safeOrgRole} (${safeJobRole})` : safeOrgRole;
-
-      return { updatedUser: updated[0], emailPayload: payload, sendEmailFlag: needsEmail };
+      return { updatedUser: updated[0], credentials: generatedCreds };
     });
-
-    if (sendEmailFlag) {
-      await sendInvitationEmailResend(emailPayload);
-    }
 
     return NextResponse.json({ 
       message: 'User updated successfully', 
       user: updatedUser,
-      credentials: {
-         dashboardEmail: emailPayload.dashboardEmail,
-         dashboardPassword: emailPayload.dashboardTempPassword,
-         salesmanId: emailPayload.salesmanLoginId,
-         salesmanPassword: emailPayload.salesmanTempPassword,
-         techId: emailPayload.techLoginId,
-         techPassword: emailPayload.techTempPassword,
-         adminId: emailPayload.adminAppLoginId,
-         adminPassword: emailPayload.adminAppTempPassword
-      }
+      credentials
     });
 
   } catch (error: any) {
@@ -265,54 +168,29 @@ export async function GET(
     if (!session || !session.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (!session.permissions.includes("READ")) {
+    if (!hasPermission(session.permissions, "READ")) {
       return NextResponse.json({ error: 'Forbidden: READ access required' }, { status: 403 });
     }
-
-    const adminUserResult = await db
-      .select({
-        companyId: users.companyId
-      })
-      .from(users)
-      .where(eq(users.id, session.userId))
-      .limit(1);
-
-    const adminUser = adminUserResult[0];
 
     const targetUserResult = await db
       .select({
         id: users.id,
         email: users.email,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        region: users.region,
+        username: users.username,
+        zone: users.zone,
         area: users.area,
         phoneNumber: users.phoneNumber,
-
-        // Include new access flags in the GET response
         isDashboardUser: users.isDashboardUser,
         isSalesAppUser: users.isSalesAppUser,
-        isTechnicalRole: users.isTechnicalRole,
-        isAdminAppUser: users.isAdminAppUser,
-
         deviceId: users.deviceId,
         status: users.status,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
-
-        // Logins
         dashboardLoginId: users.dashboardLoginId,
         salesmanLoginId: users.salesmanLoginId,
-        techLoginId: users.techLoginId,
-        adminAppLoginId: users.adminAppLoginId,
       })
       .from(users)
-      .where(
-        and(
-          eq(users.id, Number(userId)),
-          eq(users.companyId, adminUser.companyId)
-        )
-      )
+      .where(eq(users.id, Number(userId)))
       .limit(1);
 
     const targetUser = targetUserResult[0];

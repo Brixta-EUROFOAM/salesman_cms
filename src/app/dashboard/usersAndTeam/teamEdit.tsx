@@ -40,8 +40,7 @@ export interface TeamMember {
   managesIds: number[];
   managesReports: { name: string; orgRole: string }[];
   area?: string | null;
-  region?: string | null;
-  isTechnicalRole: boolean;
+  zone?: string | null;
 }
 
 interface TeamEditProps {
@@ -50,8 +49,6 @@ interface TeamEditProps {
   currentUserRole: string | null;
   onSaveRole: (userId: number, newOrgRole: string, newJobRoles: string[]) => Promise<void>;
   onSaveMapping: (userId: number, reportsToId: number | null, managesIds: number[]) => Promise<void>;
-  onSaveDealerMapping: (userId: number, dealerIds: string[]) => Promise<void>;
-  onSaveMasonMapping: (userId: number, masonIds: string[]) => Promise<void>;
 }
 
 const allRoles = [...SUPER_USER_ROLES, ...Object.keys(ORG_ROLE_WEIGHTS)];
@@ -198,231 +195,9 @@ const HierarchyTab = ({ member, allTeamMembers, currentUserRole, onSave }: { mem
   );
 };
 
-// 3. Location Filter Helper Component
-const LocationFilter = ({
-  areas, regions, selectedArea, selectedRegion, onAreaChange, onRegionChange, onClear
-}: any) => (
-  <div className="flex flex-col md:flex-row gap-3 p-4 bg-muted/40 rounded-lg border border-border/50">
-    <div className="flex-1 space-y-1">
-      <label className="text-xs font-medium text-muted-foreground">Filter by Area</label>
-      <Select value={selectedArea ?? "all"} onValueChange={(v) => onAreaChange(v === "all" ? null : v)}>
-        <SelectTrigger className="w-full bg-background"><SelectValue placeholder="All Areas" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Areas</SelectItem>
-          {areas.sort().map((a: string) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-        </SelectContent>
-      </Select>
-    </div>
-    <div className="flex-1 space-y-1">
-      <label className="text-xs font-medium text-muted-foreground">Filter by Region</label>
-      <Select value={selectedRegion ?? "all"} onValueChange={(v) => onRegionChange(v === "all" ? null : v)}>
-        <SelectTrigger className="w-full bg-background"><SelectValue placeholder="All Regions" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Regions</SelectItem>
-          {regions.sort().map((r: string) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-        </SelectContent>
-      </Select>
-    </div>
-    <div className="flex items-end justify-end">
-      <Button variant="outline" size="sm" onClick={onClear} disabled={!selectedArea && !selectedRegion} className="h-9">
-        Clear
-      </Button>
-    </div>
-  </div>
-);
-
-// 4. Dealer Tab
-const DealerTab = ({ member, onSave }: { member: TeamMember, onSave: any }) => {
-  const [selectedDealerIds, setSelectedDealerIds] = useState<string[]>([]);
-  const [options, setOptions] = useState<{ value: string; label: string }[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const { locations, loading: locLoading } = useDealerLocations();
-  const [area, setArea] = useState<string | null>(null);
-  const [region, setRegion] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (locLoading) return;
-    (async () => {
-      setLoading(true);
-      try {
-        const url = new URL(`/api/dashboardPagesAPI/users-and-team/team-overview/editDealerMapping`, window.location.origin);
-        url.searchParams.append('userId', String(member.id));
-        if (area) url.searchParams.append('area', area);
-        if (region) url.searchParams.append('region', region);
-
-        const res = await fetch(url.toString());
-        if (res.ok) {
-          const data = await res.json();
-          setOptions(data.dealers.map((d: any) => ({ value: d.id, label: d.name })));
-          if (!area && !region) setSelectedDealerIds(data.assignedDealerIds ?? []);
-        }
-      } catch (e) { toast.error("Failed to load dealers"); }
-      finally { setLoading(false); }
-    })();
-  }, [member.id, area, region, locLoading]);
-
-  return (
-    <div className="space-y-4 py-4 flex flex-col h-full">
-      <div className="flex items-center justify-between bg-primary/5 p-3 rounded-lg border border-primary/10">
-        <h4 className="font-medium text-sm text-foreground">Dealer Assignment</h4>
-        <Badge variant="default" className="text-sm px-3 py-1">
-          Total Assigned: {selectedDealerIds.length}
-        </Badge>
-      </div>
-
-      <LocationFilter
-        areas={locations.areas} regions={locations.regions}
-        selectedArea={area} selectedRegion={region}
-        onAreaChange={setArea} onRegionChange={setRegion}
-        onClear={() => { setArea(null); setRegion(null); }}
-      />
-      
-      <div className="flex-1 min-h-[250px]">
-        {loading ? (
-          <div className="h-full flex items-center justify-center text-muted-foreground border rounded-lg border-dashed">
-             <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading dealers...
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">Select Dealers</label>
-            <MultiSelect
-              options={options}
-              selectedValues={selectedDealerIds}
-              onValueChange={setSelectedDealerIds}
-              placeholder="Search and select dealers..."
-            />
-          </div>
-        )}
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t mt-auto">
-        <Button
-          variant="outline"
-          onClick={() => setSelectedDealerIds([])}
-          disabled={isSaving || selectedDealerIds.length === 0}
-          className="w-full sm:w-auto text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-        >
-          <Trash2 className="w-4 h-4 mr-2" /> Unassign All
-        </Button>
-
-        <Button
-          onClick={async () => {
-            setIsSaving(true);
-            try { await onSave(member.id, selectedDealerIds); } 
-            finally { setIsSaving(false); }
-          }}
-          disabled={isSaving}
-          className="w-full flex-1"
-        >
-          {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Dealer Mapping
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-// 5. Mason Tab
-const MasonTab = ({ member, onSave }: { member: TeamMember, onSave: any }) => {
-  if (!member.isTechnicalRole) return <div className="py-12 text-center text-muted-foreground flex flex-col items-center"><ShieldCheck className="w-12 h-12 mb-3 opacity-20"/>This user is not in a technical role.</div>;
-
-  const [selectedMasonIds, setSelectedMasonIds] = useState<string[]>([]);
-  const [options, setOptions] = useState<{ value: string; label: string }[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const { locations, loading: locLoading } = useDealerLocations();
-  const [area, setArea] = useState<string | null>(null);
-  const [region, setRegion] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (locLoading) return;
-    (async () => {
-      setLoading(true);
-      try {
-        const url = new URL(`/api/dashboardPagesAPI/users-and-team/team-overview/editMasonMapping`, window.location.origin);
-        url.searchParams.append('userId', String(member.id));
-        if (area) url.searchParams.append('area', area);
-        if (region) url.searchParams.append('region', region);
-
-        const res = await fetch(url.toString());
-        if (res.ok) {
-          const data = await res.json();
-          setOptions(data.masons.map((m: any) => ({
-            value: m.id,
-            label: `${m.name} (${m.dealer?.name || 'No Dealer'})`
-          })));
-          if (!area && !region) setSelectedMasonIds(data.assignedMasonIds ?? []);
-        }
-      } catch (e) { toast.error("Failed to load masons"); }
-      finally { setLoading(false); }
-    })();
-  }, [member.id, area, region, locLoading]);
-
-  return (
-    <div className="space-y-4 py-4 flex flex-col h-full">
-      <div className="flex items-center justify-between bg-primary/5 p-3 rounded-lg border border-primary/10">
-        <h4 className="font-medium text-sm text-foreground">Mason Assignment</h4>
-        <Badge variant="default" className="text-sm px-3 py-1">
-          Total Assigned: {selectedMasonIds.length}
-        </Badge>
-      </div>
-
-      <LocationFilter
-        areas={locations.areas} regions={locations.regions}
-        selectedArea={area} selectedRegion={region}
-        onAreaChange={setArea} onRegionChange={setRegion}
-        onClear={() => { setArea(null); setRegion(null); }}
-      />
-      
-      <div className="flex-1 min-h-[250px]">
-        {loading ? (
-          <div className="h-full flex items-center justify-center text-muted-foreground border rounded-lg border-dashed">
-             <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading masons...
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">Select Masons</label>
-            <MultiSelect
-              options={options}
-              selectedValues={selectedMasonIds}
-              onValueChange={setSelectedMasonIds}
-              placeholder="Search and select masons..."
-            />
-          </div>
-        )}
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t mt-auto">
-        <Button
-          variant="outline"
-          onClick={() => setSelectedMasonIds([])}
-          disabled={isSaving || selectedMasonIds.length === 0}
-          className="w-full sm:w-auto text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-        >
-          <Trash2 className="w-4 h-4 mr-2" /> Unassign All
-        </Button>
-
-        <Button
-          onClick={async () => {
-            setIsSaving(true);
-            try { await onSave(member.id, selectedMasonIds); } 
-            finally { setIsSaving(false); }
-          }}
-          disabled={isSaving}
-          className="w-full flex-1"
-        >
-          {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Mason Mapping
-        </Button>
-      </div>
-    </div>
-  );
-};
-
 // --- MAIN EXPORT COMPONENT ---
 export default function TeamEditModal({
-  member, allTeamMembers, currentUserRole, onSaveRole, onSaveMapping, onSaveDealerMapping, onSaveMasonMapping
+  member, allTeamMembers, currentUserRole, onSaveRole, onSaveMapping,
 }: TeamEditProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -457,15 +232,11 @@ export default function TeamEditModal({
             <TabsList className="grid w-full grid-cols-4 sticky top-0 z-10">
               <TabsTrigger value="role" className="flex gap-2"><ShieldCheck className="w-4 h-4 hidden sm:block" /> Roles</TabsTrigger>
               <TabsTrigger value="hierarchy" className="flex gap-2"><UsersIcon className="w-4 h-4 hidden sm:block" /> Hierarchy</TabsTrigger>
-              <TabsTrigger value="dealers" className="flex gap-2"><StoreIcon className="w-4 h-4 hidden sm:block" /> Dealers</TabsTrigger>
-              <TabsTrigger value="masons" className="flex gap-2"><PencilIcon className="w-4 h-4 hidden sm:block" /> Masons</TabsTrigger>
             </TabsList>
 
             <div className="mt-2 flex-1">
               <TabsContent value="role" className="m-0 h-full"><RoleTab member={member} currentUserRole={currentUserRole} onSave={onSaveRole} /></TabsContent>
               <TabsContent value="hierarchy" className="m-0 h-full"><HierarchyTab member={member} allTeamMembers={allTeamMembers} currentUserRole={currentUserRole} onSave={onSaveMapping} /></TabsContent>
-              <TabsContent value="dealers" className="m-0 h-full"><DealerTab member={member} onSave={onSaveDealerMapping} /></TabsContent>
-              <TabsContent value="masons" className="m-0 h-full"><MasonTab member={member} onSave={onSaveMasonMapping} /></TabsContent>
             </div>
           </Tabs>
         </div>

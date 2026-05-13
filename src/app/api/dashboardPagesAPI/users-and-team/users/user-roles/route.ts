@@ -3,7 +3,7 @@ import "server-only";
 import { connection, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
 import { db } from "@/lib/drizzle";
-import { users, roles, userRoles } from "../../../../../../../drizzle";
+import { users, roles, userRoles } from "../../../../../../../drizzle/schema";
 import { eq } from "drizzle-orm";
 
 export async function GET() {
@@ -14,19 +14,6 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const currentUserResult = await db
-      .select({ companyId: users.companyId })
-      .from(users)
-      .where(eq(users.id, session.userId))
-      .limit(1);
-
-    const currentUser = currentUserResult[0];
-
-    if (!currentUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    // Explicitly JOIN the tables to access the role data for this company's users
     const rawRoles = await db
       .select({ 
         orgRole: roles.orgRole,
@@ -34,10 +21,8 @@ export async function GET() {
       })
       .from(users)
       .innerJoin(userRoles, eq(users.id, userRoles.userId))
-      .innerJoin(roles, eq(userRoles.roleId, roles.id))
-      .where(eq(users.companyId, currentUser.companyId));
+      .innerJoin(roles, eq(userRoles.roleId, roles.id));
 
-    // Deduplicate using Sets
     const orgRoleSet = new Set<string>();
     const jobRoleSet = new Set<string>();
 
@@ -47,16 +32,13 @@ export async function GET() {
     });
 
     return NextResponse.json({ 
-      roles: Array.from(orgRoleSet), // Preserved for backward compatibility if old UI still expects data.roles
+      roles: Array.from(orgRoleSet),
       orgRoles: Array.from(orgRoleSet), 
       jobRoles: Array.from(jobRoleSet) 
     }, { status: 200 });
 
   } catch (error) {
     console.error("Error fetching user roles:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch user roles" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch user roles" }, { status: 500 });
   }
 }

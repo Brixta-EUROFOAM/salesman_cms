@@ -3,8 +3,8 @@ import "server-only";
 import { connection, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
 import { db } from "@/lib/drizzle";
-import { users } from "../../../../../../../drizzle";
-import { eq, isNotNull, and } from "drizzle-orm";
+import { users } from "../../../../../../../drizzle/schema";
+import { isNotNull } from "drizzle-orm";
 
 export async function GET() {
   await connection();
@@ -14,54 +14,29 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const currentUserResult = await db
-      .select({ companyId: users.companyId })
+    // DISTINCT zones
+    const uniqueZones = await db
+      .selectDistinct({ zone: users.zone })
       .from(users)
-      .where(eq(users.id, session.userId))
-      .limit(1);
-
-    const currentUser = currentUserResult[0];
-
-    if (!currentUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    // DISTINCT regions
-    const uniqueRegions = await db
-      .selectDistinct({ region: users.region })
-      .from(users)
-      .where(
-        and(
-          eq(users.companyId, currentUser.companyId),
-          isNotNull(users.region)
-        )
-      );
+      .where(isNotNull(users.zone));
 
     // DISTINCT areas
     const uniqueAreas = await db
       .selectDistinct({ area: users.area })
       .from(users)
-      .where(
-        and(
-          eq(users.companyId, currentUser.companyId),
-          isNotNull(users.area)
-        )
-      );
+      .where(isNotNull(users.area));
 
-    const regions = uniqueRegions
-      .map((r) => r.region ?? "")
+    const zones = uniqueZones
+      .map((z) => z.zone ?? "")
       .filter(Boolean);
 
     const areas = uniqueAreas
       .map((a) => a.area ?? "")
       .filter(Boolean);
 
-    return NextResponse.json({ regions, areas }, { status: 200 });
+    return NextResponse.json({ zones, areas }, { status: 200 }); // Swapped regions array to zones
   } catch (error) {
     console.error("Error fetching user locations:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch user locations" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch user locations" }, { status: 500 });
   }
 }

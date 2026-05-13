@@ -3,25 +3,22 @@ import 'server-only';
 import { connection, NextResponse, NextRequest } from 'next/server';
 import { cacheTag, cacheLife } from 'next/cache';
 import { db } from '@/lib/drizzle';
-import { users, dailyVisitReports } from '../../../../../../drizzle';
-import { eq, desc, and, or, ilike, SQL, sql, gte, lte } from 'drizzle-orm';
+import { users, dailyVisitReports } from '../../../../../../drizzle/schema';
+import { desc, and, or, ilike, SQL, sql, gte, lte, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { SO_AOP_TARGETS } from '@/lib/Reusable-constants';
-import { verifySession } from '@/lib/auth';
-import { MEGHALAYA_OVERSEER_ID } from '@/lib/Reusable-constants';
+import { verifySession, hasPermission } from '@/lib/auth';
 
-// Reusable schema for the metric nodes
 const metricNode = z.object({
     aop: z.number(),
     mtd: z.number(),
     pct: z.number(),
 });
 
-// Custom Zod schema for the aggregated metrics
 const soPerformanceMetricSchema = z.object({
     userId: z.number().nullable(),
     salesmanName: z.string(),
-    region: z.string().nullable(),
+    zone: z.string().nullable(),
     area: z.string().nullable(),
     totalVisits: z.number(),
     metrics: z.object({
@@ -31,41 +28,34 @@ const soPerformanceMetricSchema = z.object({
 });
 
 async function getCachedSoPerformanceMetrics(
-    companyId: number,
-    userId: number,
     page: number,
     pageSize: number,
     search: string | null,
     area: string | null,
-    region: string | null,
+    zone: string | null,
     startDate: string | null,
     endDate: string | null
 ) {
     'use cache';
     cacheLife('hours');
-    cacheTag(`so-performance-metrics-${companyId}`);
+    cacheTag(`so-performance-metrics-global`);
 
-    const filterKey = `${search}-${area}-${region}-${startDate}-${endDate}`;
-    cacheTag(`so-performance-metrics-${companyId}-${page}-${filterKey}`);
+    const filterKey = `${search}-${area}-${zone}-${startDate}-${endDate}`;
+    cacheTag(`so-performance-metrics-${page}-${filterKey}`);
 
-    const filters: (SQL | undefined)[] = [eq(users.companyId, companyId)];
-
-    if (userId === MEGHALAYA_OVERSEER_ID) {
-              filters.push(eq(users.region, 'Meghalaya'));
-    }
+    const filters: SQL[] = [];
 
     if (search) {
         const searchCondition = or(
-            ilike(users.firstName, `%${search}%`),
-            ilike(users.lastName, `%${search}%`),
+            ilike(users.username, `%${search}%`),
             ilike(users.area, `%${search}%`),
-            ilike(users.region, `%${search}%`)
+            ilike(users.zone, `%${search}%`)
         );
         if (searchCondition) filters.push(searchCondition);
     }
 
     if (area) filters.push(eq(users.area, area));
-    if (region) filters.push(eq(users.region, region));
+    if (zone) filters.push(eq(users.zone, zone));
 
     if (startDate) {
         filters.push(gte(dailyVisitReports.reportDate, startDate));
@@ -76,14 +66,13 @@ async function getCachedSoPerformanceMetrics(
         filters.push(lte(dailyVisitReports.reportDate, endOfDay.toISOString()));
     }
 
-    const whereClause = and(...filters);
+    const whereClause = filters.length > 0 ? and(...filters) : undefined;
 
-    // Group by User to aggregate metric counts per SO based on daily_visit_reports
     const rawResults = await db
         .select({
             userId: users.id,
-            salesmanName: sql<string>`COALESCE(NULLIF(TRIM(CONCAT(${users.firstName}, ' ', ${users.lastName})), ''), ${users.email})`,
-            region: users.region,
+            salesmanName: sql<string>`COALESCE(NULLIF(TRIM(${users.username}), ''), ${users.email})`,
+            zone: users.zone,
             area: users.area,
             totalVisits: sql<number>`CAST(COUNT(${dailyVisitReports.id}) AS INTEGER)`,
             dealerVisits: sql<number>`CAST(SUM(CASE WHEN ${dailyVisitReports.dealerType} ILIKE 'Dealer%' THEN 1 ELSE 0 END) AS INTEGER)`,
@@ -92,7 +81,7 @@ async function getCachedSoPerformanceMetrics(
         .from(dailyVisitReports)
         .leftJoin(users, eq(dailyVisitReports.userId, users.id))
         .where(whereClause)
-        .groupBy(users.id, users.firstName, users.lastName, users.email, users.region, users.area)
+        .groupBy(users.id, users.username, users.email, users.zone, users.area)
         .orderBy(desc(sql`COUNT(${dailyVisitReports.id})`))
         .limit(pageSize)
         .offset(page * pageSize);
@@ -111,7 +100,7 @@ async function getCachedSoPerformanceMetrics(
     const results = rawResults.map((r) => ({
         userId: r.userId,
         salesmanName: r.salesmanName,
-        region: r.region,
+        zone: r.zone,
         area: r.area,
         totalVisits: r.totalVisits,
         metrics: {
@@ -131,7 +120,7 @@ export async function GET(request: NextRequest) {
         if (!session || !session.userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-        if (!session.permissions.includes("READ")) {
+        if (!hasPermission(session.permissions, "READ")) {
             return NextResponse.json({ error: 'Forbidden: READ access required' }, { status: 403 });
         }
 
@@ -141,16 +130,14 @@ export async function GET(request: NextRequest) {
 
         const search = searchParams.get('search');
         const area = searchParams.get('area');
-        const region = searchParams.get('region');
+        const zone = searchParams.get('zone');
 
         let startDate = searchParams.get('startDate');
         let endDate = searchParams.get('endDate');
 
         if (!startDate || !endDate) {
             const now = new Date();
-            // 1st day of current month
             const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-            // Last day of current month
             const lastDay = new Date();
             lastDay.setHours(23, 59, 59, 999);
 
@@ -159,11 +146,9 @@ export async function GET(request: NextRequest) {
         }
 
         const result = await getCachedSoPerformanceMetrics(
-            session.companyId,
-            session.userId,
             page, 
             pageSize, 
-            search, area, region, startDate, endDate
+            search, area, zone, startDate, endDate
         );
 
         const validated = z.array(soPerformanceMetricSchema).safeParse(result.data);

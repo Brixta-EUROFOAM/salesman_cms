@@ -36,10 +36,6 @@ interface GeneratedCredentials {
   dashboardPassword?: string;
   salesmanId?: string;
   salesmanPassword?: string;
-  techId?: string;
-  techPassword?: string;
-  adminId?: string;
-  adminPassword?: string;
 }
 
 export function AddUserDialog({ onSuccess, onError, onRefresh }: AddUserProps) {
@@ -52,17 +48,14 @@ export function AddUserDialog({ onSuccess, onError, onRefresh }: AddUserProps) {
 
   const [formData, setFormData] = useState({
     email: '',
-    firstName: '',
-    lastName: '',
+    username: '',
     phoneNumber: '',
     orgRole: 'junior-executive',
     jobRole: [] as string[],
-    region: Zone[0] || '',
+    zone: Zone[0] || '',
     area: '',
     isDashboardUser: false,
     isSalesAppUser: false,
-    isTechnicalRole: false,
-    isAdminAppUser: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,7 +86,7 @@ export function AddUserDialog({ onSuccess, onError, onRefresh }: AddUserProps) {
           setCreatedCredentials(data.credentials);
         } else {
           // No access granted, just close the modal
-          onSuccess(`User ${formData.firstName} created successfully.`);
+          onSuccess(`User ${formData.username} created successfully.`);
           onRefresh();
           setOpen(false);
           resetForm();
@@ -113,8 +106,6 @@ export function AddUserDialog({ onSuccess, onError, onRefresh }: AddUserProps) {
     let text = "User Credentials:\n";
     if (createdCredentials.dashboardEmail) text += `\n[Web Dashboard]\nID: ${createdCredentials.dashboardEmail}\nPassword: ${createdCredentials.dashboardPassword}\n`;
     if (createdCredentials.salesmanId) text += `\n[Sales App]\nID: ${createdCredentials.salesmanId}\nPassword: ${createdCredentials.salesmanPassword}\n`;
-    if (createdCredentials.techId) text += `\n[Technical App]\nID: ${createdCredentials.techId}\nPassword: ${createdCredentials.techPassword}\n`;
-    if (createdCredentials.adminId) text += `\n[Admin App]\nID: ${createdCredentials.adminId}\nPassword: ${createdCredentials.adminPassword}\n`;
 
     navigator.clipboard.writeText(text.trim());
     setCopied(true);
@@ -124,19 +115,18 @@ export function AddUserDialog({ onSuccess, onError, onRefresh }: AddUserProps) {
   const resetForm = () => {
     setFormData({
       email: '', 
-      firstName: '', 
-      lastName: '', 
+      username: '', 
       phoneNumber: '',
       orgRole: 'junior-executive', 
       jobRole: [] as string[],
-      region: Zone[0] || '', area: '',
-      isDashboardUser: false, isSalesAppUser: false, isTechnicalRole: false, isAdminAppUser: false,
+      zone: Zone[0] || '', area: '',
+      isDashboardUser: false, isSalesAppUser: false,
     });
   };
 
   const handleDone = () => {
     setOpen(false);
-    onSuccess(`User ${formData.firstName} created successfully!`);
+    onSuccess(`User ${formData.username} created successfully!`);
     onRefresh();
     // Delay resetting states so it doesn't flash during modal exit transition
     setTimeout(() => {
@@ -207,32 +197,6 @@ export function AddUserDialog({ onSuccess, onError, onRefresh }: AddUserProps) {
                   </div>
                 </div>
               )}
-              {createdCredentials.techId && (
-                <div>
-                  <h5 className="font-bold text-slate-700 border-b pb-1 mb-2">Technical App</h5>
-                  <div className="flex justify-between items-center pb-1">
-                    <span className="text-slate-500">Login ID:</span>
-                    <span className="font-bold text-slate-900">{createdCredentials.techId}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-500">Password:</span>
-                    <span className="font-bold text-blue-600">{createdCredentials.techPassword}</span>
-                  </div>
-                </div>
-              )}
-              {createdCredentials.adminId && (
-                <div>
-                  <h5 className="font-bold text-slate-700 border-b pb-1 mb-2">Admin App</h5>
-                  <div className="flex justify-between items-center pb-1">
-                    <span className="text-slate-500">Login ID:</span>
-                    <span className="font-bold text-slate-900">{createdCredentials.adminId}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-500">Password:</span>
-                    <span className="font-bold text-blue-600">{createdCredentials.adminPassword}</span>
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="flex flex-col space-y-2 pt-2">
@@ -261,17 +225,10 @@ export function AddUserDialog({ onSuccess, onError, onRefresh }: AddUserProps) {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
+                  <Label htmlFor="username">User Name</Label>
                   <Input
-                    id="firstName" required placeholder="First Name"
-                    value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input
-                    id="lastName" placeholder="Last Name" required
-                    value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    id="username" required placeholder="Username"
+                    value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   />
                 </div>
               </div>
@@ -311,8 +268,8 @@ export function AddUserDialog({ onSuccess, onError, onRefresh }: AddUserProps) {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Region (Zone)</Label>
-                  <Select value={formData.region} onValueChange={(v) => setFormData({ ...formData, region: v })}>
+                  <Label>Zone</Label>
+                  <Select value={formData.zone} onValueChange={(v) => setFormData({ ...formData, zone: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {Zone.map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}
@@ -345,22 +302,6 @@ export function AddUserDialog({ onSuccess, onError, onRefresh }: AddUserProps) {
                     onCheckedChange={(c) => setFormData({ ...formData, isSalesAppUser: !!c })}
                   />
                   <Label htmlFor="acc-sales" className="cursor-pointer">Sales App Access</Label>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id="acc-tech"
-                    checked={formData.isTechnicalRole}
-                    onCheckedChange={(c) => setFormData({ ...formData, isTechnicalRole: !!c })}
-                  />
-                  <Label htmlFor="acc-tech" className="cursor-pointer">Technical App Access</Label>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id="acc-admin"
-                    checked={formData.isAdminAppUser}
-                    onCheckedChange={(c) => setFormData({ ...formData, isAdminAppUser: !!c })}
-                  />
-                  <Label htmlFor="acc-admin" className="cursor-pointer">Admin App Access</Label>
                 </div>
               </div>
             </div>

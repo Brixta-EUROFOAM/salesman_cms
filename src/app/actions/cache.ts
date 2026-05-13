@@ -7,10 +7,6 @@ import { users } from '../../../drizzle';
 import { eq } from 'drizzle-orm';
 import { verifySession } from '@/lib/auth';
 
-/**
- * Securely clears the Next.js cache for a specific data prefix for the current company.
- * @param cachePrefix e.g., 'dealers', 'mason-pc', 'bags-lift'
- */
 export async function refreshCompanyCache(cachePrefix: string) {
   try {
     const session = await verifySession();
@@ -19,7 +15,7 @@ export async function refreshCompanyCache(cachePrefix: string) {
     }
 
     const result = await db
-      .select({ companyId: users.companyId })
+      .select({ userId: users.id })
       .from(users)
       .where(eq(users.id, session.userId))
       .limit(1);
@@ -29,12 +25,12 @@ export async function refreshCompanyCache(cachePrefix: string) {
     if (!currentUser) throw new Error('User not found');
 
     // Define tags that are global and shouldn't get a companyId attached
-    const globalTags = ['technical-sites',];
+    const globalTags = [''];
 
     // If it's a global tag, use it exactly as is. Otherwise, append the companyId.
     const targetTag = globalTags.includes(cachePrefix)
       ? cachePrefix
-      : `${cachePrefix}-${currentUser.companyId}`;
+      : `${cachePrefix}-${currentUser.userId}`;
 
     // Nuke the cache!
     revalidateTag(targetTag, { expire: 0 });

@@ -40,19 +40,12 @@ export async function GET(request: NextRequest) {
         salesmanName: loc.name || 'Unknown',
         employeeId: userId,
         role: loc.role || 'sales', // Maps to the role we injected in Flutter
-        region: null, // Nullable in your schema
+        zone: null, // Nullable in your schema
         area: null,   // Nullable in your schema
         latitude: loc.lat,
         longitude: loc.lng,
         recordedAt: new Date(loc.timestamp).toISOString(),
         isActive: !isStale,
-        
-        // Unused hardware metrics (nullable in schema)
-        accuracy: null,
-        speed: null,
-        heading: null,
-        altitude: null,
-        batteryLevel: null,
       };
     });
 

@@ -1,7 +1,7 @@
 // src/app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/drizzle';
-import { companies, users, roles, userRoles } from '../../../../../drizzle';
+import { users, roles, userRoles } from '../../../../../drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { encrypt } from '@/lib/auth';
 import { cookies } from 'next/headers';
@@ -19,10 +19,8 @@ export async function POST(request: NextRequest) {
     const userResult = await db
       .select({
         user: users,
-        companyName: companies.companyName
       })
       .from(users)
-      .leftJoin(companies, eq(users.companyId, companies.id))
       .where(eq(users.dashboardLoginId, email))
       .limit(1);
 
@@ -33,9 +31,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
-    // Now safely extract the nested objects
     const user = row.user;
-    const companyName = row.companyName;
 
     // 2. IMMEDIATE SECURITY CHECK
     // Check if they are allowed to use the dashboard
@@ -60,9 +56,6 @@ export async function POST(request: NextRequest) {
       .leftJoin(roles, eq(userRoles.roleId, roles.id))
       .where(eq(userRoles.userId, user.id));
 
-    // Debugging: What exactly did the DB return?
-    console.log("Raw DB Result:", JSON.stringify(userRolesResult, null, 2));
-
     const orgRolesList = userRolesResult.map(r => r.orgRole).filter(Boolean) as string[];
     const primaryOrgRole = orgRolesList.length > 0 ? orgRolesList[0] : '';
     const jobRoleNames = Array.from(new Set(userRolesResult.map(r => r.jobRole).filter(Boolean))) as string[];
@@ -85,7 +78,6 @@ export async function POST(request: NextRequest) {
 
     // Create unique set
     const allPerms = Array.from(new Set(extractedPerms));
-    //console.log("Final Permissions for JWT:", allPerms);
 
     // 4. Update Status if needed
     if (user.status !== 'active') {
@@ -96,13 +88,10 @@ export async function POST(request: NextRequest) {
     const sessionData = {
       userId: user.id,
       email: user.email,
-      firstName: user.firstName,   
-      lastName: user.lastName,     
-      companyName: companyName,    
-      orgRole: primaryOrgRole,        // e.g., 'executive', 'general-manager'
+      username: user.username,       // Consolidated from firstName/lastName
+      orgRole: primaryOrgRole,       // e.g., 'executive', 'general-manager'
       jobRoles: jobRoleNames,        // e.g., ['Sales-Marketing', 'Technical-Sales']
       permissions: allPerms,         // e.g., ['READ', 'WRITE', 'UPDATE']
-      companyId: user.companyId,
     };
 
     // 6. Encrypt and set cookie
@@ -121,7 +110,7 @@ export async function POST(request: NextRequest) {
       message: 'Login successful',
       user: {
         isDashboardUser: user.isDashboardUser,
-        isAdminAppUser: user.isAdminAppUser
+        isSalesAppUser: user.isSalesAppUser // Swapped from isAdminAppUser
       }
     }, { status: 200 });
 

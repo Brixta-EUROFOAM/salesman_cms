@@ -1,35 +1,29 @@
-// src/app/api/dashboardPagesAPI/routes/daily-visit-reports/route.ts
+// src/app/api/dashboardPagesAPI/reports/daily-visit-reports/route.ts
 import 'server-only';
 import { connection, NextResponse, NextRequest } from 'next/server';
 import { cacheTag, cacheLife } from 'next/cache';
 import { db } from '@/lib/drizzle';
-import { users, dailyVisitReports, dealers, dailyTasks } from '../../../../../../drizzle';
-import { eq, desc, and, or, ilike, aliasedTable, getTableColumns, count, SQL, isNull, notIlike, gte, lte } from 'drizzle-orm';
-import type { InferSelectModel } from 'drizzle-orm';
+import { users, dailyVisitReports, dealers } from '../../../../../../drizzle/schema';
+import { eq, desc, and, or, ilike, getTableColumns, count, SQL, gte, lte } from 'drizzle-orm';
 import { z } from 'zod';
-import { selectDailyVisitReportSchema } from '../../../../../../drizzle/zodSchemas';
-import { verifySession } from '@/lib/auth';
-import { MEGHALAYA_OVERSEER_ID } from '@/lib/Reusable-constants';
+import { verifySession, hasPermission } from '@/lib/auth';
 
-const frontendDVRSchema = selectDailyVisitReportSchema.extend({
+const frontendDVRSchema = z.object({
   id: z.string(),
   salesmanName: z.string(),
   area: z.string(),
-  region: z.string(),
+  zone: z.string(),
   dealerName: z.string().nullable().optional(),
-  subDealerName: z.string().nullable().optional(),
 
   customerType: z.string().nullable().optional(),
-  partyType: z.string().nullable().optional(),
+  visitType: z.string().nullable().optional(),
   nameOfParty: z.string().nullable().optional(),
   contactNoOfParty: z.string().nullable().optional(),
   expectedActivationDate: z.string().nullable().optional(),
 
   latitude: z.number(),
   longitude: z.number(),
-  dealerTotalPotential: z.number(),
-  dealerBestPotential: z.number(),
-  todayOrderMt: z.number(),
+  todayOrderQty: z.number(),
   todayCollectionRupees: z.number(),
   overdueAmount: z.number().nullable(),
 
@@ -38,174 +32,90 @@ const frontendDVRSchema = selectDailyVisitReportSchema.extend({
   checkOutTime: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
-  pjpStatus: z.string().nullable().optional(),
-});
-
-type DVRRow = InferSelectModel<typeof dailyVisitReports> & {
-  userFirstName: string | null;
-  userLastName: string | null;
-  userEmail: string | null;
-  userArea: string | null;
-  userRegion: string | null;
-  dealerNameStr: string | null;
-  subDealerNameStr: string | null;
-  pjpTaskStatus: string | null;
-  pjpVisitType: string | null;
-};
+}).passthrough();
 
 async function getCachedDailyVisitReports(
-  companyId: number,
-  userId: number,
   page: number,
   pageSize: number,
   search: string | null,
   area: string | null,
-  region: string | null,
-  pjpStatus: string | null,
+  zone: string | null,
   startDate: string | null, 
   endDate: string | null    
 ) {
   'use cache';
   cacheLife('hours');
-  cacheTag(`daily-visit-reports-${companyId}`);
+  cacheTag(`daily-visit-reports-global`);
 
-  // Unique cache tag based on active filters
-  const filterKey = `${search}-${area}-${region}-${startDate}-${endDate}-${pjpStatus}`;
-  cacheTag(`daily-visit-reports-${companyId}-${page}-${filterKey}`);
+  const filterKey = `${search}-${area}-${zone}-${startDate}-${endDate}`;
+  cacheTag(`daily-visit-reports-${page}-${filterKey}`);
 
-  const subDealers = aliasedTable(dealers, 'subDealers');
-
-  const filters: (SQL | undefined)[] = [eq(users.companyId, companyId)];
-
-  if (userId === MEGHALAYA_OVERSEER_ID) {
-        filters.push(eq(users.region, 'Meghalaya'));
-  }
+  const filters: SQL[] = [];
 
   if (search) {
     const searchCondition = or(
-      ilike(users.firstName, `%${search}%`),
-      ilike(users.lastName, `%${search}%`),
-      ilike(dealers.name, `%${search}%`),
-      ilike(subDealers.name, `%${search}%`),
+      ilike(users.username, `%${search}%`),
+      ilike(dealers.dealerPartyName, `%${search}%`),
       ilike(dailyVisitReports.nameOfParty, `%${search}%`)
     );
     if (searchCondition) filters.push(searchCondition);
   }
 
   if (area) filters.push(eq(users.area, area));
-  if (region) filters.push(eq(users.region, region));
+  if (zone) filters.push(eq(users.zone, zone));
 
   if (startDate) filters.push(gte(dailyVisitReports.reportDate, startDate));
   if (endDate) filters.push(lte(dailyVisitReports.reportDate, endDate));
 
-  if (pjpStatus && pjpStatus !== 'all') {
-    if (pjpStatus.toLowerCase() === 'unplanned') {
-      filters.push(
-        or(
-          isNull(dailyTasks.id),
-          ilike(dailyTasks.visitType, 'unplanned')
-        )
-      );
-    } else {
-      filters.push(
-        and(
-          ilike(dailyTasks.status, pjpStatus),
-          or(isNull(dailyTasks.visitType), notIlike(dailyTasks.visitType, 'unplanned'))
-        )
-      );
-    }
-  }
+  const whereClause = filters.length > 0 ? and(...filters) : undefined;
 
-  const whereClause = and(...filters);
-
-  const results: DVRRow[] = await db
+  const results = await db
     .select({
       ...getTableColumns(dailyVisitReports),
-      userFirstName: users.firstName,
-      userLastName: users.lastName,
+      userUsername: users.username,
       userEmail: users.email,
       userArea: users.area,
-      userRegion: users.region,
-      dealerNameStr: dealers.name,
-      subDealerNameStr: subDealers.name,
-      pjpTaskStatus: dailyTasks.status,
-      pjpVisitType: dailyTasks.visitType,
+      userZone: users.zone,
+      dealerNameStr: dealers.dealerPartyName,
     })
     .from(dailyVisitReports)
-    .leftJoin(
-      dailyTasks,
-      and(
-        eq(dailyVisitReports.userId, dailyTasks.userId),
-        eq(dailyVisitReports.reportDate, dailyTasks.taskDate),
-        eq(dailyVisitReports.dealerId, dailyTasks.dealerId)
-      )
-    )
     .leftJoin(users, eq(dailyVisitReports.userId, users.id))
-    .leftJoin(dealers, eq(dailyVisitReports.dealerId, dealers.id))
-    .leftJoin(subDealers, eq(dailyVisitReports.subDealerId, subDealers.id))
+    .leftJoin(dealers, eq(dailyVisitReports.dealerId, dealers.id)) // Ensure dealerId is integer in schema!
     .where(whereClause)
     .orderBy(desc(dailyVisitReports.reportDate))
     .limit(pageSize)
     .offset(page * pageSize);
 
-  // Total count for pagination
   const totalCountResult = await db
     .select({ count: count() })
     .from(dailyVisitReports)
-    .leftJoin(
-      dailyTasks,
-      and(
-        eq(dailyVisitReports.userId, dailyTasks.userId),
-        eq(dailyVisitReports.reportDate, dailyTasks.taskDate),
-        eq(dailyVisitReports.dealerId, dailyTasks.dealerId)
-      )
-    )
     .leftJoin(users, eq(dailyVisitReports.userId, users.id))
     .leftJoin(dealers, eq(dailyVisitReports.dealerId, dealers.id))
-    .leftJoin(subDealers, eq(dailyVisitReports.subDealerId, subDealers.id))
     .where(whereClause);
 
   const totalCount = Number(totalCountResult[0].count);
 
-  // 1. Deduplicate results based on the unique Daily Visit Report ID
-  const uniqueReportsMap = new Map<string, DVRRow>();
-  for (const row of results) {
-    if (!uniqueReportsMap.has(row.id)) {
-      uniqueReportsMap.set(row.id, row);
-    }
-  }
-
-  // 2. Format only the unique rows
-  const formatted = Array.from(uniqueReportsMap.values()).map((row) => {
+  const formatted = results.map((row) => {
     const toNum = (v: any) => (v == null ? null : Number(v));
-    const salesmanName = `${row.userFirstName || ''} ${row.userLastName || ''}`.trim() || row.userEmail || 'Unknown';
-
-    const finalPjpStatus = (!row.pjpTaskStatus || row.pjpVisitType?.toLowerCase() === 'unplanned')
-      ? 'Unplanned'
-      : row.pjpTaskStatus;
+    const salesmanName = row.userUsername || row.userEmail || 'Unknown';
 
     return {
       ...row,
       id: String(row.id),
       salesmanName: salesmanName,
       area: row.userArea || '',
-      region: row.userRegion || '',
+      zone: row.userZone || '',
       reportDate: row.reportDate ? new Date(row.reportDate).toISOString().split('T')[0] : '',
       dealerName: row.dealerNameStr ?? null,
-      subDealerName: row.subDealerNameStr ?? null,
-      pjpStatus: finalPjpStatus,
-
-      customerType: row.customerType ?? null,
-      partyType: row.partyType ?? null,
+      
+      visitType: row.visitType ?? null,
       nameOfParty: row.nameOfParty ?? null,
       contactNoOfParty: row.contactNoOfParty ?? null,
       expectedActivationDate: row.expectedActivationDate ? new Date(row.expectedActivationDate).toISOString().split('T')[0] : null,
 
       latitude: toNum(row.latitude) ?? 0,
       longitude: toNum(row.longitude) ?? 0,
-      dealerTotalPotential: toNum(row.dealerTotalPotential) ?? 0,
-      dealerBestPotential: toNum(row.dealerBestPotential) ?? 0,
-      todayOrderMt: toNum(row.todayOrderMt) ?? 0,
+      todayOrderQty: toNum(row.todayOrderQty) ?? 0,
       todayCollectionRupees: toNum(row.todayCollectionRupees) ?? 0,
       overdueAmount: toNum(row.overdueAmount),
 
@@ -227,32 +137,27 @@ export async function GET(request: NextRequest) {
     if (!session || !session.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (!session.permissions.includes("READ")) {
+    if (!hasPermission(session.permissions, "READ")) {
       return NextResponse.json({ error: 'Forbidden: READ access required' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
     const page = Number(searchParams.get('page') ?? 0);
-    // Hard cap at 500
     const pageSize = Math.min(Number(searchParams.get('pageSize') ?? 500), 500);
 
     const search = searchParams.get('search');
     const area = searchParams.get('area');
-    const region = searchParams.get('region');
-    const pjpStatus = searchParams.get('pjpStatus');
+    const zone = searchParams.get('zone'); // Mapped from 'region'
 
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
     const result = await getCachedDailyVisitReports(
-      session.companyId,
-      session.userId,
       page,
       pageSize,
       search,
       area,
-      region,
-      pjpStatus,
+      zone,
       startDate,
       endDate
     );

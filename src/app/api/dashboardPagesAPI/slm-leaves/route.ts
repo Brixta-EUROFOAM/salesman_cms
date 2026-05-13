@@ -4,48 +4,34 @@ import { NextResponse, NextRequest, connection } from 'next/server';
 import { cacheTag, cacheLife } from 'next/cache';
 import { refreshCompanyCache } from '@/app/actions/cache';
 import { db } from '@/lib/drizzle';
-import { users, salesmanLeaveApplications } from '../../../../../drizzle';
+import { users, salesmanLeaveApplications } from '../../../../../drizzle/schema';
 import { eq, and, or, ilike, gte, lte, desc, getTableColumns, count, SQL } from 'drizzle-orm';
-import type { InferSelectModel } from 'drizzle-orm';
 import { aliasedTable } from 'drizzle-orm';
 import { z } from 'zod';
-import { selectSalesmanLeaveApplicationSchema, insertSalesmanLeaveApplicationSchema } from '../../../../../drizzle/zodSchemas';
-import { verifySession } from '@/lib/auth';
-import { MEGHALAYA_OVERSEER_ID } from '@/lib/Reusable-constants';
+import { verifySession, hasPermission } from '@/lib/auth';
 
-const frontendLeaveSchema = selectSalesmanLeaveApplicationSchema.extend({
+const frontendLeaveSchema = z.object({
+  id: z.string(),
+  userId: z.number(),
   salesmanName: z.string(),
   approverName: z.string(),
   area: z.string(),
-  region: z.string(),
+  zone: z.string(),
   startDate: z.string(),
   endDate: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
   appRole: z.string().nullable().optional(),
-});
-
-type LeaveRow = InferSelectModel<typeof salesmanLeaveApplications> & {
-  userFirstName: string | null;
-  userLastName: string | null;
-  userEmail: string | null;
-  userArea: string | null;
-  userRegion: string | null;
-
-  approverFirstName?: string | null;
-  approverLastName?: string | null;
-  approverEmail?: string | null;
-};
+}).passthrough();
 
 const approvers = aliasedTable(users, 'approvers');
+
 async function getCachedLeaves(
-  companyId: number,
-  userId: number,
   page: number,
   pageSize: number,
   search: string | null,
   area: string | null,
-  region: string | null,
+  zone: string | null,
   startDateParam: string | null,
   endDateParam: string | null,
   createdStartDate: string | null,
@@ -53,22 +39,16 @@ async function getCachedLeaves(
 ) {
   'use cache';
   cacheLife('hours');
-  cacheTag(`salesman-leaves-${companyId}`);
+  cacheTag(`salesman-leaves-global`);
 
-  const filterKey = `${search}-${area}-${region}-${startDateParam}-${endDateParam}`;
-  cacheTag(`salesman-leaves-${companyId}-${page}-${filterKey}`);
-  cacheTag(`salesman-leaves-${companyId}`); // Broad tag for simple invalidation
+  const filterKey = `${search}-${area}-${zone}-${startDateParam}-${endDateParam}`;
+  cacheTag(`salesman-leaves-${page}-${filterKey}`);
 
-  const filters: SQL[] = [eq(users.companyId, companyId)];
-
-  if (userId === MEGHALAYA_OVERSEER_ID) {
-    filters.push(eq(users.region, 'Meghalaya'));
-  }
+  const filters: SQL[] = [];
 
   if (search) {
     const searchCondition = or(
-      ilike(users.firstName, `%${search}%`),
-      ilike(users.lastName, `%${search}%`),
+      ilike(users.username, `%${search}%`),
       ilike(salesmanLeaveApplications.reason, `%${search}%`),
       ilike(salesmanLeaveApplications.leaveType, `%${search}%`)
     );
@@ -76,42 +56,36 @@ async function getCachedLeaves(
   }
 
   if (area && area !== 'all') filters.push(eq(users.area, area));
-  if (region && region !== 'all') filters.push(eq(users.region, region));
+  if (zone && zone !== 'all') filters.push(eq(users.zone, zone));
 
-  // 1. Filter by Leave Duration (Overlap Logic)
   if (startDateParam) {
     const start = new Date(startDateParam);
     const end = endDateParam ? new Date(endDateParam) : new Date(startDateParam);
     end.setHours(23, 59, 59, 999);
 
-    // Filter by the startDate of the leave overlapping the selected range
     filters.push(lte(salesmanLeaveApplications.startDate, end.toISOString()));
     filters.push(gte(salesmanLeaveApplications.endDate, start.toISOString()));
   }
 
-  // 2. Filter by Application Date (Created At)
   if (createdStartDate) {
     const start = new Date(createdStartDate);
     const end = createdEndDate ? new Date(createdEndDate) : new Date(createdStartDate);
     end.setHours(23, 59, 59, 999);
 
-    // Strict boundary filter for when the application was submitted
     filters.push(gte(salesmanLeaveApplications.createdAt, start.toISOString()));
     filters.push(lte(salesmanLeaveApplications.createdAt, end.toISOString()));
   }
 
-  const whereClause = and(...filters);
+  const whereClause = filters.length > 0 ? and(...filters) : undefined;
 
-  const results: LeaveRow[] = await db
+  const results = await db
     .select({
       ...getTableColumns(salesmanLeaveApplications),
-      userFirstName: users.firstName,
-      userLastName: users.lastName,
+      userUsername: users.username,
       userEmail: users.email,
       userArea: users.area,
-      userRegion: users.region,
-      approverFirstName: approvers.firstName,
-      approverLastName: approvers.lastName,
+      userZone: users.zone,
+      approverUsername: approvers.username,
       approverEmail: approvers.email,
     })
     .from(salesmanLeaveApplications)
@@ -131,13 +105,8 @@ async function getCachedLeaves(
   const totalCount = Number(totalCountResult[0].count);
 
   const formattedApplications = results.map((row) => {
-    const salesmanName = [row.userFirstName, row.userLastName]
-      .filter(Boolean)
-      .join(' ') || row.userEmail || 'N/A';
-
-    const approverName = [row.approverFirstName, row.approverLastName]
-    .filter(Boolean)
-    .join(' ') || row.approverEmail || 'Not Assigned';
+    const salesmanName = row.userUsername || row.userEmail || 'N/A';
+    const approverName = row.approverUsername || row.approverEmail || 'Not Assigned';
 
     return {
       ...row,
@@ -148,7 +117,7 @@ async function getCachedLeaves(
       createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString(),
       updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : new Date().toISOString(),
       area: row.userArea ?? '',
-      region: row.userRegion ?? '',
+      zone: row.userZone ?? '',
     };
   });
 
@@ -163,7 +132,7 @@ export async function GET(request: NextRequest) {
     if (!session || !session.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (!session.permissions.includes("READ")) {
+    if (!hasPermission(session.permissions, "READ")) {
       return NextResponse.json({ error: 'Forbidden: READ access required' }, { status: 403 });
     }
 
@@ -173,20 +142,18 @@ export async function GET(request: NextRequest) {
 
     const search = searchParams.get('search');
     const area = searchParams.get('area');
-    const region = searchParams.get('region');
+    const zone = searchParams.get('zone');
     const startDateParam = searchParams.get('startDate');
     const endDateParam = searchParams.get('endDate');
     const createdStartDate = searchParams.get('createdStartDate');
     const createdEndDate = searchParams.get('createdEndDate');
 
     const result = await getCachedLeaves(
-      session.companyId,
-      session.userId,
       page,
       pageSize,
       search,
       area,
-      region,
+      zone,
       startDateParam,
       endDateParam,
       createdStartDate,
@@ -224,36 +191,27 @@ export async function PATCH(req: NextRequest) {
     if (!session || !session.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const hasRequiredPerms = session.permissions.includes('UPDATE') || session.permissions.includes('WRITE');
-    if (!hasRequiredPerms) {
+    
+    if (!hasPermission(session.permissions, ['UPDATE', 'WRITE'])) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });
     }
 
     const body = await req.json();
 
-    const updateLeaveSchema = insertSalesmanLeaveApplicationSchema.pick({
-      id: true,
-      status: true,
-      adminRemarks: true,
-    }).required({ id: true });
-
-    const parsedBody = updateLeaveSchema.safeParse(body);
-
-    if (!parsedBody.success) {
-      return NextResponse.json({ message: 'Invalid request body', errors: parsedBody.error.format() }, { status: 400 });
+    if (!body.id || !body.status) {
+      return NextResponse.json({ message: 'Invalid request body, id and status required.' }, { status: 400 });
     }
 
-    const { id, status, adminRemarks } = parsedBody.data;
+    const { id, status, adminRemarks } = body;
 
     const existingApp = await db
-      .select({ companyId: users.companyId })
+      .select({ id: salesmanLeaveApplications.id })
       .from(salesmanLeaveApplications)
-      .leftJoin(users, eq(salesmanLeaveApplications.userId, users.id))
       .where(eq(salesmanLeaveApplications.id, id))
       .limit(1);
 
-    if (!existingApp[0] || existingApp[0].companyId !== session.companyId) {
-      return NextResponse.json({ message: 'Leave application not found or unauthorized' }, { status: 404 });
+    if (!existingApp[0]) {
+      return NextResponse.json({ message: 'Leave application not found' }, { status: 404 });
     }
 
     const updatedResult = await db
@@ -268,8 +226,7 @@ export async function PATCH(req: NextRequest) {
 
     const app = updatedResult[0];
 
-    // Invalidate Cache so dashboard reflects the approval immediately
-    // revalidateTag(`salesman-leaves-${currentUser.companyId}`, 'max');
+    // Invalidate Cache globally
     await refreshCompanyCache(`salesman-leaves`);
 
     return NextResponse.json({

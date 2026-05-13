@@ -186,17 +186,14 @@ export default function ListDealersPage() {
       header: 'Location',
       accessorKey: 'address', 
       cell: ({ row }) => {
-        const { region, area, address, pinCode, latitude, longitude } = row.original;
+        const { zone, area, pinCode, latitude, longitude } = row.original;
         const mapLink = getGoogleMapsLink(latitude, longitude);
 
         return (
           <div className="flex flex-col min-w-[180px] text-xs space-y-1">
             <div className="flex items-center gap-1 font-semibold text-muted-foreground">
               <MapPin className="h-3 w-3" />
-              <span>{region || '-'} / {area || '-'}</span>
-            </div>
-            <div className="text-foreground truncate max-w-[250px]" title={address || ''}>
-              {address || 'No Address'} {pinCode ? `- ${pinCode}` : ''}
+              <span>{zone || '-'} / {area || '-'}</span>
             </div>
             {mapLink ? (
               <a 
@@ -221,7 +218,6 @@ export default function ListDealersPage() {
    {
       header: 'Business Info',
       cell: ({ row }) => {
-        const brands = row.original.brandSelling ?? [];
         const total = Number(row.original.totalPotential || 0);
         const best = Number(row.original.bestPotential || 0);
         return (
@@ -231,12 +227,6 @@ export default function ListDealersPage() {
             </div>
             <div>
               Best: <span className="font-medium">{best.toFixed(2)}</span>
-            </div>
-            <div 
-              className="text-muted-foreground truncate max-w-[150px]" 
-              title={brands.join(', ')}
-            >
-              {brands.length > 0 ? brands.join(', ') : 'No brands'}
             </div>
           </div>
         );

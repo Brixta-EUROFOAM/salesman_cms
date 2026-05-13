@@ -1,79 +1,51 @@
 // src/app/api/dashboardPagesAPI/dealerManagement/route.ts
 import 'server-only';
-import { NextResponse, NextRequest, connection } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { cacheTag, cacheLife } from 'next/cache';
 import { db } from '@/lib/drizzle';
-import { users, dealers } from '../../../../../drizzle';
-import { eq, and, or, ilike, desc, aliasedTable, getTableColumns, SQL, count } from 'drizzle-orm';
-import type { InferSelectModel } from 'drizzle-orm';
-import { z } from 'zod';
-import { selectDealerSchema } from '../../../../../drizzle/zodSchemas';
-import { refreshCompanyCache } from '@/app/actions/cache';
-import { verifySession } from '@/lib/auth';
+import { dealers } from '../../../../../drizzle/schema';
+import { eq, and, or, ilike, desc, count, SQL } from 'drizzle-orm';
+import { verifySession, hasPermission } from '@/lib/auth';
 
-const frontendDealerSchema = selectDealerSchema.extend({
-    totalPotential: z.number(),
-    bestPotential: z.number(),
-    latitude: z.number().nullable(),
-    longitude: z.number().nullable(),
-    monthlySaleMt: z.number().nullable().optional(),
-    projectedMonthlySalesBestCementMt: z.number().nullable().optional(),
-    salesGrowthPercentage: z.number().nullable().optional(),
-    parentDealerName: z.string().nullable().optional(),
-});
-
-type DealerRow = InferSelectModel<typeof dealers> & {
-    parentDealerName: string | null;
-};
-
-// --- CACHED FETCH FUNCTION ---
-async function getCachedDealersByCompany(
-    companyId: number,
+async function getCachedDealers(
     page: number,
     pageSize: number,
     search: string | null,
-    region: string | null,
-    area: string | null,
-    type: string | null
+    zone: string | null,
+    district: string | null,
+    area: string | null
 ) {
     'use cache';
     cacheLife('days');
+    cacheTag('dealers-global');
 
-    const filterKey = `${search}-${region}-${area}-${type}`;
-    cacheTag(`dealers-${companyId}-${page}-${filterKey}`);
+    // Unique cache tag based on active filters and pagination
+    const filterKey = `${search}-${zone}-${district}-${area}`;
+    cacheTag(`dealers-${page}-${filterKey}`);
 
-    const parentDealers = aliasedTable(dealers, 'parentDealers');
-    const dealerColumns = getTableColumns(dealers);
-
-    const filters: SQL[] = [
-        eq(users.companyId, companyId),
-        eq(dealers.verificationStatus, 'VERIFIED')
-    ];
+    const filters: SQL[] = [];
 
     if (search) {
-        const searchCondition = or(
-            ilike(dealers.name, `%${search}%`),
-            ilike(dealers.nameOfFirm, `%${search}%`),
-            ilike(dealers.address, `%${search}%`),
-            ilike(dealers.phoneNo, `%${search}%`)
+        filters.push(
+            or(
+                ilike(dealers.dealerPartyName, `%${search}%`),
+                ilike(dealers.contactPersonName, `%${search}%`),
+                ilike(dealers.contactPersonNumber, `%${search}%`),
+                ilike(dealers.email, `%${search}%`),
+                ilike(dealers.gstNo, `%${search}%`)
+            )!
         );
-        if (searchCondition) filters.push(searchCondition);
     }
 
-    if (region) filters.push(eq(dealers.region, region));
+    if (zone) filters.push(eq(dealers.zone, zone));
+    if (district) filters.push(eq(dealers.district, district));
     if (area) filters.push(eq(dealers.area, area));
-    if (type) filters.push(eq(dealers.type, type));
 
-    const whereClause = and(...filters);
+    const whereClause = filters.length > 0 ? and(...filters) : undefined;
 
-    const rawDealers: DealerRow[] = await db
-        .select({
-            ...dealerColumns,
-            parentDealerName: parentDealers.name,
-        })
+    const rawDealers = await db
+        .select()
         .from(dealers)
-        .leftJoin(users, eq(dealers.userId, users.id))
-        .leftJoin(parentDealers, eq(dealers.parentDealerId, parentDealers.id))
         .where(whereClause)
         .orderBy(desc(dealers.createdAt))
         .limit(pageSize)
@@ -82,48 +54,22 @@ async function getCachedDealersByCompany(
     const totalCountResult = await db
         .select({ count: count(dealers.id) })
         .from(dealers)
-        .leftJoin(users, eq(dealers.userId, users.id))
-        .where(whereClause) as { count: number }[];
+        .where(whereClause);
 
     const totalCount = Number(totalCountResult[0]?.count ?? 0);
 
-    const toNumber = (val: any) =>
-        val === null || val === undefined || val === ''
-            ? null
-            : Number(val);
-    const toStringDate = (val: any) => (val ? new Date(val).toISOString().split('T')[0] : null);
-
-    const formattedData = rawDealers.map((row) => ({
-        ...row,
-        totalPotential: toNumber(row.totalPotential),
-        bestPotential: toNumber(row.bestPotential),
-        latitude: row.latitude ? Number(row.latitude) : null,
-        longitude: row.longitude ? Number(row.longitude) : null,
-        monthlySaleMt: row.monthlySaleMt ? Number(row.monthlySaleMt) : null,
-        projectedMonthlySalesBestCementMt: row.projectedMonthlySalesBestCementMt ? Number(row.projectedMonthlySalesBestCementMt) : null,
-        salesGrowthPercentage: row.salesGrowthPercentage ? Number(row.salesGrowthPercentage) : null,
-
-        dateOfBirth: toStringDate(row.dateOfBirth),
-        anniversaryDate: toStringDate(row.anniversaryDate),
-        declarationDate: toStringDate(row.declarationDate),
-        createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString(),
-        updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : new Date().toISOString(),
-
-        parentDealerName: row.parentDealerName || null,
-    }));
-
-    return { data: formattedData, totalCount };
+    return { data: rawDealers, totalCount };
 }
 
 export async function GET(request: NextRequest) {
-    if (typeof connection === 'function') await connection();
-
     try {
         const session = await verifySession();
         if (!session || !session.userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-        if (!session.permissions.includes('READ')) {
+        
+        // Using the new helper function for authorization
+        if (!hasPermission(session.permissions, 'READ')) {
             return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });
         }
 
@@ -132,29 +78,22 @@ export async function GET(request: NextRequest) {
         const pageSize = Math.min(Number(searchParams.get('pageSize') ?? 500), 500);
 
         const search = searchParams.get('search');
-        const region = searchParams.get('region');
+        const zone = searchParams.get('zone');
+        const district = searchParams.get('district');
         const area = searchParams.get('area');
-        const type = searchParams.get('type');
 
-        const result = await getCachedDealersByCompany(
-            session.companyId,
+        // Fetch using the cached function
+        const result = await getCachedDealers(
             page,
             pageSize,
             search,
-            region,
-            area,
-            type
+            zone,
+            district,
+            area
         );
 
-        const validatedDealers = z.array(frontendDealerSchema).safeParse(result.data);
-
-        if (!validatedDealers.success) {
-            console.error("Dealer GET Validation Error:", validatedDealers.error.format());
-            return NextResponse.json({ data: result.data, totalCount: result.totalCount, page, pageSize }, { status: 200 });
-        }
-
         return NextResponse.json({
-            data: validatedDealers.data,
+            data: result.data,
             totalCount: result.totalCount,
             page,
             pageSize
@@ -162,140 +101,5 @@ export async function GET(request: NextRequest) {
     } catch (error) {
         console.error('Error fetching dealers (GET):', error);
         return NextResponse.json({ error: 'Failed to fetch dealers', details: (error as Error).message }, { status: 500 });
-    }
-}
-
-export async function POST(request: NextRequest) {
-    try {
-        const session = await verifySession();
-        if (!session || !session.userId) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-        const hasRequiredPerms = session.permissions.includes('UPDATE') || session.permissions.includes('WRITE');
-        if (!hasRequiredPerms) {
-            return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });
-        }
-
-        const body = await request.json();
-
-        const parsedBody = selectDealerSchema.loose().safeParse(body);
-
-        if (!parsedBody.success) {
-            console.error('Add Dealer Validation Error (POST):', parsedBody.error.format());
-            return NextResponse.json({ message: 'Invalid request body', errors: parsedBody.error.format() }, { status: 400 });
-        }
-
-        const {
-            name, type, region, area, phoneNo, address,
-            pinCode, dateOfBirth, anniversaryDate,
-            totalPotential, bestPotential, brandSelling,
-            feedbacks, remarks, parentDealerId,
-        } = parsedBody.data;
-
-        // --- GEOCODING SECTION ---
-        let latitude: number | null = null;
-        let longitude: number | null = null;
-        const apiKey = process.env.OPENCAGE_GEO_API;
-
-        if (apiKey) {
-            const openCageApiUrl = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(address)}&key=${apiKey}`;
-            try {
-                const geocodeResponse = await fetch(openCageApiUrl);
-                if (geocodeResponse.ok) {
-                    const geocodeResults = await geocodeResponse.json();
-                    if (geocodeResults.results.length > 0) {
-                        latitude = geocodeResults.results[0].geometry.lat;
-                        longitude = geocodeResults.results[0].geometry.lng;
-                        console.log(`Successfully geocoded address to: ${latitude}, ${longitude}`);
-                    }
-                } else {
-                    console.error('Geocoding failed. HTTP Status:', geocodeResponse.status);
-                }
-            } catch (geocodeError) {
-                console.error('An error occurred during geocoding:', geocodeError);
-            }
-        } else {
-            console.warn('OPENCAGE_GEO_API key not set. Skipping geocoding.');
-        }
-
-        const newDealerResult = await db.insert(dealers).values({
-            id: crypto.randomUUID(),
-            userId: session.userId,
-            name: name,
-            type: type,
-            region: region,
-            area: area,
-            phoneNo: phoneNo,
-            address: address,
-            pinCode,
-            latitude: latitude?.toString() ?? null,
-            longitude: longitude?.toString() ?? null,
-            dateOfBirth: dateOfBirth ? new Date(dateOfBirth).toISOString().split('T')[0] : null,
-            anniversaryDate: anniversaryDate ? new Date(anniversaryDate).toISOString().split('T')[0] : null,
-            totalPotential: totalPotential?.toString() ?? null,
-            bestPotential: bestPotential?.toString() ?? null,
-            brandSelling: brandSelling,
-            feedbacks: feedbacks,
-            remarks: remarks,
-            parentDealerId: parentDealerId || null,
-        }).returning();
-
-        const newDealer = newDealerResult[0];
-
-        await refreshCompanyCache('dealers');
-
-        return NextResponse.json({ message: 'Dealer added successfully!', dealer: newDealer }, { status: 201 });
-    } catch (error) {
-        console.error('Error adding dealer (POST):', error);
-        return NextResponse.json({ error: 'Failed to add dealer', details: (error as Error).message }, { status: 500 });
-    }
-}
-
-export async function DELETE(request: NextRequest) {
-    try {
-        const session = await verifySession();
-        if (!session || !session.userId) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-        if (!session.permissions.includes('DELETE')) {
-            return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });
-        }
-
-        const url = new URL(request.url);
-        const dealerId = url.searchParams.get('id');
-
-        if (!dealerId) {
-            return NextResponse.json({ error: 'Missing dealer ID in request' }, { status: 400 });
-        }
-
-        const dealerToDeleteResult = await db
-            .select({ id: dealers.id, userCompanyId: users.companyId })
-            .from(dealers)
-            .leftJoin(users, eq(dealers.userId, users.id))
-            .where(eq(dealers.id, dealerId))
-            .limit(1);
-
-        const dealerToDelete = dealerToDeleteResult[0];
-
-        if (!dealerToDelete) {
-            return NextResponse.json({ error: 'Dealer not found' }, { status: 404 });
-        }
-
-        if (dealerToDelete.userCompanyId !== session.companyId) {
-            return NextResponse.json({ error: 'Forbidden: Cannot delete a dealer from another company' },
-                { status: 403 });
-        }
-
-        await db
-            .delete(dealers)
-            .where(eq(dealers.id, dealerId));
-
-        await refreshCompanyCache('dealers');
-
-        return NextResponse.json({ message: 'Dealer deleted successfully' }, { status: 200 });
-
-    } catch (error) {
-        console.error('Error deleting dealer (DELETE):', error);
-        return NextResponse.json({ error: 'Failed to delete dealer', details: (error as Error).message }, { status: 500 });
     }
 }

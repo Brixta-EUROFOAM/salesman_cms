@@ -40,37 +40,27 @@ import { AddUserDialog } from './AddUser';
 interface User {
   id: number;
   email: string;
-  firstName: string | null;
-  lastName: string | null;
+  username: string | null;
   phoneNumber: string | null;
   orgRole: string;
   jobRole?: string[];
-  region: string | null;
+  zone: string | null;
   area: string | null;
   inviteToken: string | null;
   status: string | null;
   createdAt: string;
   updatedAt: string;
-  salesmanLoginId?: string | null;
-  isTechnicalRole?: boolean | null;
-  isAdminAppUser?: boolean | null;
-  deviceId?: string | null;
   isDashboardUser?: boolean | null;
   isSalesAppUser?: boolean | null;
-}
-
-interface Company {
-  id: number;
-  companyName: string;
+  salesmanLoginId?: string | null;
+  deviceId?: string | null;
 }
 
 interface AdminUser {
   id: number;
   email: string;
-  firstName: string | null;
-  lastName: string | null;
+  username: string | null;
   role: string;
-  company: Company;
 }
 
 interface Props {
@@ -82,17 +72,7 @@ interface GeneratedCredentials {
   dashboardPassword?: string;
   salesmanId?: string;
   salesmanPassword?: string;
-  techId?: string;
-  techPassword?: string;
-  adminId?: string;
-  adminPassword?: string;
 }
-
-const isUserEffectivelyActive = (user: User) => {
-  if (user.inviteToken) return false;
-  if (user.status?.toLowerCase().startsWith('pending')) return false;
-  return user.status?.toLowerCase() === 'active';
-};
 
 export default function UsersManagement({ adminUser }: Props) {
   const [users, setUsers] = useState<User[]>([]);
@@ -116,17 +96,14 @@ export default function UsersManagement({ adminUser }: Props) {
 
   const [formData, setFormData] = useState({
     email: '',
-    firstName: '',
-    lastName: '',
+    username: '',
     phoneNumber: '',
     orgRole: 'junior-executive',
     jobRole: [] as string[],
-    region: '',
+    zone: Zone[0] || '',
     area: '',
     isDashboardUser: false,
     isSalesAppUser: false,
-    isTechnical: false,
-    isAdminAppUser: false,
   });
 
   useEffect(() => {
@@ -214,8 +191,6 @@ export default function UsersManagement({ adminUser }: Props) {
     let text = "User Credentials (Update):\n";
     if (updatedCredentials.dashboardEmail) text += `\n[Web Dashboard]\nID: ${updatedCredentials.dashboardEmail}\nPassword: ${updatedCredentials.dashboardPassword}\n`;
     if (updatedCredentials.salesmanId) text += `\n[Sales App]\nID: ${updatedCredentials.salesmanId}\nPassword: ${updatedCredentials.salesmanPassword}\n`;
-    if (updatedCredentials.techId) text += `\n[Technical App]\nID: ${updatedCredentials.techId}\nPassword: ${updatedCredentials.techPassword}\n`;
-    if (updatedCredentials.adminId) text += `\n[Admin App]\nID: ${updatedCredentials.adminId}\nPassword: ${updatedCredentials.adminPassword}\n`;
 
     navigator.clipboard.writeText(text.trim());
     setCopied(true);
@@ -268,34 +243,28 @@ export default function UsersManagement({ adminUser }: Props) {
     setUpdatedCredentials(null);
     setFormData({
       email: user.email,
-      firstName: user.firstName || '',
-      lastName: user.lastName || '',
+      username: user.username || '',
       phoneNumber: user.phoneNumber || '',
       orgRole: user.orgRole || 'junior-executive',
       jobRole: user.jobRole || [],
-      region: user.region || '',
+      zone: user.zone || '',
       area: user.area || '',
       isDashboardUser: user.isDashboardUser || false,
       isSalesAppUser: user.isSalesAppUser || false,
-      isTechnical: user.isTechnicalRole || false,
-      isAdminAppUser: user.isAdminAppUser || false,
     });
   };
 
   const resetForm = () => {
     setFormData({
       email: '',
-      firstName: '',
-      lastName: '',
+      username: '',
       phoneNumber: '',
       orgRole: 'junior-executive',
       jobRole: [] as string[],
-      region: '',
+      zone: Zone[0] || '',
       area: '',
       isDashboardUser: false,
       isSalesAppUser: false,
-      isTechnical: false,
-      isAdminAppUser: false,
     });
     setEditingUser(null);
     setError('');
@@ -313,7 +282,7 @@ export default function UsersManagement({ adminUser }: Props) {
 
   const zoneOptions = useMemo(() => {
     const regions = new Set<string>();
-    users.forEach(u => { if (u.region) regions.add(u.region); });
+    users.forEach(u => { if (u.zone) regions.add(u.zone); });
     // MultiSelect doesn't need an "All" option, it handles "All" when the array is empty
     return Array.from(regions).sort().map(r => ({ label: r, value: r }));
   }, [users]);
@@ -328,12 +297,12 @@ export default function UsersManagement({ adminUser }: Props) {
   // --- Client Side Filtering Logic ---
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
-      const fullName = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase();
+      const fullName = `${user.username || ''}`.toLowerCase();
       const search = debouncedSearch.toLowerCase();
       const matchesSearch = !debouncedSearch || fullName.includes(search);
 
       const matchesRole = roleFilter === 'all' || user.orgRole === roleFilter;
-      const matchesZone = zoneFilters.length === 0 || (user.region && zoneFilters.includes(user.region));
+      const matchesZone = zoneFilters.length === 0 || (user.zone && zoneFilters.includes(user.zone));
       const matchesArea = areaFilters.length === 0 || (user.area && areaFilters.includes(user.area));
 
       return matchesSearch && matchesRole && matchesZone && matchesArea;
@@ -350,10 +319,10 @@ export default function UsersManagement({ adminUser }: Props) {
     {
       accessorKey: "fullName",
       header: "Name",
-      accessorFn: row => `${row.firstName ?? ''} ${row.lastName ?? ''}`.trim(),
+      accessorFn: row => `${row.username ?? ''}`.trim(),
       cell: ({ row }) => (
         <div className="font-medium">
-          {row.original.firstName} {row.original.lastName}
+          {row.original.username}
         </div>
       ),
     },
@@ -385,9 +354,9 @@ export default function UsersManagement({ adminUser }: Props) {
       cell: ({ row }) => row.original.phoneNumber || '-',
     },
     {
-      accessorKey: "region",
-      header: "Region(Zone)",
-      cell: ({ row }) => row.original.region || '-',
+      accessorKey: "zone",
+      header: "Zone",
+      cell: ({ row }) => row.original.zone || '-',
     },
     {
       accessorKey: "area",
@@ -402,8 +371,7 @@ export default function UsersManagement({ adminUser }: Props) {
         const user = row.original;
 
         const isAppOnly =
-          !user.isDashboardUser &&
-          (user.isSalesAppUser || user.isTechnicalRole);
+          !user.isDashboardUser && (user.isSalesAppUser);
 
         if (isAppOnly) {
           return (
@@ -504,7 +472,7 @@ export default function UsersManagement({ adminUser }: Props) {
           <div>
             <h1 className="text-3xl font-bold text-foreground">User Management</h1>
             <p className="text-muted-foreground mt-2">
-              Manage users for {adminUser.company.companyName}
+              Manage users
             </p>
           </div>
           <div className="flex space-x-3">
@@ -558,32 +526,6 @@ export default function UsersManagement({ adminUser }: Props) {
                           </div>
                         </div>
                       )}
-                      {updatedCredentials.techId && (
-                        <div>
-                          <h5 className="font-bold text-slate-700 border-b pb-1 mb-2">Technical App</h5>
-                          <div className="flex justify-between items-center pb-1">
-                            <span className="text-slate-500">Login ID:</span>
-                            <span className="font-bold text-slate-900">{updatedCredentials.techId}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-slate-500">Password:</span>
-                            <span className="font-bold text-blue-600">{updatedCredentials.techPassword}</span>
-                          </div>
-                        </div>
-                      )}
-                      {updatedCredentials.adminId && (
-                        <div>
-                          <h5 className="font-bold text-slate-700 border-b pb-1 mb-2">Admin App</h5>
-                          <div className="flex justify-between items-center pb-1">
-                            <span className="text-slate-500">Login ID:</span>
-                            <span className="font-bold text-slate-900">{updatedCredentials.adminId}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-slate-500">Password:</span>
-                            <span className="font-bold text-blue-600">{updatedCredentials.adminPassword}</span>
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     <div className="flex flex-col space-y-2 pt-2">
@@ -616,20 +558,11 @@ export default function UsersManagement({ adminUser }: Props) {
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="edit-firstName">First Name</Label>
+                          <Label htmlFor="edit-username">User Name</Label>
                           <Input
-                            id="edit-firstName"
-                            value={formData.firstName}
-                            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="edit-lastName">Last Name</Label>
-                          <Input
-                            id="edit-lastName"
-                            value={formData.lastName}
-                            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                            id="edit-username"
+                            value={formData.username}
+                            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                             required
                           />
                         </div>
@@ -672,8 +605,8 @@ export default function UsersManagement({ adminUser }: Props) {
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>Region (Zone)</Label>
-                          <Select value={formData.region} onValueChange={(v) => setFormData({ ...formData, region: v })}>
+                          <Label>Zone</Label>
+                          <Select value={formData.zone} onValueChange={(v) => setFormData({ ...formData, zone: v })}>
                             <SelectTrigger><SelectValue placeholder="Select Region" /></SelectTrigger>
                             <SelectContent>
                               {Zone.map((zone) => (
@@ -712,22 +645,6 @@ export default function UsersManagement({ adminUser }: Props) {
                             onCheckedChange={(c) => setFormData({ ...formData, isSalesAppUser: !!c })}
                           />
                           <Label htmlFor="edit-acc-sales" className="cursor-pointer">Sales App Access</Label>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <Checkbox
-                            id="edit-acc-tech"
-                            checked={formData.isTechnical}
-                            onCheckedChange={(c) => setFormData({ ...formData, isTechnical: !!c })}
-                          />
-                          <Label htmlFor="edit-acc-tech" className="cursor-pointer">Technical App Access</Label>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <Checkbox
-                            id="edit-acc-admin"
-                            checked={formData.isAdminAppUser}
-                            onCheckedChange={(c) => setFormData({ ...formData, isAdminAppUser: !!c })}
-                          />
-                          <Label htmlFor="edit-acc-admin" className="cursor-pointer">Admin App Access</Label>
                         </div>
                       </div>
                       <p className="text-[10px] text-muted-foreground italic">

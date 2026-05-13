@@ -58,9 +58,6 @@ async function DealersDynamicContent() {
 
       <DealerManagementTabs
         canSeeListDealers={canSeeListDealers}
-        canSeeVerifyDealers={canSeeVerifyDealers}
-        canSeeBrandMapping={canSeeBrandMapping}
-        canSeeListVerifiedDealers={canSeeListVerifiedDealers}
       />
     </div>
   );

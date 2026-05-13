@@ -20,7 +20,7 @@ const liveLocationSchema = z.object({
   salesmanName: z.string(),
   employeeId: z.string().nullable(),
   role: z.string(),
-  region: z.string().nullable(),
+  zone: z.string().nullable(),
   area: z.string().nullable(),
   latitude: z.number(),
   longitude: z.number(),
@@ -118,7 +118,7 @@ const LeafletMap = dynamic(
                     ({location.latitude.toFixed(4)}, {location.longitude.toFixed(4)})
                   </p>
                   <p><span className="font-medium">Area:</span> {location.area || "N/A"}</p>
-                  <p><span className="font-medium">Region:</span> {location.region || "N/A"}</p>
+                  <p><span className="font-medium">Zone:</span> {location.zone || "N/A"}</p>
                 </div>
               </Popup>
             </Marker>
@@ -189,9 +189,9 @@ export function SalesmanLiveLocation() {
       const roleMatch = roleFilter === "all" || (loc.role && loc.role === roleFilter);
       
       const areaMatch = areaFilters.length === 0 || (loc.area && areaFilters.includes(loc.area));
-      const regionMatch = zoneFilters.length === 0 || (loc.region && zoneFilters.includes(loc.region));
+      const zoneMatch = zoneFilters.length === 0 || (loc.zone && zoneFilters.includes(loc.zone)); 
       
-      return nameMatch && roleMatch && areaMatch && regionMatch;
+      return nameMatch && roleMatch && areaMatch && zoneMatch;
     });
   }, [locations, debouncedSearchQuery, roleFilter, areaFilters, zoneFilters]);
 

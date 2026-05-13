@@ -37,10 +37,7 @@ export async function verifySession() {
   return {
     token,
     userId: payload.userId as number,
-    companyId: payload.companyId as number,
-    companyName: payload.companyName as string,
-    firstName: payload.firstName as string,
-    lastName: payload.lastName as string,
+    username: payload.username as string,
     email: payload.email as string,
     orgRole: (payload.orgRole as string) || '',
     jobRoles: (payload.jobRoles as string[]) || [],

@@ -33,14 +33,9 @@ export async function UsersAndTeamDynamicContent() {
   
   const adminUser = {
     id: session.userId,
-    company: {
-      id: session.companyId,
-      companyName: session.companyName,
-    },
     orgRole: session.orgRole,
     jobRole: session.jobRoles,
-    firstName: session.firstName,
-    lastName: session.lastName,
+    username: session.username,
     email: session.email
   };
 

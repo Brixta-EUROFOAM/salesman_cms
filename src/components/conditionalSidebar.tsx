@@ -12,14 +12,11 @@ interface ConditionalSidebarProps {
 
 interface CurrentUser {
   id: number;
-  role: string; // Now 'Admin', 'manager', etc.
+  role: string; // 'Admin', 'executive', etc.
   permissions: string[]; // ['READ', 'WRITE', 'UPDATE']
   jobRoles: string[];
-  firstName: string;
-  lastName: string;
+  username: string; // Consolidated from firstName/lastName
   email: string;
-  companyId?: number;
-  companyName: string;
 }
 
 export function ConditionalSidebar({ children }: ConditionalSidebarProps) {
@@ -32,7 +29,6 @@ export function ConditionalSidebar({ children }: ConditionalSidebarProps) {
                     || pathname === '/home' // keep for layout formatting
                     || pathname === '/dashboard' // keep for layout formatting
                     || pathname.startsWith('/auth')
-                    || pathname.startsWith('/setup-company')
                     || pathname.startsWith('/login') 
                     || pathname.startsWith('/home/sheetsEditor'); 
 
@@ -43,7 +39,7 @@ export function ConditionalSidebar({ children }: ConditionalSidebarProps) {
       return;
     }
 
-  // Fetch current user role using existing users API with query param
+    // Fetch current user role using existing users API with query param
     const fetchCurrentUser = async () => {
       try {
         const response = await fetch('/api/me', { cache: 'no-store' }); 
@@ -56,10 +52,8 @@ export function ConditionalSidebar({ children }: ConditionalSidebarProps) {
             role: sessionData.orgRole,
             permissions: sessionData.permissions || [],
             jobRoles: sessionData.jobRoles || [],
-            firstName: sessionData.firstName || '',
-            lastName: sessionData.lastName || '',
+            username: sessionData.username || '',
             email: sessionData.email || '',
-            companyName: sessionData.companyName || ''
           });
         } else {
           console.error('Failed to fetch current user:', response.statusText);
@@ -97,7 +91,6 @@ export function ConditionalSidebar({ children }: ConditionalSidebarProps) {
         userRole={currentUser?.role || 'junior-executive'} 
         permissions={currentUser?.permissions || []}
         jobRoles={currentUser?.jobRoles || []}
-        companyId={currentUser?.companyId}
       />
       <main className="flex-1 w-full">
         {children}

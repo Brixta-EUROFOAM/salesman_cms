@@ -32,8 +32,6 @@ export function TeamOverview({ currentUserRole }: TeamOverviewProps) {
   const dataFetchURI = `/api/dashboardPagesAPI/users-and-team/team-overview/dataFetch`;
   const editRoleURI = `/api/dashboardPagesAPI/users-and-team/team-overview/editRole`;
   const editMappingURI = `/api/dashboardPagesAPI/users-and-team/team-overview/editMapping`;
-  const editDealerMappingURI = `/api/dashboardPagesAPI/users-and-team/team-overview/editDealerMapping`;
-  const editMasonMappingURI = `/api/dashboardPagesAPI/users-and-team/team-overview/editMasonMapping`;
 
   // --- 1. Data Loading ---
   const loadTeamData = useCallback(async () => {
@@ -102,29 +100,6 @@ export function TeamOverview({ currentUserRole }: TeamOverviewProps) {
     }
   }, [editMappingURI, loadTeamData]);
 
-  const handleSaveDealerMapping = useCallback(async (userId: number, dealerIds: string[]) => {
-    const res = await fetch(editDealerMappingURI, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, dealerIds }),
-    });
-    if (!res.ok) throw new Error('Failed to update dealer mapping');
-    toast.success('Dealer mapping updated!');
-    await loadTeamData();
-  }, [editDealerMappingURI, loadTeamData]);
-
-  const handleSaveMasonMapping = useCallback(async (userId: number, masonIds: string[]) => {
-    const res = await fetch(editMasonMappingURI, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, masonIds }),
-    });
-    if (!res.ok) throw new Error('Failed to update mason mapping');
-    toast.success('Mason mapping updated!');
-    await loadTeamData();
-  }, [editMasonMappingURI, loadTeamData]);
-
-
   // --- 3. Derived Options for Filters (Memoized) ---
   const roleOptions = useMemo(() => {
     const roles = new Set<string>();
@@ -136,10 +111,9 @@ export function TeamOverview({ currentUserRole }: TeamOverviewProps) {
   }, [teamData]);
 
   const zoneOptions = useMemo(() => {
-    const regions = new Set<string>();
-    // Note: Assuming TeamMember has a 'region' field. If it's named differently, update here.
-    teamData.forEach(member => { if ((member as any).region) regions.add((member as any).region); });
-    return Array.from(regions).sort().map(r => ({ label: r, value: r }));
+    const zones = new Set<string>();
+    teamData.forEach(member => { if (member.zone) zones.add(member.zone); });
+    return Array.from(zones).sort().map(z => ({ label: z, value: z }));
   }, [teamData]);
 
   const areaOptions = useMemo(() => {
@@ -159,10 +133,10 @@ export function TeamOverview({ currentUserRole }: TeamOverviewProps) {
       const matchesRole = roleFilter === 'all' || member.orgRole === roleFilter;
 
       // Defensively checking region/area in case TeamMember doesn't expose them cleanly
-      const memberRegion = (member as any).region;
+      const memberZone = (member as any).zone;
       const memberArea = (member as any).area;
 
-      const matchesZone = zoneFilters.length === 0 || (memberRegion && zoneFilters.includes(memberRegion));
+      const matchesZone = zoneFilters.length === 0 || (memberZone && zoneFilters.includes(memberZone));
       const matchesArea = areaFilters.length === 0 || (memberArea && areaFilters.includes(memberArea));
 
       return matchesSearch && matchesRole && matchesZone && matchesArea;
@@ -209,12 +183,10 @@ export function TeamOverview({ currentUserRole }: TeamOverviewProps) {
           currentUserRole={currentUserRole}
           onSaveRole={handleSaveRole}
           onSaveMapping={handleSaveMapping}
-          onSaveDealerMapping={handleSaveDealerMapping}
-          onSaveMasonMapping={handleSaveMasonMapping}
         />
       ),
     },
-  ], [teamData, currentUserRole, handleSaveRole, handleSaveMapping, handleSaveDealerMapping, handleSaveMasonMapping]);
+  ], [teamData, currentUserRole, handleSaveRole, handleSaveMapping]);
 
 
   // --- 6. Render ---

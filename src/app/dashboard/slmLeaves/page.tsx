@@ -31,7 +31,7 @@ const extendedSalesmanLeaveApplicationSchema = selectSalesmanLeaveApplicationSch
   salesmanName: z.string().optional().catch("Unknown"),
   approverName: z.string().optional().catch("Not Assigned"),
   area: z.string().nullable().optional().catch("N/A"),
-  region: z.string().nullable().optional().catch("N/A"),
+  zone: z.string().nullable().optional().catch("N/A"),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   appRole: z.string().nullable().optional(),
@@ -45,7 +45,7 @@ const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-
 
 interface LocationsResponse {
   areas: string[];
-  regions: string[];
+  zones: string[];
 }
 
 export default function SlmLeavesPage() {
@@ -70,7 +70,7 @@ export default function SlmLeavesPage() {
 
   // --- Backend Filter Options ---
   const [availableAreas, setAvailableAreas] = useState<string[]>([]);
-  const [availableRegions, setAvailableRegions] = useState<string[]>([]);
+  const [availableZones, setAvailableZones] = useState<string[]>([]);
 
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -108,10 +108,10 @@ export default function SlmLeavesPage() {
       const data: LocationsResponse = await response.json();
 
       const safeAreas = Array.isArray(data.areas) ? data.areas.filter(Boolean) : [];
-      const safeRegions = Array.isArray(data.regions) ? data.regions.filter(Boolean) : [];
+      const safeZones = Array.isArray(data.zones) ? data.zones.filter(Boolean) : [];
 
       setAvailableAreas(safeAreas);
-      setAvailableRegions(safeRegions);
+      setAvailableZones(safeZones);
     } catch (err: any) {
       console.error('Failed to fetch filter locations:', err);
       setLocationError('Failed to load Area/Region filters.');
@@ -133,7 +133,7 @@ export default function SlmLeavesPage() {
 
       // Multi-select arrays joined by comma
       if (areaFilters.length > 0) url.searchParams.append('area', areaFilters.join(','));
-      if (zoneFilters.length > 0) url.searchParams.append('region', zoneFilters.join(','));
+      if (zoneFilters.length > 0) url.searchParams.append('zone', zoneFilters.join(','));
 
       if (dateRange?.from) {
         const startStr = format(dateRange.from, 'yyyy-MM-dd');
@@ -196,7 +196,7 @@ export default function SlmLeavesPage() {
   }, [fetchLocations]);
 
   // --- Map raw string arrays to `{ label, value }` Options ---
-  const zoneOptions = useMemo(() => availableRegions.map(r => ({ label: r, value: r })), [availableRegions]);
+  const zoneOptions = useMemo(() => availableZones.map(r => ({ label: r, value: r })), [availableZones]);
   const areaOptions = useMemo(() => availableAreas.map(a => ({ label: a, value: a })), [availableAreas]);
 
   // --- Action Handlers ---

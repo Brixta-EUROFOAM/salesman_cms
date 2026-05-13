@@ -8,24 +8,15 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar";
 
-interface Company { 
-  id: number;
-  companyName: string;
-  adminUserId: string;
-}
-
 interface User {
   id: number;
   email: string;
-  firstName: string | null;
-  lastName: string | null;
+  username: string | null;
   role?: string;
-  company: Company;
 }
 
 interface DashboardShellProps {
   user: User;
-  company: Company;
   children: React.ReactNode;
   role?: string;
   permissions?: string[];
@@ -35,7 +26,6 @@ interface DashboardShellProps {
 export default function DashboardShell({ 
   children, 
   role,
-  company,
   permissions = [],
   jobRoles = [],
 }: DashboardShellProps) {
@@ -44,7 +34,6 @@ export default function DashboardShell({
       <AppSidebar 
         userRole={role || ''} 
         permissions={permissions} 
-        companyId={company.id} 
         jobRoles={jobRoles} 
       />
       <SidebarInset className="pl-4 pt-4 md:pl-6 md:pt-6">

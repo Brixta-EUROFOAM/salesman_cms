@@ -33,13 +33,9 @@ export async function ReportsDynamicContent() {
   const userPerms = session.permissions || [];
 
   const canSeeDVR = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
-  const canSeeTVR = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
-  const canSeeDvrTvr = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
-  const canSeeCompetition = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
-  const canSeeTsoPerformanceMetrics = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
   const canSeeSoPerformanceMetrics = hasPermission(userPerms, ['READ', 'ALL_ACCESS']);
 
-  const canSeeAnyReport = canSeeDVR || canSeeTVR || canSeeCompetition || canSeeTsoPerformanceMetrics || canSeeSoPerformanceMetrics;
+  const canSeeAnyReport = canSeeDVR || canSeeSoPerformanceMetrics;
 
   // 3. Handle users who can't see anything
   if (!canSeeAnyReport) {
@@ -59,10 +55,6 @@ export async function ReportsDynamicContent() {
 
       <ReportsTabs
         canSeeDVR={canSeeDVR}
-        canSeeTVR={canSeeTVR}
-        canSeeDvrTvr={canSeeDvrTvr}
-        canSeeCompetition={canSeeCompetition}
-        canSeeTsoPerformanceMetrics={canSeeTsoPerformanceMetrics}
         canSeeSoPerformanceMetrics={canSeeSoPerformanceMetrics}
       />
     </div>

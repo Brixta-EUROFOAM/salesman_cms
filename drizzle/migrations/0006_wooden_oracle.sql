@@ -1,1 +1,0 @@
-ALTER TABLE "tso_meetings" ADD COLUMN "meet_image_url" varchar(300);

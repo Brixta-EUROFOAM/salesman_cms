@@ -2,35 +2,70 @@
 import 'server-only';
 import { connection, NextResponse } from 'next/server';
 import { db } from '@/lib/drizzle';
-import { users, dealers } from '../../../../../../drizzle';
-import { eq } from 'drizzle-orm';
+import { dealers } from '../../../../../../drizzle';
+import { asc } from 'drizzle-orm';
 import { verifySession } from '@/lib/auth';
 
 export async function GET() {
   await connection();
+
   try {
     const session = await verifySession();
+
     if (!session || !session.userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+      return NextResponse.json( { error: 'Unauthorized' }, { status: 401 } );
+}
+
     if (!session.permissions.includes('READ')) {
-      return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });
+      return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 } );
     }
 
-    // Fetch all unique types for the current company's dealers
-    const uniqueTypes = await db
-      .selectDistinct({ type: dealers.type })
-      .from(dealers)
-      .leftJoin(users, eq(dealers.userId, users.id))
-      .where(eq(users.companyId, session.companyId));
+    const [uniqueZones, uniqueAreas] = await Promise.all([
+      db
+        .selectDistinct({
+          zone: dealers.zone,
+        })
+        .from(dealers)
+        .orderBy(asc(dealers.zone)),
 
-    // Extract the string values from the query results and filter out nulls
-    const type = uniqueTypes.map((a) => a.type).filter(Boolean);
+      db
+        .selectDistinct({
+          area: dealers.area,
+        })
+        .from(dealers)
+        .orderBy(asc(dealers.area)),
+    ]);
 
-    return NextResponse.json({ type }, { status: 200 });
+    const zones = uniqueZones
+      .map((z) => z.zone)
+      .filter(
+        (z): z is string =>
+          Boolean(z && z.trim() !== '')
+      );
 
-  } catch (error) {
-    console.error('Error fetching types:', error);
-    return NextResponse.json({ error: 'Failed to fetch types' }, { status: 500 });
+    const areas = uniqueAreas
+      .map((a) => a.area)
+      .filter(
+        (a): a is string =>
+          Boolean(a && a.trim() !== '')
+      );
+
+    return NextResponse.json(
+      {
+        zones,
+        areas,
+      },
+      { status: 200 }
+    );
+
+  } catch (error: any) {
+    console.error('Error fetching dealer locations:', error);
+
+    return NextResponse.json(
+      {
+        error: `Failed to fetch locations: ${error.message}`,
+      },
+      { status: 500 }
+    );
   }
 }

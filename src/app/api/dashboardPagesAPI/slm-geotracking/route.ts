@@ -3,20 +3,17 @@ import 'server-only';
 import { connection, NextRequest, NextResponse } from 'next/server';
 import { cacheTag, cacheLife } from 'next/cache';
 import { db } from '@/lib/drizzle';
-import { users, journeyOps, companies } from '../../../../../drizzle';
+import { users, journeyOps } from '../../../../../drizzle/schema';
 import { eq, and, or, gte, lte, desc, sql, getTableColumns, SQL } from 'drizzle-orm';
-import type { InferSelectModel } from 'drizzle-orm';
 import { z } from 'zod';
-import { selectJourneyOpsSchema } from '../../../../../drizzle/zodSchemas';
-import { verifySession } from '@/lib/auth';
-import { MEGHALAYA_OVERSEER_ID } from '@/lib/Reusable-constants';
+import { verifySession, hasPermission } from '@/lib/auth';
 
-const frontendTrackingSchema = selectJourneyOpsSchema.extend({
+const frontendTrackingSchema = z.object({
   id: z.string(),
   salesmanName: z.string(),
   employeeId: z.string().nullable().optional(),
   area: z.string(),
-  region: z.string(),
+  zone: z.string(),
 
   latitude: z.number(),
   longitude: z.number(),
@@ -42,43 +39,28 @@ const frontendTrackingSchema = selectJourneyOpsSchema.extend({
 
   createdAt: z.string(),
   updatedAt: z.string(),
-});
-
-type TrackingRow = InferSelectModel<typeof journeyOps> & {
-  userFirstName: string | null;
-  userLastName: string | null;
-  userEmail: string | null;
-  userArea: string | null;
-  userRegion: string | null;
-  userSalesmanLoginId: string | null;
-};
+}).passthrough();
 
 async function getCachedTracking(
-  userId: number,
-  companyId: number, 
   startDateParam: string | null, 
   endDateParam: string | null
 ) {
   'use cache';
   cacheLife('minutes');
-  cacheTag(`slm-geotracking-${companyId}`);
+  cacheTag(`slm-geotracking-global`);
 
   const filterKey = `${startDateParam}-${endDateParam}`;
-  cacheTag(`slm-geotracking-${companyId}-${filterKey}`);
+  cacheTag(`slm-geotracking-${filterKey}`);
 
-  const filters: (SQL | undefined)[] = [eq(users.companyId, companyId)];
+  const filters: SQL[] = [];
 
-  // JSONB Filter for status: 'COMPLETED' using native Drizzle SQL tag
+  // JSONB Filter for status: 'COMPLETED'
   filters.push(
     or(
       sql`${journeyOps.payload} @> '{"status": "COMPLETED"}'::jsonb`,
       eq(journeyOps.type, 'STOP')
-    )
+    )!
   );
-
-  if (userId === MEGHALAYA_OVERSEER_ID) {
-    filters.push(eq(users.region, 'Meghalaya'));
-  }
 
   if (startDateParam) {
     const start = new Date(startDateParam);
@@ -89,34 +71,34 @@ async function getCachedTracking(
     filters.push(lte(journeyOps.createdAt, end.toISOString()));
   }
 
-  const results: TrackingRow[] = await db
+  const whereClause = filters.length > 0 ? and(...filters) : undefined;
+
+  const results = await db
     .select({
       ...getTableColumns(journeyOps),
-      userFirstName: users.firstName,
-      userLastName: users.lastName,
+      userUsername: users.username,
       userEmail: users.email,
       userArea: users.area,
-      userRegion: users.region,
+      userZone: users.zone,
       userSalesmanLoginId: users.salesmanLoginId,
     })
     .from(journeyOps)
     .leftJoin(users, eq(journeyOps.userId, users.id))
-    .leftJoin(companies, eq(users.companyId, companies.id))
-    .where(and(...filters))
+    .where(whereClause)
     .orderBy(desc(journeyOps.createdAt))
-    .limit(startDateParam ? 2000 : 500); // Higher limit if a specific date range is requested
+    .limit(startDateParam ? 2000 : 500); 
 
   return results.map((row) => {
     const payload = (row.payload && typeof row.payload === 'object') ? row.payload as any : {};
 
     return {
       ...row,
-      id: String(row.opId), // Convert BigInt to string to prevent JSON serialization errors
-      salesmanName: row.userFirstName && row.userLastName ? `${row.userFirstName} ${row.userLastName}` : row.userEmail || 'Unknown',
+      id: String(row.opId), 
+      salesmanName: row.userUsername || row.userEmail || 'Unknown',
       employeeId: row.userSalesmanLoginId ?? null,
 
       area: row.userArea ?? '',
-      region: row.userRegion ?? '',
+      zone: row.userZone ?? '',
 
       latitude: Number(payload.latitude) || 0,
       longitude: Number(payload.longitude) || 0,
@@ -154,7 +136,7 @@ export async function GET(request: NextRequest) {
     if (!session || !session.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (!session.permissions.includes("READ")) {
+    if (!hasPermission(session.permissions, "READ")) {
       return NextResponse.json({ error: 'Forbidden: READ access required' }, { status: 403 });
     }
 
@@ -163,10 +145,9 @@ export async function GET(request: NextRequest) {
     const endDateParam = searchParams.get('endDate');
 
     const formattedReports = await getCachedTracking(
-      session.companyId, 
-      session.userId,
       startDateParam, 
-      endDateParam);
+      endDateParam
+    );
 
     const validatedData = z.array(frontendTrackingSchema).safeParse(formattedReports);
 

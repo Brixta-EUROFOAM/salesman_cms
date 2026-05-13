@@ -2,10 +2,10 @@
 import 'server-only';
 import { NextResponse, NextRequest } from 'next/server';
 import { db } from '@/lib/drizzle';
-import { users, roles, userRoles } from '../../../../../../../drizzle';
+import { users, roles, userRoles } from '../../../../../../../drizzle/schema';
 import { eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
-import { verifySession } from '@/lib/auth';
+import { verifySession, hasPermission } from '@/lib/auth';
 import { getRoleWeight, isSuperUser } from '@/lib/roleHierarchy';
 
 const editMappingSchema = z.object({
@@ -20,8 +20,7 @@ export async function POST(request: NextRequest) {
     if (!session || !session.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const hasRequiredPerms = session.permissions.includes('UPDATE') || session.permissions.includes('WRITE');
-    if (!hasRequiredPerms) {
+    if (!hasPermission(session.permissions, ['UPDATE', 'WRITE'])) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });
     }
 
@@ -32,10 +31,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Self-mapping forbidden" }, { status: 400 });
     }
 
-    // Fetch the target user's current mapping and orgRole
     const targetUserQuery = await db
       .select({ 
-        companyId: users.companyId, 
         reportsToId: users.reportsToId,
         orgRole: roles.orgRole 
       })
@@ -45,7 +42,7 @@ export async function POST(request: NextRequest) {
       .where(eq(users.id, userId))
       .limit(1);
 
-    if (targetUserQuery.length === 0 || targetUserQuery[0].companyId !== session.companyId) {
+    if (targetUserQuery.length === 0) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
@@ -60,7 +57,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden: Cannot modify mapping for a user with equal or higher authority." }, { status: 403 });
     }
 
-    // Manager Hierarchy Lock
     if (reportsToId && reportsToId !== targetUser.reportsToId) {
       const newManagerQuery = await db
         .select({ orgRole: roles.orgRole })
@@ -86,7 +82,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Perform database updates
     await db.transaction(async (tx) => {
       await tx.update(users).set({ reportsToId: null }).where(eq(users.reportsToId, userId));
 

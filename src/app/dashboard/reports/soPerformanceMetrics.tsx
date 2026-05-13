@@ -40,7 +40,7 @@ const soPerformanceMetricSchema = z.object({
     id: z.union([z.string(), z.number()]),
     userId: z.number().nullable().optional(),
     salesmanName: z.string().catch("Unknown"),
-    region: z.string().nullable().optional().catch(""),
+    zone: z.string().nullable().optional().catch(""),
     area: z.string().nullable().optional().catch(""),
     totalVisits: z.coerce.number().catch(0),
     metrics: z.object({
@@ -57,7 +57,7 @@ const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-
 
 interface LocationsResponse {
     areas: string[];
-    regions: string[];
+    zones: string[];
 }
 
 // --- Helpers ---
@@ -101,7 +101,7 @@ export default function SoPerformanceMetricsPage() {
 
     // --- Backend Filter Options ---
     const [availableAreas, setAvailableAreas] = useState<string[]>([]);
-    const [availableRegions, setAvailableRegions] = useState<string[]>([]);
+    const [availableZones, setAvailableZones] = useState<string[]>([]);
     const [isLoadingLocations, setIsLoadingLocations] = useState(true);
 
     const [page, setPage] = useState(0);
@@ -123,7 +123,7 @@ export default function SoPerformanceMetricsPage() {
             if (debouncedSearchQuery) url.searchParams.append('search', debouncedSearchQuery);
 
             if (areaFilters.length > 0) url.searchParams.append('area', areaFilters.join(','));
-            if (zoneFilters.length > 0) url.searchParams.append('region', zoneFilters.join(','));
+            if (zoneFilters.length > 0) url.searchParams.append('zone', zoneFilters.join(','));
 
             if (dateRange?.from) url.searchParams.append('startDate', format(dateRange.from, "yyyy-MM-dd"));
             if (dateRange?.to) {
@@ -168,7 +168,7 @@ export default function SoPerformanceMetricsPage() {
             if (response.ok) {
                 const data: LocationsResponse = await response.json();
                 setAvailableAreas(data.areas || []);
-                setAvailableRegions(data.regions || []);
+                setAvailableZones(data.zones || []);
             }
         } finally { setIsLoadingLocations(false); }
     }, []);
@@ -176,7 +176,7 @@ export default function SoPerformanceMetricsPage() {
     useEffect(() => { fetchMetrics(); }, [fetchMetrics]);
     useEffect(() => { fetchLocations(); }, [fetchLocations]);
 
-    const zoneOptions = useMemo(() => availableRegions.sort().map(r => ({ label: r, value: r })), [availableRegions]);
+    const zoneOptions = useMemo(() => availableZones.sort().map(r => ({ label: r, value: r })), [availableZones]);
     const areaOptions = useMemo(() => availableAreas.sort().map(a => ({ label: a, value: a })), [availableAreas]);
 
     // --- Table Columns ---
@@ -191,11 +191,11 @@ export default function SoPerformanceMetricsPage() {
             )
         },
         {
-            accessorKey: "region",
+            accessorKey: "zone",
             header: "Zone",
             cell: ({ row }) => (
                 <div className="flex flex-col">
-                    <span className="text-sm font-medium">{row.original.region || 'N/A'}</span>
+                    <span className="text-sm font-medium">{row.original.zone || 'N/A'}</span>
                     <span className="text-xs text-muted-foreground">{row.original.area || 'N/A'}</span>
                 </div>
             )
@@ -306,7 +306,7 @@ export default function SoPerformanceMetricsPage() {
                             </DialogTitle>
                             <DialogDescription className="mt-1 flex items-center gap-4 text-sm">
                                 <span className="flex items-center gap-1 font-medium text-foreground"><User className="w-3.5 h-3.5" /> {selectedMetric.salesmanName}</span>
-                                <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {selectedMetric.region} / {selectedMetric.area}</span>
+                                <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {selectedMetric.zone} / {selectedMetric.area}</span>
                             </DialogDescription>
                         </div>
 

@@ -44,80 +44,111 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-
-
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
+  
+  /* ===== MAIN BACKGROUND (Soft Light Gray) ===== */
+  --background: oklch(0.96 0 0);              /* Changed from pure white to a soft gray */
   --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
+
+  --card: oklch(1 0 0);                       /* Keep cards pure white so they pop */
   --card-foreground: oklch(0.145 0 0);
+  
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
+  
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
+  
+  --secondary: oklch(0.93 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
+  
+  --muted: oklch(0.93 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
+  
+  --accent: oklch(0.93 0 0);
   --accent-foreground: oklch(0.205 0 0);
+  
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: oklch(0.90 0 0);                  /* Slightly darker borders */
+  --input: oklch(0.90 0 0);
   --ring: oklch(0.708 0 0);
+  
+  /* ===== CHARTS ===== */
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
+  
+  /* ===== SIDEBAR (Slightly darker than background) ===== */
+  --sidebar: oklch(0.94 0 0);                 /* Clean light gray sidebar */
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent: oklch(0.90 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-border: oklch(0.90 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --sidebar-sub-item-active-bg: oklch(0.145 0 0); /* Black Bg in ligt mode */
-  --sidebar-sub-item-active-foreground: oklch(0.945 0 0); /* White text */
+  
+  /* ===== ACTIVE MENU ===== */
+  --sidebar-sub-item-active-bg: oklch(0.145 0 0); 
+  --sidebar-sub-item-active-foreground: oklch(0.945 0 0); 
 }
 
 .dark {
-  --background: oklch(0.25 0.08 250); /*bg colour - dark blue*/
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.30 0.05 250);       
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.20 0.05 250);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.75 0.18 85);        /*text colour - yellow/golden*/
-  --primary-foreground: oklch(0.15 0 0);
-  --primary-hover: oklch(0.85 0.18 85);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: var(--sidebar);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: var(--primary);
-  --accent-foreground: var(--primary-foreground);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.20 0.05 250);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: var(--primary);
-  --sidebar-accent-foreground: var(--primary-foreground);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-  --sidebar-sub-item-active-bg: oklch(0.785 0 0);
-  --sidebar-sub-item-active-foreground: oklch(0.145 0 0);
+  /* ===== MAIN BACKGROUND (True Dark Slate Gray) ===== */
+  --background: oklch(0.20 0.01 250);         /* Dark slate gray */
+  --foreground: oklch(0.95 0 0);              /* Off-white text */
+
+  /* ===== CARD SYSTEM ===== */
+  --card: oklch(0.24 0.01 250);               /* Slightly lighter gray for cards */
+  --card-foreground: oklch(0.95 0 0);
+
+  --popover: oklch(0.24 0.01 250);
+  --popover-foreground: oklch(0.95 0 0);
+
+  /* ===== PRIMARY GOLDEN ===== */
+  --primary: oklch(0.72 0.16 82);             /* Elegant gold */
+  --primary-foreground: oklch(0.18 0 0);
+
+  /* ===== SECONDARY / MUTED ===== */
+  --secondary: oklch(0.28 0.01 250);
+  --secondary-foreground: oklch(0.95 0 0);
+
+  --muted: oklch(0.28 0.01 250);
+  --muted-foreground: oklch(0.65 0.01 250);
+
+  /* ===== ACCENT ===== */
+  --accent: oklch(0.28 0.01 250);
+  --accent-foreground: oklch(0.95 0 0);
+
+  /* ===== UI ===== */
+  --destructive: oklch(0.62 0.22 25);
+  --border: oklch(0.30 0.01 250);              
+  --input: oklch(0.30 0.01 250);
+  --ring: oklch(0.72 0.16 82);
+
+  /* ===== CHARTS ===== */
+  --chart-1: oklch(0.72 0.16 82);             /* gold */
+  --chart-2: oklch(0.55 0.04 220);            /* muted blue-gray */
+  --chart-3: oklch(0.45 0.03 95);             /* warm gray */
+  --chart-4: oklch(0.82 0.10 70);             /* light gold */
+  --chart-5: oklch(0.60 0.05 40);             /* muted bronze */
+
+  /* ===== SIDEBAR ===== */
+  --sidebar: oklch(0.17 0.01 250);            /* Deepest gray for the sidebar */
+  --sidebar-foreground: oklch(0.95 0 0);
+  --sidebar-primary: oklch(0.72 0.16 82);
+  --sidebar-primary-foreground: oklch(0.18 0 0);
+  --sidebar-accent: oklch(0.25 0.01 250);
+  --sidebar-accent-foreground: oklch(0.95 0 0);
+  --sidebar-border: oklch(0.25 0.01 250);
+  --sidebar-ring: oklch(0.72 0.16 82);
+
+  /* ===== ACTIVE MENU ===== */
+  --sidebar-sub-item-active-bg: oklch(0.72 0.16 82); /* Gold active states */
+  --sidebar-sub-item-active-foreground: oklch(0.15 0 0);
 }
 
 @layer base {
@@ -127,6 +158,16 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.card-premium {
+  border: 1px solid var(--border);
+  background: linear-gradient(
+    to bottom right,
+    rgba(255,255,255,0.95),
+    rgba(245,245,245,0.92)
+  );
+  backdrop-filter: blur(8px);
 }
 
 /* Target the specific data-slot attribute and the data-active attribute */

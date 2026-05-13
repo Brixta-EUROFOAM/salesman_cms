@@ -122,9 +122,6 @@ export default function SignedOutHomePage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                {/* <Link href="#" className="text-xs text-primary hover:underline">
-                  Forgot password?
-                </Link> */}
               </div>
               <div className="relative">
                 <Input
@@ -155,20 +152,6 @@ export default function SignedOutHomePage() {
             </Button>
           </form>
 
-          {/* New Company Registration Link --- 
-              Multi tenancy does not work in tables with no company id fkey : Fix later
-          */}
-          {/* <div className="pt-6 border-t border-border mt-8 text-center space-y-4">
-            <p className="text-sm text-muted-foreground">
-              New here? SETUP a Company Profile NOW!
-            </p>
-            <Link href="/setup-company" className="block">
-              <Button variant="outline" className="w-full h-11 group border-dashed hover:border-primary/50 hover:bg-primary/5 transition-all">
-                Register New Company 
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform text-primary" />
-              </Button>
-            </Link>
-          </div> */}
         </div>
       </div>
 

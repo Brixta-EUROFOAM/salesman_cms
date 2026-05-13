@@ -18,18 +18,16 @@ import Image from 'next/image';
 import { ExternalLink } from 'lucide-react';
 
 interface Props {
-  userRole: string; // Changed from WorkOSRole to string
-  companyId?: number;
-  permissions: string[]; // ['READ', 'WRITE', 'UPDATE']
-  jobRoles?: string[]; // Array of user's job roles
+  userRole: string; 
+  permissions: string[]; 
+  jobRoles?: string[]; 
 }
 
 interface MenuItem {
   title: string;
   url?: string;
   requiredPerm?: string | string[] | 'public' | 'logout';
-  allowedCompanyIds?: number[];
-  requiredJobRole?: string[]; // Array of required job roles to view this item
+  requiredJobRole?: string[]; 
   items?: MenuItem[];
   newTab?: boolean;
 }
@@ -46,13 +44,6 @@ const menuItems: MenuItem[] = [
         url: "/home/customReportGenerator",
         requiredPerm: ['READ']
       },
-      {
-        title: "Sheets Editor",
-        url: "/home/sheetsEditor",
-        newTab: true,
-        requiredPerm: ['READ'],
-        requiredJobRole: ['Reports-MIS']
-      },
     ],
   },
   {
@@ -60,12 +51,6 @@ const menuItems: MenuItem[] = [
     url: "/dashboard",
     requiredPerm: 'public',
     items: [
-      {
-        title: "Admin Reports",
-        url: "/dashboard/adminAppReports",
-        requiredPerm: ['READ'],
-        requiredJobRole: ['Admin']
-      },
       {
         title: "Users & Team",
         url: "/dashboard/usersAndTeam",
@@ -78,24 +63,12 @@ const menuItems: MenuItem[] = [
         requiredPerm: ['READ', 'WRITE', 'UPDATE']
       },
       {
-        title: "Technical Sites",
-        url: "/dashboard/technicalSites",
-        requiredPerm: ['READ'],
-        requiredJobRole: ['Technical-Sales']
-      },
-      {
         title: "Reports",
         url: "/dashboard/reports",
         requiredPerm: ['READ']
       },
       {
-        title: "PJPs (Sales Side)", // Assign Tasks hander
-        url: "/dashboard/assignTasks",
-        requiredPerm: ['READ', 'WRITE', 'UPDATE'],
-        requiredJobRole: ['Sales-Marketing', 'Reports-MIS']
-      },
-      {
-        title: "PJPs (Technical Side)", // Permanent Journey Plan handler
+        title: "PJPs", 
         url: "/dashboard/permanentJourneyPlan",
         requiredPerm: ['READ', 'WRITE', 'UPDATE'],
         requiredJobRole: ['Technical-Sales', 'Reports-MIS']
@@ -115,28 +88,6 @@ const menuItems: MenuItem[] = [
         url: "/dashboard/slmAttendance",
         requiredPerm: ['READ']
       },
-      // {
-      //   title: "Scores & Ratings",
-      //   url: "/dashboard/scoresAndRatings",
-      //   requiredPerm: ['READ']
-      // },
-      {
-        title: "Mason - PC Side",
-        url: "/dashboard/masonpcSide",
-        requiredPerm: ['READ', 'WRITE', 'UPDATE'],
-        requiredJobRole: ['Technical-Sales', 'Reports-MIS']
-      },
-      {
-        title: "Sales Orders - Payments",
-        url: "/dashboard/ordersPayments",
-        requiredPerm: ['READ', 'WRITE', 'UPDATE'],
-        requiredJobRole: ['Accounting']
-      },
-      // {
-      //   title: "Logistics IO",
-      //   url: "/dashboard/logisticsIO",
-      //   requiredPerm: ['READ', 'WRITE', 'UPDATE']
-      // },
     ],
   },
   {
@@ -153,7 +104,7 @@ const menuItems: MenuItem[] = [
   },
 ]
 
-export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [] }: Props) {
+export function AppSidebar({ userRole, permissions = [], jobRoles = [] }: Props) {
 
   const [userName, setUserName] = useState<string>("Loading...");
   const [companyName, setCompanyName] = useState<string>("Loading...");
@@ -165,9 +116,12 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
         const response = await fetch('/api/me', { cache: 'no-store' });
         if (response.ok) {
           const data = await response.json();
-          setCompanyName(data.companyName || "Company Name");
-          const fullName = `${data.firstName || ''} ${data.lastName || ''}`.trim();
-          setUserName(fullName || "User Name");
+          // Since it's single tenant, you can hardcode the fallback to your actual brand name
+          setCompanyName(data.companyName || "Eurofoam"); 
+          
+          // --- THIS IS THE FIX ---
+          // Use data.username directly instead of combining firstName/lastName
+          setUserName(data.username || "User Name");
         } else {
           setCompanyName("Session Expired");
           setUserName("");
@@ -189,16 +143,9 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
     const isAdmin = permissions.includes('ALL_ACCESS');
 
     return items.reduce((acc, item) => {
-      const { requiredPerm, allowedCompanyIds, requiredJobRole } = item;
+      const { requiredPerm, requiredJobRole } = item;
 
-      // 1. MULTI-TENANT CHECK
-      if (allowedCompanyIds && allowedCompanyIds.length > 0) {
-        if (!companyId || !allowedCompanyIds.includes(companyId)) {
-          return acc;
-        }
-      }
-
-      // 2. JOB ROLE CHECK
+      // 1. JOB ROLE CHECK
       if (requiredJobRole && requiredJobRole.length > 0) {
         // If user doesn't have ANY of the required job roles AND isn't an Admin, hide it
         const hasRequiredRole = requiredJobRole.some(role => jobRoles.includes(role));
@@ -207,7 +154,7 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
         }
       }
 
-      // 3. PERMISSIONS CHECK
+      // 2. PERMISSIONS CHECK
       if (!requiredPerm || requiredPerm === 'public' || requiredPerm === 'logout') {
         acc.push(item.items ? { ...item, items: filterItems(item.items) } : item);
         return acc;
@@ -227,19 +174,17 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
 
       return acc;
     }, [] as MenuItem[]);
-  }, [permissions]); // Re-run if permissions change
+  }, [permissions, jobRoles]); // Re-run if permissions change
 
   const accessibleMenuItems = useMemo(() => filterItems(menuItems), [filterItems]);
 
   return (
     <Sidebar className="hidden md:flex w-64 shrink-0 border-r">
-      {/* <SidebarRail className="md:hidden" /> */}
-
       <SidebarContent>
         <SidebarHeader>
           <div className="flex items-center space-x-2">
             <Image
-              src="/bestcement.webp"
+              src="/eurofoam.webp"
               alt={companyName}
               width={32}
               height={32}
@@ -255,7 +200,7 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
         <SidebarGroup>
           <SidebarMenu>
             {accessibleMenuItems.map((item: MenuItem) => {
-              if (item.items && item.items.length > 0) { // Only render as sub-menu if items exist
+              if (item.items && item.items.length > 0) { 
                 return (
                   <SidebarMenuItem key={item.title}>
                     {item.url ? (
@@ -267,7 +212,6 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
                           rel={item.newTab ? "noopener noreferrer" : undefined}
                         >
                           {item.title}
-                          {/* Conditionally render the icon */}
                           {item.newTab && <ExternalLink className="w-3 h-3 text-white!" />}
                         </a>
                       </SidebarMenuButton>
@@ -277,7 +221,6 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
                     <SidebarMenuSub>
                       {item.items.map((subItem: MenuItem) => {
                         if (subItem.items) {
-                          // Nested group (Reports / Actionables)
                           return (
                             <SidebarMenuSubItem key={subItem.title}>
                               {subItem.url ? (
@@ -289,7 +232,6 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
                                     rel={subItem.newTab ? "noopener noreferrer" : undefined}
                                   >
                                     {subItem.title}
-                                    {/* Conditionally render the icon */}
                                     {subItem.newTab && <ExternalLink className="w-3 h-3 text-white!" />}
                                   </a>
                                 </SidebarMenuSubButton>
@@ -307,7 +249,6 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
                                         rel={subSubItem.newTab ? "noopener noreferrer" : undefined}
                                       >
                                         {subSubItem.title}
-                                        {/* Conditionally render the icon */}
                                         {subItem.newTab && <ExternalLink className="w-3 h-3 text-white!" />}
                                       </a>
                                     </SidebarMenuSubButton>
@@ -317,7 +258,6 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
                             </SidebarMenuSubItem>
                           );
                         } else {
-                          // Direct sub-item link
                           return (
                             <SidebarMenuSubItem key={subItem.title}>
                               {subItem.title === "Logout" ? (
@@ -340,7 +280,6 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
                                     rel={subItem.newTab ? "noopener noreferrer" : undefined}
                                   >
                                     {subItem.title}
-                                    {/* Conditionally render the icon */}
                                     {subItem.newTab && <ExternalLink className="w-3 h-3 text-white!" />}
                                   </a>
                                 </SidebarMenuSubButton>
@@ -352,8 +291,7 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
                     </SidebarMenuSub>
                   </SidebarMenuItem>
                 );
-              } else if (item.url) { // Render top-level items that have a URL but no children
-                // Top-level without children (e.g., standalone link)
+              } else if (item.url) { 
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
@@ -369,7 +307,7 @@ export function AppSidebar({ userRole, permissions = [], companyId, jobRoles = [
                   </SidebarMenuItem>
                 );
               }
-              return null; // Don't render groups with no URL and no children
+              return null; 
             })}
           </SidebarMenu>
         </SidebarGroup>

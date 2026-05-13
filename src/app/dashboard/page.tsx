@@ -41,7 +41,7 @@ async function DashboardContent() {
   // Look up user by your local integer ID now, instead of WorkOS string ID
   const result = await db
     .select({
-      firstName: users.firstName
+      username: users.username
     })
     .from(users)
     .where(eq(users.id, session.userId))
@@ -56,7 +56,7 @@ async function DashboardContent() {
   // CONDITIONAL RENDER
   const userRole = session.orgRole || '';
   if (allowedNonAdminRoles.includes(userRole)) {
-    return <SimpleWelcomePage firstName={dbUser.firstName || 'Team Member'} />;
+    return <SimpleWelcomePage username={dbUser.username || 'Team Member'} />;
   }
 
   // Extract roles for RBAC in widgets

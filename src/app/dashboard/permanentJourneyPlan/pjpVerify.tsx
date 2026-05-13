@@ -12,7 +12,6 @@ import {
   ClipboardCheck,
   Store,
   HardHat,
-  X
 } from 'lucide-react';
 import { DateRange } from "react-day-picker";
 
@@ -275,13 +274,8 @@ export default function PJPVerifyPage() {
       ...pjp,
       route: pjp.route ?? '',
       description: pjp.description ?? '',
-      influencerName: pjp.influencerName ?? '',
-      influencerPhone: pjp.influencerPhone ?? '',
-      activityType: pjp.activityType ?? '',
       additionalVisitRemarks: pjp.additionalVisitRemarks ?? '',
     });
-    setSelectedDealerId(pjp.dealerId || 'null');
-    setSelectedSiteId(pjp.siteId || 'null');
     setIsModificationDialogOpen(true);
   };
 
@@ -464,26 +458,6 @@ export default function PJPVerifyPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1"><Label className="text-xs">Plan Date</Label><Input type="date" value={pjpToModify?.planDate ?? ''} onChange={e => setPjpToModify(p => p ? { ...p, planDate: e.target.value } : null)} className="bg-muted/50" /></div>
               <div className="space-y-1"><Label className="text-xs">Route Address</Label><Input value={pjpToModify?.route ?? ''} onChange={e => setPjpToModify(p => p ? { ...p, route: e.target.value } : null)} className="bg-muted/50 text-xs font-mono" /></div>
-            </div>
-
-            <Separator />
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-1"><Label className="text-xs">New Sites</Label><Input type="number" value={pjpToModify?.plannedNewSiteVisits ?? 0} onChange={e => setPjpToModify(p => p ? { ...p, plannedNewSiteVisits: +e.target.value } : null)} className="bg-muted/50" /></div>
-              <div className="space-y-1"><Label className="text-xs">Follow-ups</Label><Input type="number" value={pjpToModify?.plannedFollowUpSiteVisits ?? 0} onChange={e => setPjpToModify(p => p ? { ...p, plannedFollowUpSiteVisits: +e.target.value } : null)} className="bg-muted/50" /></div>
-              <div className="space-y-1"><Label className="text-xs">Dealers</Label><Input type="number" value={pjpToModify?.plannedNewDealerVisits ?? 0} onChange={e => setPjpToModify(p => p ? { ...p, plannedNewDealerVisits: +e.target.value } : null)} className="bg-muted/50" /></div>
-              <div className="space-y-1"><Label className="text-xs">Influencers</Label><Input type="number" value={pjpToModify?.plannedInfluencerVisits ?? 0} onChange={e => setPjpToModify(p => p ? { ...p, plannedInfluencerVisits: +e.target.value } : null)} className="bg-muted/50" /></div>
-              <div className="space-y-1"><Label className="text-xs">Bags</Label><Input type="number" value={pjpToModify?.noOfConvertedBags ?? 0} onChange={e => setPjpToModify(p => p ? { ...p, noOfConvertedBags: +e.target.value } : null)} className="bg-muted/50" /></div>
-              <div className="space-y-1"><Label className="text-xs">Schemes</Label><Input type="number" value={pjpToModify?.noOfMasonPcSchemes ?? 0} onChange={e => setPjpToModify(p => p ? { ...p, noOfMasonPcSchemes: +e.target.value } : null)} className="bg-muted/50" /></div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-[10px] uppercase font-bold text-muted-foreground">Influencer Detail</Label>
-              <div className="grid grid-cols-3 gap-2">
-                <Input placeholder="Name" value={pjpToModify?.influencerName ?? ''} onChange={e => setPjpToModify(p => p ? { ...p, influencerName: e.target.value } : null)} className="bg-muted/50" />
-                <Input placeholder="Activity" value={pjpToModify?.activityType ?? ''} onChange={e => setPjpToModify(p => p ? { ...p, activityType: e.target.value } : null)} className="bg-muted/50" />
-                <Input placeholder="Phone" value={pjpToModify?.influencerPhone ?? ''} onChange={e => setPjpToModify(p => p ? { ...p, influencerPhone: e.target.value } : null)} className="bg-muted/50" />
-              </div>
             </div>
 
             <div className="space-y-2">

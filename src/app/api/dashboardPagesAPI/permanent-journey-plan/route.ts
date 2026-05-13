@@ -1,279 +1,164 @@
 // src/app/api/dashboardPagesAPI/permanent-journey-plan/route.ts
 import 'server-only';
-import { connection, NextRequest, NextResponse } from 'next/server';
-import { cacheTag, cacheLife } from 'next/cache';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/drizzle';
-import { users, permanentJourneyPlans, dailyTasks, dealers, technicalSites } from '../../../../../drizzle';
-import { eq, and, or, ilike, desc, asc, aliasedTable, getTableColumns, inArray, sql, SQL, count, gte, lte } from 'drizzle-orm';
-import type { InferSelectModel } from 'drizzle-orm';
-import { z } from 'zod';
-import { selectPermanentJourneyPlanSchema } from '../../../../../drizzle/zodSchemas';
-import { refreshCompanyCache } from '@/app/actions/cache';
-import { verifySession } from '@/lib/auth';
-import { MEGHALAYA_OVERSEER_ID } from '@/lib/Reusable-constants';
+import { users, permanentJourneyPlans, dealers } from '../../../../../drizzle/schema';
+import { eq, and, or, ilike, desc, asc, aliasedTable, getTableColumns, count, gte, lte, SQL } from 'drizzle-orm';
+import { verifySession, hasPermission } from '@/lib/auth';
 
 const getISTDate = (date: string | Date | null) => {
-  if (!date) return '';
-  return new Date(date).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    if (!date) return '';
+    return new Date(date).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 };
-
-const frontendPJPSchema = selectPermanentJourneyPlanSchema.extend({
-  salesmanName: z.string(),
-  createdByName: z.string(),
-  taskIds: z.array(z.string()), 
-  visitDealerName: z.string().nullable(),
-  planDate: z.string(), 
-  
-  noOfConvertedBags: z.number().nullable().optional(),
-  noOfMasonPcSchemes: z.number().nullable().optional(),
-});
-
-type PJPRow = InferSelectModel<typeof permanentJourneyPlans> & {
-  salesmanFirstName: string | null;
-  salesmanLastName: string | null;
-  salesmanEmail: string | null;
-  createdByFirstName: string | null;
-  createdByLastName: string | null;
-  createdByEmail: string | null;
-  dealerName: string | null;
-  siteName: string | null;
-};
-
-async function getCachedPJPs(
-  companyId: number,
-  userId: number,
-  page: number,
-  pageSize: number,
-  search: string | null,
-  salesmanId: string | null,
-  status: string | null,
-  verificationStatus: string | null,
-  fromDate: string | null,
-  toDate: string | null
-) {
-  'use cache';
-  cacheLife('days');
-  cacheTag(`permanent-journey-plan-${companyId}`);
-  
-  const filterKey = `${search}-${salesmanId}-${status}-${verificationStatus}-${fromDate}-${toDate}`;
-  cacheTag(`permanent-journey-plan-${companyId}-${page}-${filterKey}`);
-
-  const createdByUsers = aliasedTable(users, 'createdByUsers');
-
-  const filters: SQL[] = [eq(users.companyId, companyId)];
-  
-  if (verificationStatus && verificationStatus !== 'all' && verificationStatus !== 'null') {
-    filters.push(ilike(permanentJourneyPlans.verificationStatus, verificationStatus));
-  }
-
-  if (userId === MEGHALAYA_OVERSEER_ID) {
-      filters.push(eq(users.region, 'Meghalaya'));
-  }
-
-  if (search) {
-    const searchCondition = or(
-      ilike(users.firstName, `%${search}%`),
-      ilike(users.lastName, `%${search}%`),
-      ilike(permanentJourneyPlans.areaToBeVisited, `%${search}%`)
-    );
-    if (searchCondition) filters.push(searchCondition);
-  }
-
-  if (salesmanId && salesmanId !== 'all') filters.push(eq(permanentJourneyPlans.userId, Number(salesmanId)));
-  if (status && status !== 'all') filters.push(ilike(permanentJourneyPlans.status, status));
-  if (fromDate) filters.push(gte(permanentJourneyPlans.planDate, fromDate));
-  if (toDate) filters.push(lte(permanentJourneyPlans.planDate, toDate));
-
-  const whereClause = and(...filters);
-
-  const rawPlans: PJPRow[] = await db
-    .select({
-      ...getTableColumns(permanentJourneyPlans),
-      salesmanFirstName: users.firstName,
-      salesmanLastName: users.lastName,
-      salesmanEmail: users.email,
-      createdByFirstName: createdByUsers.firstName,
-      createdByLastName: createdByUsers.lastName,
-      createdByEmail: createdByUsers.email,
-      dealerName: dealers.name,
-      siteName: technicalSites.siteName,
-    })
-    .from(permanentJourneyPlans)
-    .leftJoin(users, eq(permanentJourneyPlans.userId, users.id))
-    .leftJoin(createdByUsers, eq(permanentJourneyPlans.createdById, createdByUsers.id))
-    .leftJoin(dealers, eq(permanentJourneyPlans.dealerId, dealers.id))
-    .leftJoin(technicalSites, eq(permanentJourneyPlans.siteId, technicalSites.id))
-    .where(whereClause)
-    .orderBy(desc(permanentJourneyPlans.planDate), desc(permanentJourneyPlans.createdAt))
-    .limit(pageSize)
-    .offset(page * pageSize);
-
-  const totalCountResult = await db
-    .select({ count: count() })
-    .from(permanentJourneyPlans)
-    .leftJoin(users, eq(permanentJourneyPlans.userId, users.id))
-    .where(whereClause);
-
-  const totalCount = Number(totalCountResult[0].count);
-
-  const pjpIds = rawPlans.map(p => p.id);
-  const tasks = pjpIds.length > 0 
-    ? await db
-        .select({ id: dailyTasks.id, pjpId: dailyTasks.id }) // Keeping your existing mapping logic
-        .from(dailyTasks)
-        .where(inArray(dailyTasks.id, pjpIds))
-    : [];
-
-  const tasksByPjpId = tasks.reduce((acc, task) => {
-    if (task.pjpId) {
-        if (!acc[task.pjpId]) acc[task.pjpId] = [];
-        acc[task.pjpId].push(task.id);
-    }
-    return acc;
-  }, {} as Record<string, string[]>);
-
-  const formattedData = rawPlans.map((row) => {
-    const salesmanName = `${row.salesmanFirstName || ''} ${row.salesmanLastName || ''}`.trim() || row.salesmanEmail || '';
-    const createdByName = `${row.createdByFirstName || ''} ${row.createdByLastName || ''}`.trim() || row.createdByEmail || '';
-    
-    return {
-      ...row,
-      salesmanName,
-      createdByName,
-      planDate: getISTDate(row.planDate),
-      taskIds: tasksByPjpId[row.id] || [],
-      visitDealerName: row.dealerName ?? row.siteName ?? null,
-      
-      noOfConvertedBags: row.noofConvertedBags ?? 0,
-      noOfMasonPcSchemes: row.noofMasonpcInSchemes ?? 0,
-      
-      plannedNewSiteVisits: row.plannedNewSiteVisits ?? 0,
-      plannedFollowUpSiteVisits: row.plannedFollowUpSiteVisits ?? 0,
-      plannedNewDealerVisits: row.plannedNewDealerVisits ?? 0,
-      plannedInfluencerVisits: row.plannedInfluencerVisits ?? 0,
-      
-      createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString(),
-      updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : new Date().toISOString(),
-    };
-  });
-
-  return { data: formattedData, totalCount };
-}
 
 export async function GET(request: NextRequest) {
-  if (typeof connection === 'function') await connection();
-  try {
-    const session = await verifySession();
-    if (!session || !session.userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    try {
+        const session = await verifySession();
+        if (!session || !session.userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        if (!hasPermission(session.permissions, "READ")) {
+            return NextResponse.json({ error: 'Forbidden: READ access required' }, { status: 403 });
+        }
+
+        const { searchParams } = new URL(request.url);
+        const action = searchParams.get('action');
+
+        // --- Action: Fetch Distinct Filters ---
+        if (action === 'fetch_filters') {
+            const distinctSalesmen = await db
+                .selectDistinct({ id: users.id, username: users.username, email: users.email })
+                .from(permanentJourneyPlans)
+                .innerJoin(users, eq(permanentJourneyPlans.userId, users.id))
+                .orderBy(asc(users.username));
+
+            const distinctStatuses = await db
+                .selectDistinct({ status: permanentJourneyPlans.status })
+                .from(permanentJourneyPlans);
+
+            return NextResponse.json({
+                salesmen: distinctSalesmen,
+                statuses: distinctStatuses.map(s => s.status).filter(Boolean).sort()
+            }, { status: 200 });
+        }
+
+        // --- Default Action: Fetch Paginated PJPs ---
+        const page = Number(searchParams.get('page') ?? 0);
+        const pageSize = Math.min(Number(searchParams.get('pageSize') ?? 500), 500);
+
+        const search = searchParams.get('search');
+        const salesmanId = searchParams.get('salesmanId');
+        const status = searchParams.get('status');
+        const verificationStatus = searchParams.get('verificationStatus');
+        const fromDate = searchParams.get('fromDate');
+        const toDate = searchParams.get('toDate');
+
+        const createdByUsers = aliasedTable(users, 'createdByUsers');
+        const filters: SQL[] = [];
+
+        if (verificationStatus && verificationStatus !== 'all' && verificationStatus !== 'null') {
+            filters.push(ilike(permanentJourneyPlans.verificationStatus, verificationStatus));
+        }
+
+        if (search) {
+            filters.push(
+                or(
+                    ilike(users.username, `%${search}%`),
+                    ilike(permanentJourneyPlans.areaToBeVisited, `%${search}%`)
+                )!
+            );
+        }
+
+        if (salesmanId && salesmanId !== 'all') filters.push(eq(permanentJourneyPlans.userId, Number(salesmanId)));
+        if (status && status !== 'all') filters.push(ilike(permanentJourneyPlans.status, status));
+        if (fromDate) filters.push(gte(permanentJourneyPlans.planDate, fromDate));
+        if (toDate) filters.push(lte(permanentJourneyPlans.planDate, toDate));
+
+        const whereClause = filters.length > 0 ? and(...filters) : undefined;
+
+        const rawPlans = await db
+            .select({
+                ...getTableColumns(permanentJourneyPlans),
+                salesmanUsername: users.username,
+                salesmanEmail: users.email,
+                createdByUsername: createdByUsers.username,
+                createdByEmail: createdByUsers.email,
+                dealerName: dealers.dealerPartyName, 
+            })
+            .from(permanentJourneyPlans)
+            .leftJoin(users, eq(permanentJourneyPlans.userId, users.id))
+            .leftJoin(createdByUsers, eq(permanentJourneyPlans.createdById, createdByUsers.id))
+            .leftJoin(dealers, eq(permanentJourneyPlans.dealerId, dealers.id))
+            .where(whereClause)
+            .orderBy(desc(permanentJourneyPlans.planDate), desc(permanentJourneyPlans.createdAt))
+            .limit(pageSize)
+            .offset(page * pageSize);
+
+        const totalCountResult = await db
+            .select({ count: count() })
+            .from(permanentJourneyPlans)
+            .leftJoin(users, eq(permanentJourneyPlans.userId, users.id))
+            .where(whereClause);
+
+        const totalCount = Number(totalCountResult[0].count);
+
+        const formattedData = rawPlans.map((row) => {
+            const salesmanName = row.salesmanUsername || row.salesmanEmail || 'Unknown';
+            const createdByName = row.createdByUsername || row.createdByEmail || 'Unknown';
+
+            return {
+                ...row,
+                salesmanName,
+                createdByName,
+                planDate: getISTDate(row.planDate),
+                visitDealerName: row.dealerName ?? null, 
+                createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString(),
+                updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : new Date().toISOString(),
+            };
+        });
+
+        return NextResponse.json({
+            data: formattedData,
+            totalCount,
+            page,
+            pageSize
+        }, { status: 200 });
+
+    } catch (error) {
+        console.error('Error fetching permanent journey plans:', error);
+        return NextResponse.json({ error: 'Failed to fetch', details: (error as Error).message }, { status: 500 });
     }
-    if (!session.permissions.includes("READ")) {
-      return NextResponse.json({ error: 'Forbidden: READ access required' }, { status: 403 });
-    }
-
-    const { searchParams } = new URL(request.url);
-    const action = searchParams.get('action');
-
-    // --- Action: Fetch Distinct Filters ---
-    if (action === 'fetch_filters') {
-      const distinctSalesmen = await db
-        .selectDistinct({ id: users.id, firstName: users.firstName, lastName: users.lastName, email: users.email })
-        .from(permanentJourneyPlans)
-        .innerJoin(users, eq(permanentJourneyPlans.userId, users.id))
-        .where(eq(users.companyId, session.companyId))
-        .orderBy(asc(users.firstName));
-        
-      const distinctStatuses = await db
-        .selectDistinct({ status: permanentJourneyPlans.status })
-        .from(permanentJourneyPlans)
-        .innerJoin(users, eq(permanentJourneyPlans.userId, users.id))
-        .where(eq(users.companyId, session.companyId));
-
-      return NextResponse.json({
-        salesmen: distinctSalesmen,
-        statuses: distinctStatuses.map(s => s.status).filter(Boolean).sort()
-      }, { status: 200 });
-    }
-
-    // --- Default Action: Fetch Paginated PJPs ---
-    const page = Number(searchParams.get('page') ?? 0);
-    const pageSize = Math.min(Number(searchParams.get('pageSize') ?? 500), 500);
-    
-    const search = searchParams.get('search');
-    const salesmanId = searchParams.get('salesmanId');
-    const status = searchParams.get('status');
-    const verificationStatus = searchParams.get('verificationStatus');
-    const fromDate = searchParams.get('fromDate');
-    const toDate = searchParams.get('toDate');
-
-    const result = await getCachedPJPs(
-      session.companyId,
-      session.userId,
-      page,
-      pageSize,
-      search,
-      salesmanId,
-      status,
-      verificationStatus,
-      fromDate,
-      toDate
-    );
-    
-    const validatedData = z.array(frontendPJPSchema.loose()).safeParse(result.data);
-
-    if (!validatedData.success) {
-      console.error("PJP Validation Error:", validatedData.error.format());
-      return NextResponse.json({ data: result.data, totalCount: result.totalCount, page, pageSize }, { status: 200 }); 
-    }
-
-    return NextResponse.json({
-      data: validatedData.data,
-      totalCount: result.totalCount,
-      page,
-      pageSize
-    }, { status: 200 });
-
-  } catch (error) {
-    console.error('Error fetching permanent journey plans:', error);
-    return NextResponse.json({ error: 'Failed to fetch', details: (error as Error).message }, { status: 500 });
-  }
 }
 
 export async function DELETE(request: NextRequest) {
-  try {
-    const session = await verifySession();
-    if (!session || !session.userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    try {
+        const session = await verifySession();
+        if (!session || !session.userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        if (!hasPermission(session.permissions, "DELETE")) {
+            return NextResponse.json({ error: 'Forbidden: DELETE access required' }, { status: 403 });
+        }
+
+        const url = new URL(request.url);
+        const pjpId = url.searchParams.get('id');
+        if (!pjpId) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+
+        const pjpToDeleteResult = await db
+            .select({ id: permanentJourneyPlans.id })
+            .from(permanentJourneyPlans)
+            .where(eq(permanentJourneyPlans.id, pjpId))
+            .limit(1);
+
+        if (!pjpToDeleteResult[0]) {
+            return NextResponse.json({ error: 'PJP Not Found' }, { status: 404 });
+        }
+
+        await db.delete(permanentJourneyPlans).where(eq(permanentJourneyPlans.id, pjpId));
+
+        return NextResponse.json({ message: 'Deleted successfully' }, { status: 200 });
+    } catch (error) {
+        console.error('Error deleting PJP:', error);
+        return NextResponse.json({ error: 'Failed to delete', details: (error as Error).message }, { status: 500 });
     }
-    if (!session.permissions.includes("DELETE")) {
-      return NextResponse.json({ error: 'Forbidden: DELETE access required' }, { status: 403 });
-    }
-
-    const url = new URL(request.url);
-    const pjpId = url.searchParams.get('id');
-    if (!pjpId) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
-
-    const pjpToDeleteResult = await db
-      .select({ id: permanentJourneyPlans.id, companyId: users.companyId })
-      .from(permanentJourneyPlans)
-      .leftJoin(users, eq(permanentJourneyPlans.userId, users.id))
-      .where(eq(permanentJourneyPlans.id, pjpId))
-      .limit(1);
-
-    const pjpToDelete = pjpToDeleteResult[0];
-
-    if (!pjpToDelete || pjpToDelete.companyId !== session.companyId) {
-      return NextResponse.json({ error: 'Forbidden or Not Found' }, { status: 403 });
-    }
-
-    await db.delete(permanentJourneyPlans).where(eq(permanentJourneyPlans.id, pjpId));
-
-    await refreshCompanyCache('permanent-journey-plan');
-    await refreshCompanyCache('pjp-verification');
-
-    return NextResponse.json({ message: 'Deleted successfully' }, { status: 200 });
-  } catch (error) {
-    console.error('Error deleting PJP:', error);
-    return NextResponse.json({ error: 'Failed to delete', details: (error as Error).message }, { status: 500 });
-  }
 }

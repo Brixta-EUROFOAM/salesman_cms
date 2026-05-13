@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import type { Metadata } from "next";
 import { db } from '@/lib/drizzle';
-import { users, companies } from '../../../drizzle';
+import { users } from '../../../drizzle';
 import { eq } from 'drizzle-orm';
 import DashboardShell from '@/app/dashboard/dashboardShell';
 import { connection } from 'next/server';
@@ -48,22 +48,16 @@ export async function AuthenticatedLayout({
     .select({
       id: users.id,
       email: users.email,
-      firstName: users.firstName,
-      lastName: users.lastName,
+      username: users.username,
       status: users.status,
-      companyId: companies.id,
-      companyName: companies.companyName,
-      adminUserId: companies.adminUserId,
     })
     .from(users)
-    .leftJoin(companies, eq(users.companyId, companies.id))
     .where(eq(users.id, session.userId))
     .limit(1);
 
   const dbUser = result[0];
 
   if (!dbUser) redirect('/api/auth/logout');
-  if (!dbUser.companyId) redirect('/setup-company');
 
   // --- EXTRACT ROLES & PERMISSIONS ---
   const finalOrgRole = session.orgRole || '';
@@ -120,19 +114,12 @@ export async function AuthenticatedLayout({
   const mappedUser = {
     id: dbUser.id,
     email: dbUser.email,
-    firstName: dbUser.firstName,
-    lastName: dbUser.lastName,
-    company: {
-      id: dbUser.companyId!,
-      companyName: dbUser.companyName!,
-      adminUserId: dbUser.adminUserId?.toString() || dbUser.id.toString(),
-    }
+    username: dbUser.username,
   };
 
   return (
     <DashboardShell
       user={mappedUser}
-      company={mappedUser.company}
       role={primaryRoleDisplay}
       permissions={hydratedPermissions}
       jobRoles={userJobRoles}

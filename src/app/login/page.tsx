@@ -48,7 +48,7 @@ export default function LoginPage() {
                 <CardHeader className="text-center space-y-4">
                     <div className="flex justify-center">
                         <Image
-                            src="/bestcement.webp"
+                            src="/eurofoam.webp"
                             alt="Best Cement Logo"
                             width={48}
                             height={48}

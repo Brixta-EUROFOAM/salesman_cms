@@ -2,16 +2,9 @@
 import 'server-only';
 import { NextResponse, NextRequest } from 'next/server';
 import { db } from '@/lib/drizzle';
-import { users, permanentJourneyPlans } from '../../../../../../../drizzle'; 
-import { eq, and, inArray } from 'drizzle-orm';
-import { z } from 'zod';
-import { refreshCompanyCache } from '@/app/actions/cache';
-import { selectPermanentJourneyPlanSchema } from '../../../../../../../drizzle/zodSchemas'; 
-import { verifySession } from '@/lib/auth';
-
-const bulkVerifySchema = z.object({
-  ids: z.array(selectPermanentJourneyPlanSchema.shape.id).min(1, "At least one PJP ID is required"),
-});
+import { permanentJourneyPlans } from '../../../../../../../drizzle/schema'; 
+import { inArray } from 'drizzle-orm';
+import { verifySession, hasPermission } from '@/lib/auth';
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -19,39 +12,30 @@ export async function PATCH(request: NextRequest) {
     if (!session || !session.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const hasRequiredPerms = session.permissions.includes('UPDATE') || session.permissions.includes('WRITE');
-    if (!hasRequiredPerms) {
+    
+    if (!hasPermission(session.permissions, ['UPDATE', 'WRITE'])) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });
     }
 
-    // 2. Parse and validate body
     const body = await request.json();
-    const validated = bulkVerifySchema.safeParse(body);
+    const { ids } = body;
 
-    if (!validated.success) {
-      return NextResponse.json({ error: 'Invalid IDs provided', details: validated.error.issues }, { status: 400 });
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json({ error: 'Invalid IDs provided. Array of IDs is required.' }, { status: 400 });
     }
-
-    const { ids } = validated.data;
 
     const validPJPs = await db
       .select({ id: permanentJourneyPlans.id })
       .from(permanentJourneyPlans)
-      .leftJoin(users, eq(permanentJourneyPlans.userId, users.id))
-      .where(
-        and(
-          inArray(permanentJourneyPlans.id, ids),
-          eq(users.companyId, session.companyId)
-        )
-      );
+      .where(inArray(permanentJourneyPlans.id, ids));
 
     const validIds = validPJPs.map(p => p.id);
 
     if (validIds.length === 0) {
-      return NextResponse.json({ message: 'No valid PJPs found for this company.' }, { status: 200 });
+      return NextResponse.json({ message: 'No valid PJPs found to verify.' }, { status: 200 });
     }
 
-    // 4. Perform Bulk Update
+    // Perform Bulk Update
     await db
       .update(permanentJourneyPlans)
       .set({
@@ -59,10 +43,6 @@ export async function PATCH(request: NextRequest) {
         status: 'VERIFIED',
       })
       .where(inArray(permanentJourneyPlans.id, validIds));
-
-    // 5. CACHE INVALIDATION
-    await refreshCompanyCache('pjp-verification');
-    await refreshCompanyCache('permanent-journey-plan');
 
     return NextResponse.json({
       message: `${validIds.length} PJPs verified successfully`,

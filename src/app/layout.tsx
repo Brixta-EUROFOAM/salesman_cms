@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BESTCEMENT SALES CMS",
-  description: "Made by Mycoco",
+  title: "EUROFOAM SALES CMS",
+  description: "Made by Brixta",
   icons: {
     icon: "/favicon.ico",
   },

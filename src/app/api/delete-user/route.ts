@@ -1,10 +1,10 @@
 // src/app/api/delete-user/route.ts
 import 'server-only';
 import { NextResponse } from 'next/server';
-import { verifySession } from '@/lib/auth';
+import { verifySession, hasPermission } from '@/lib/auth';
 import { db } from '@/lib/drizzle';
-import { users, userRoles } from '../../../../drizzle';
-import { eq, and } from 'drizzle-orm';
+import { users, userRoles } from '../../../../drizzle/schema';
+import { eq } from 'drizzle-orm';
 
 export async function POST(request: Request) {
     try {
@@ -12,22 +12,24 @@ export async function POST(request: Request) {
         if (!session || !session.userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-        if (!session.permissions.includes('DELETE')) {
+        
+        // Use the new helper function for authorization
+        if (!hasPermission(session.permissions, 'DELETE')) {
             return NextResponse.json({ error: 'You do not have DELETE permission' }, { status: 403 });
         }
 
         const body = await request.json();
-        const { targetUserId } = body; // We now use the local integer ID
+        const { targetUserId } = body; 
 
         if (!targetUserId) {
             return NextResponse.json({ error: 'Target User ID is required' }, { status: 400 });
         }
 
-        // 3. Execution: Transactional Delete
-        const result = await db.transaction(async (tx) => {
-            // First, ensure the user exists and belongs to the same company as the admin
+        // Execution: Transactional Delete
+        await db.transaction(async (tx) => {
+            // Ensure the user exists
             const targetUser = await tx
-                .select({ id: users.id, companyId: users.companyId })
+                .select({ id: users.id })
                 .from(users)
                 .where(eq(users.id, targetUserId))
                 .limit(1);
@@ -36,18 +38,13 @@ export async function POST(request: Request) {
                 throw new Error('User not found');
             }
 
-            // Cross-company deletion prevention
-            if (targetUser[0].companyId !== session.companyId) {
-                throw new Error('Access denied: Cannot delete users from another company');
-            }
-
-            // A. Delete from user_roles join table first (due to foreign key constraints if applicable)
-            // Even if your schema has "onDelete: cascade", doing it explicitly in a tx is safer.
+            // A. Delete from user_roles join table first
+            // (Even if schema has "onDelete: cascade", doing it explicitly in tx is a good safeguard)
             await tx.delete(userRoles).where(eq(userRoles.userId, targetUserId));
 
             // B. Delete the main user record
             await tx.delete(users).where(eq(users.id, targetUserId));
-
+            
             return { success: true };
         });
 
@@ -60,9 +57,6 @@ export async function POST(request: Request) {
 
         if (error.message === 'User not found') {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
-        }
-        if (error.message.includes('Access denied')) {
-            return NextResponse.json({ error: error.message }, { status: 403 });
         }
 
         return NextResponse.json({ error: 'Failed to process deletion' }, { status: 500 });

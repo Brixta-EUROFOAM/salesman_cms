@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { db } from "@/lib/drizzle";
-import { users, companies } from "../../../drizzle";
+import { users } from "../../../drizzle";
 import { eq } from "drizzle-orm";
 import HomeShell from "@/app/home/homeShell";
 import type { Metadata } from "next";
@@ -47,26 +47,15 @@ export async function AuthenticatedHomeLayout({
       userId: users.id,
       email: users.email,
       status: users.status,
-      firstName: users.firstName,
-      lastName: users.lastName,
-      companyId: companies.id,
-      companyName: companies.companyName,
+      username: users.username,
     })
     .from(users)
-    .leftJoin(companies, eq(users.companyId, companies.id))
     .where(eq(users.id, session.userId))
     .limit(1);
 
   const dbUser = result[0];
 
-  if (!dbUser) {
-    redirect("/login");
-  }
-
-  if (!dbUser.companyId) {
-    console.error("User has no company access. Redirecting to setup.");
-    redirect("/setup-company");
-  }
+  if (!dbUser) redirect('/api/auth/logout');
 
   // --- EXTRACT ROLES & PERMISSIONS ---
   const finalOrgRole = session.orgRole || '';
@@ -123,19 +112,12 @@ export async function AuthenticatedHomeLayout({
   const mappedUser = {
     id: dbUser.userId,
     email: dbUser.email,
-    firstName: dbUser.firstName,
-    lastName: dbUser.lastName,
-    company: {
-      id: dbUser.companyId!,
-      companyName: dbUser.companyName!,
-      adminUserId: dbUser.userId.toString(),
-    },
+    username: dbUser.username,
   };
 
   return (
     <HomeShell
       user={mappedUser}
-      company={mappedUser.company}
       role={primaryRoleDisplay}
       permissions={hydratedPermissions}
       jobRoles={userJobRoles}

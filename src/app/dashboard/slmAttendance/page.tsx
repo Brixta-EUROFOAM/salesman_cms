@@ -36,7 +36,7 @@ import { selectSalesmanAttendanceSchema } from '../../../../drizzle/zodSchemas';
 const extendedSalesmanAttendanceSchema = selectSalesmanAttendanceSchema.extend({
   salesmanName: z.string().optional().catch("Unknown"),
   area: z.string().nullable().optional().catch("N/A"),
-  region: z.string().nullable().optional().catch("N/A"),
+  zone: z.string().nullable().optional().catch("N/A"),
   date: z.string().optional(),
   location: z.string().optional(),
   inTime: z.string().nullable().optional(),
@@ -44,17 +44,9 @@ const extendedSalesmanAttendanceSchema = selectSalesmanAttendanceSchema.extend({
 
   inTimeLatitude: z.coerce.number().nullable().optional().catch(null),
   inTimeLongitude: z.coerce.number().nullable().optional().catch(null),
-  inTimeAccuracy: z.coerce.number().nullable().optional().catch(null),
-  inTimeSpeed: z.coerce.number().nullable().optional().catch(null),
-  inTimeHeading: z.coerce.number().nullable().optional().catch(null),
-  inTimeAltitude: z.coerce.number().nullable().optional().catch(null),
-
   outTimeLatitude: z.coerce.number().nullable().optional().catch(null),
   outTimeLongitude: z.coerce.number().nullable().optional().catch(null),
-  outTimeAccuracy: z.coerce.number().nullable().optional().catch(null),
-  outTimeSpeed: z.coerce.number().nullable().optional().catch(null),
-  outTimeHeading: z.coerce.number().nullable().optional().catch(null),
-  outTimeAltitude: z.coerce.number().nullable().optional().catch(null),
+  
 });
 
 type SalesmanAttendanceReport = z.infer<typeof extendedSalesmanAttendanceSchema>;
@@ -63,7 +55,7 @@ const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-
 
 interface LocationsResponse {
   areas: string[];
-  regions: string[];
+  zones: string[];
 }
 
 export default function SlmAttendancePage() {
@@ -87,7 +79,7 @@ export default function SlmAttendancePage() {
 
   // --- Backend Filter Options ---
   const [availableAreas, setAvailableAreas] = useState<string[]>([]);
-  const [availableRegions, setAvailableRegions] = useState<string[]>([]);
+  const [availableZones, setAvailableZones] = useState<string[]>([]);
 
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -113,7 +105,7 @@ export default function SlmAttendancePage() {
       
       // Multi-select arrays joined by comma
       if (areaFilters.length > 0) url.searchParams.append('area', areaFilters.join(','));
-      if (zoneFilters.length > 0) url.searchParams.append('region', zoneFilters.join(','));
+      if (zoneFilters.length > 0) url.searchParams.append('zone', zoneFilters.join(','));
 
       if (dateRange?.from) url.searchParams.append('startDate', format(dateRange.from, 'yyyy-MM-dd'));
       if (dateRange?.to) {
@@ -174,10 +166,10 @@ export default function SlmAttendancePage() {
       const data: LocationsResponse = await response.json();
 
       const safeAreas = Array.isArray(data.areas) ? data.areas.filter(Boolean) : [];
-      const safeRegions = Array.isArray(data.regions) ? data.regions.filter(Boolean) : [];
+      const safeZones = Array.isArray(data.zones) ? data.zones.filter(Boolean) : [];
 
       setAvailableAreas(safeAreas.sort());
-      setAvailableRegions(safeRegions.sort());
+      setAvailableZones(safeZones.sort());
 
     } catch (err: any) {
       console.error('Failed to fetch filter locations:', err);
@@ -196,12 +188,12 @@ export default function SlmAttendancePage() {
   }, [fetchLocations]);
 
   // --- Map raw string arrays to `{ label, value }` Options ---
-  const zoneOptions = useMemo(() => availableRegions.map(r => ({ label: r, value: r })), [availableRegions]);
+  const zoneOptions = useMemo(() => availableZones.map(r => ({ label: r, value: r })), [availableZones]);
   const areaOptions = useMemo(() => availableAreas.map(a => ({ label: a, value: a })), [availableAreas]);
   const roleOptions = useMemo(() => [
     { label: 'All Company Roles', value: 'all' },
     { label: 'Sales', value: 'SALES' },
-    { label: 'Technical', value: 'TECHNICAL' }
+    
   ], []);
 
   const todayStats = useMemo(() => {
@@ -621,22 +613,6 @@ export default function SlmAttendancePage() {
               <div>
                 <Label htmlFor="outTimeLongitude">Longitude</Label>
                 <Input id="outTimeLongitude" value={selectedReport.outTimeLongitude?.toFixed(7) || 'N/A'} readOnly className="bg-muted/50" />
-              </div>
-              <div>
-                <Label htmlFor="outTimeAccuracy">Accuracy (m)</Label>
-                <Input id="outTimeAccuracy" value={selectedReport.outTimeAccuracy?.toFixed(2) || 'N/A'} readOnly className="bg-muted/50" />
-              </div>
-              <div>
-                <Label htmlFor="outTimeSpeed">Speed (m/s)</Label>
-                <Input id="outTimeSpeed" value={selectedReport.outTimeSpeed?.toFixed(2) || 'N/A'} readOnly className="bg-muted/50" />
-              </div>
-              <div>
-                <Label htmlFor="outTimeHeading">Heading (°)</Label>
-                <Input id="outTimeHeading" value={selectedReport.outTimeHeading?.toFixed(2) || 'N/A'} readOnly className="bg-muted/50" />
-              </div>
-              <div>
-                <Label htmlFor="outTimeAltitude">Altitude (m)</Label>
-                <Input id="outTimeAltitude" value={selectedReport.outTimeAltitude?.toFixed(2) || 'N/A'} readOnly className="bg-muted/50" />
               </div>
             </div>
             <DialogFooter>
