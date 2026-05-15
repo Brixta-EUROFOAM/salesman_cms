@@ -2,7 +2,7 @@
 import {
 	pgSchema, uniqueIndex, foreignKey, varchar, text, numeric, timestamp,
 	index, integer, date, uuid, boolean, unique, serial, jsonb, doublePrecision,
-	bigserial, check, bigint, primaryKey, decimal,
+	bigserial, check, bigint, primaryKey,
 } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 

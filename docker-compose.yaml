@@ -5,10 +5,9 @@ services:
     container_name: eurofoamdashb
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "55007:3000"
     # This is the key line that tells Docker to read the variables from the .env file
     env_file:
-      - .env
       - .env.production
 
     environment:
