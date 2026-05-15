@@ -21,11 +21,11 @@ const frontendDVRSchema = z.object({
   contactNoOfParty: z.string().nullable().optional(),
   expectedActivationDate: z.string().nullable().optional(),
 
-  latitude: z.number(),
-  longitude: z.number(),
-  todayOrderQty: z.number(),
-  todayCollectionRupees: z.number(),
-  overdueAmount: z.number().nullable(),
+  latitude: z.coerce.number().nullable().optional(),
+  longitude: z.coerce.number().nullable().optional(),
+  todayOrderQty: z.coerce.number().nullable().optional(),
+  todayCollectionRupees: z.coerce.number().nullable().optional(),
+  overdueAmount: z.coerce.number().nullable().optional(),
 
   reportDate: z.string(),
   checkInTime: z.string(),
@@ -40,8 +40,8 @@ async function getCachedDailyVisitReports(
   search: string | null,
   area: string | null,
   zone: string | null,
-  startDate: string | null, 
-  endDate: string | null    
+  startDate: string | null,
+  endDate: string | null
 ) {
   'use cache';
   cacheLife('hours');
@@ -107,17 +107,17 @@ async function getCachedDailyVisitReports(
       zone: row.userZone || '',
       reportDate: row.reportDate ? new Date(row.reportDate).toISOString().split('T')[0] : '',
       dealerName: row.dealerNameStr ?? null,
-      
+
       visitType: row.visitType ?? null,
       nameOfParty: row.nameOfParty ?? null,
       contactNoOfParty: row.contactNoOfParty ?? null,
       expectedActivationDate: row.expectedActivationDate ? new Date(row.expectedActivationDate).toISOString().split('T')[0] : null,
 
-      latitude: toNum(row.latitude) ?? 0,
-      longitude: toNum(row.longitude) ?? 0,
-      todayOrderQty: toNum(row.todayOrderQty) ?? 0,
-      todayCollectionRupees: toNum(row.todayCollectionRupees) ?? 0,
-      overdueAmount: toNum(row.overdueAmount),
+      latitude: row.latitude?.toString() ?? null,
+      longitude: row.longitude?.toString() ?? null,
+      todayOrderQty: row.todayOrderQty?.toString() ?? null,
+      todayCollectionRupees: row.todayCollectionRupees?.toString() ?? null,
+      overdueAmount: row.overdueAmount?.toString() ?? null,
 
       checkInTime: row.checkInTime ? new Date(row.checkInTime).toISOString() : '',
       checkOutTime: row.checkOutTime ? new Date(row.checkOutTime).toISOString() : null,

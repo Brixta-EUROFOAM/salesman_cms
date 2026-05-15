@@ -37,28 +37,40 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { selectDailyVisitReportSchema } from '../../../../drizzle/zodSchemas';
 
-const extendedDailyVisitReportSchema = selectDailyVisitReportSchema.extend({
-  reportDate: z.string().nullable().optional(),
-  checkInTime: z.string().nullable().optional(),
-  checkOutTime: z.string().nullable().optional(),
-  createdAt: z.string().nullable().optional(),
-  updatedAt: z.string().nullable().optional(),
-  expectedActivationDate: z.string().nullable().optional(),
-  salesmanName: z.string().optional().catch("Unknown"),
-  area: z.string().optional().catch("N/A"),
-  region: z.string().optional().catch("N/A"),
-  dealerName: z.string().nullable().optional(),
-  subDealerName: z.string().nullable().optional(),
-  latitude: z.coerce.number().nullable().optional().catch(null),
-  longitude: z.coerce.number().nullable().optional().catch(null),
-  dealerTotalPotential: z.coerce.number().nullable().optional().catch(0),
-  dealerBestPotential: z.coerce.number().nullable().optional().catch(0),
-  todayOrderMt: z.coerce.number().nullable().optional().catch(0),
-  todayCollectionRupees: z.coerce.number().nullable().optional().catch(0),
-  overdueAmount: z.coerce.number().nullable().optional().catch(0),
-  brandSelling: z.array(z.string()).nullable().optional().transform(v => v || []),
-  pjpStatus: z.string().nullable().optional(),
-});
+const extendedDailyVisitReportSchema = selectDailyVisitReportSchema
+  .omit({
+    todayOrderQty: true,
+    todayCollectionRupees: true,
+    overdueAmount: true,
+    latitude: true,
+    longitude: true,
+  })
+  .extend({
+    reportDate: z.string().nullable().optional(),
+    checkInTime: z.string().nullable().optional(),
+    checkOutTime: z.string().nullable().optional(),
+    createdAt: z.string().nullable().optional(),
+    updatedAt: z.string().nullable().optional(),
+    expectedActivationDate: z.string().nullable().optional(),
+
+    salesmanName: z.string().optional().catch("Unknown"),
+    area: z.string().optional().catch("N/A"),
+    zone: z.string().optional().catch("N/A"),
+
+    dealerName: z.string().nullable().optional(),
+    subDealerName: z.string().nullable().optional(),
+
+    latitude: z.coerce.number().nullable().optional().catch(null),
+    longitude: z.coerce.number().nullable().optional().catch(null),
+
+    todayOrderQty: z.coerce.number().nullable().optional().catch(0),
+    todayCollectionRupees: z.coerce.number().nullable().optional().catch(0),
+    overdueAmount: z.coerce.number().nullable().optional().catch(0),
+
+    brandSelling: z.array(z.string()).nullable().optional().transform(v => v || []),
+
+    pjpStatus: z.string().nullable().optional(),
+  });
 
 type DailyVisitReport = z.infer<typeof extendedDailyVisitReportSchema>;
 
@@ -66,7 +78,7 @@ const LOCATION_API_ENDPOINT = `/api/dashboardPagesAPI/users-and-team/users/user-
 
 interface LocationsResponse {
   areas: string[];
-  regions: string[];
+  zones: string[];
 }
 
 const CUSTOMER_TYPE_OPTIONS = [
@@ -131,7 +143,7 @@ export default function DailyVisitReportsPage() {
 
   // --- Backend Filter Options ---
   const [availableAreas, setAvailableAreas] = useState<string[]>([]);
-  const [availableRegions, setAvailableRegions] = useState<string[]>([]);
+  const [availableZones, setAvailableZones] = useState<string[]>([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(true);
 
   // Reset page when filters change
@@ -150,7 +162,7 @@ export default function DailyVisitReportsPage() {
 
       // Join arrays for multi-select
       if (areaFilters.length > 0) url.searchParams.append('area', areaFilters.join(','));
-      if (zoneFilters.length > 0) url.searchParams.append('region', zoneFilters.join(','));
+      if (zoneFilters.length > 0) url.searchParams.append('zone', zoneFilters.join(','));
 
       if (customerTypeFilter !== 'all') url.searchParams.append('customerType', customerTypeFilter);
       if (pjpStatusFilter !== 'all') url.searchParams.append('pjpStatus', pjpStatusFilter);
@@ -173,6 +185,10 @@ export default function DailyVisitReportsPage() {
       });
 
       const result = await response.json();
+      if (!result.data) {
+        throw new Error(result.error || "Failed to fetch reports from the server.");
+      }
+
       setTotalCount(result.totalCount || 0);
 
       const validated = result.data.map((item: any) =>
@@ -202,7 +218,7 @@ export default function DailyVisitReportsPage() {
       if (response.ok) {
         const data: LocationsResponse = await response.json();
         setAvailableAreas(data.areas || []);
-        setAvailableRegions(data.regions || []);
+        setAvailableZones(data.zones || []);
       }
     } finally { setIsLoadingLocations(false); }
   }, []);
@@ -216,8 +232,9 @@ export default function DailyVisitReportsPage() {
   }, [fetchLocations]);
 
   // --- Map raw string arrays to `{ label, value }` Options ---
-  const zoneOptions = useMemo(() => availableRegions.sort().map(r => ({ label: r, value: r })), [availableRegions]);
-  const areaOptions = useMemo(() => availableAreas.sort().map(a => ({ label: a, value: a })), [availableAreas]);
+  const zoneOptions = useMemo(() => [...availableZones].sort().map(r => ({ label: r, value: r })), [availableZones]);
+  const areaOptions = useMemo(() => [...availableAreas].sort().map(a => ({ label: a, value: a })), [availableAreas]);
+
   const customerTypeOptions = useMemo(() => [
     { label: 'All Types', value: 'all' },
     ...CUSTOMER_TYPE_OPTIONS.map(c => ({ label: c, value: c }))
@@ -261,7 +278,7 @@ export default function DailyVisitReportsPage() {
       id: "location",
       header: "Location",
       cell: ({ row }) => {
-        const { region, area, latitude, longitude } = row.original;
+        const { zone, area, latitude, longitude } = row.original;
 
         const getGoogleMapsLink = (lat?: number | null, lng?: number | null) => {
           if (!lat || !lng) return null;
@@ -272,7 +289,7 @@ export default function DailyVisitReportsPage() {
 
         return (
           <div className="flex flex-col min-w-[140px]">
-            <span className="text-sm">{region || '-'} / {area || '-'}</span>
+            <span className="text-sm">{zone || '-'} / {area || '-'}</span>
             {mapLink ? (
               <a
                 href={mapLink}
@@ -457,45 +474,27 @@ export default function DailyVisitReportsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-3 pt-2">
-                  <InfoField label="Region" value={selectedReport.region} />
+                  <InfoField label="Zone" value={selectedReport.zone} />
                   <InfoField label="Area" value={selectedReport.area} />
                   <InfoField label="Location" value={selectedReport.location} fullWidth />
                 </CardContent>
               </Card>
 
-              {/* Dealer or Non Trade Split */}
-              {isDealerVisit(selectedReport) ? (
-                <Card className="border-l-4 border-l-amber-600">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-bold">
-                      Dealer Details
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4 pt-2">
-                    <InfoField label="Dealer Type" value={selectedReport.dealerType} />
-                    <InfoField label="Dealer Name" value={selectedReport.dealerName} />
-                    <InfoField label="Sub Dealer" value={selectedReport.subDealerName} />
-                    <InfoField label="Brand Selling" value={selectedReport.brandSelling?.join(', ')} fullWidth />
-                    <Separator className="col-span-2 my-2" />
-                    <InfoField label="Today's Collection" value={`₹${selectedReport.todayCollectionRupees}`} />
-                    <InfoField label="Overdue Amount" value={`₹${selectedReport.overdueAmount}`} />
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="border-l-4 border-l-blue-500">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-bold">
-                      Non-Trade Details
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4 pt-2">
-                    <InfoField label="Name of Party" value={selectedReport.nameOfParty} />
-                    <InfoField label="Contact No." value={selectedReport.contactNoOfParty} />
-                    <InfoField label="Expected Activation Date" value={selectedReport.expectedActivationDate} />
-                    <InfoField label="Brand in Use" value={selectedReport.brandSelling?.join(', ')} fullWidth />
-                  </CardContent>
-                </Card>
-              )}
+              <Card className="border-l-4 border-l-amber-600">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-bold">
+                    Dealer Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-4 pt-2">
+                  <InfoField label="Dealer Type" value={selectedReport.dealerType} />
+                  <InfoField label="Dealer Name" value={selectedReport.dealerName} />
+                  <InfoField label="Brand Selling" value={selectedReport.brandSelling?.join(', ')} fullWidth />
+                  <Separator className="col-span-2 my-2" />
+                  <InfoField label="Today's Collection" value={`₹${selectedReport.todayCollectionRupees}`} />
+                  <InfoField label="Overdue Amount" value={`₹${selectedReport.overdueAmount}`} />
+                </CardContent>
+              </Card>
 
               {/* Photo Evidence */}
               <div>
