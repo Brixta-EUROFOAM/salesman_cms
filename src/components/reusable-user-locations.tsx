@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 
 // Define the type for the API response
 type Locations = {
-  regions: string[];
+  zones: string[];
   areas: string[];
 };
 
@@ -15,7 +15,7 @@ type Locations = {
  * Custom hook to fetch and provide dynamic user locations.
  */
 export function useUserLocations() {
-  const [locations, setLocations] = React.useState<Locations>({ regions: [], areas: [] });
+  const [locations, setLocations] = React.useState<Locations>({ zones: [], areas: [] });
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 

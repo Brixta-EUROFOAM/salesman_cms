@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 
 // Define the type for the API response
 type Locations = {
-  regions: string[];
+  zones: string[];
   areas: string[];
 };
 
@@ -16,7 +16,7 @@ type Locations = {
  * This hook handles loading, error, and caching to avoid multiple API calls.
  */
 export function useDealerLocations() {
-  const [locations, setLocations] = React.useState<Locations>({ regions: [], areas: [] });
+  const [locations, setLocations] = React.useState<Locations>({ zones: [], areas: [] });
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 

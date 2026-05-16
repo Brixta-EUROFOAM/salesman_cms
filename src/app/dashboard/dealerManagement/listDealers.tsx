@@ -19,24 +19,32 @@ import { RefreshDataButton } from '@/components/RefreshDataButton';
 import { GlobalFilterBar } from '@/components/global-filter-bar'; 
 import { useDebounce } from '@/hooks/use-debounce-search';
 import { useDealerLocations } from '@/components/reusable-dealer-locations';
-import { selectDealerSchema } from '../../../../drizzle/zodSchemas';
 
-const dealerFrontendSchema = selectDealerSchema.extend({
-  totalPotential: z.number(),
-  bestPotential: z.number(),
-  latitude: z.number().nullable(),
-  longitude: z.number().nullable(),
-
-  createdAt: z.string(),
-  updatedAt: z.string(),
-
-  parentDealerName: z.string().nullable().optional(),
+// 1. PERFECTLY ALIGNED SCHEMA
+const dealerFrontendSchema = z.object({
+  id: z.number(),
+  dealerPartyName: z.string(),
+  contactPersonName: z.string().nullable().optional(),
+  contactPersonNumber: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
+  gstNo: z.string().nullable().optional(),
+  panNo: z.string().nullable().optional(),
+  zone: z.string().nullable().optional(),
+  district: z.string().nullable().optional(),
+  area: z.string().nullable().optional(),
+  state: z.string().nullable().optional(),
+  pinCode: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  latitude: z.coerce.number().nullable().optional(),
+  longitude: z.coerce.number().nullable().optional(),
+  createdAt: z.string().or(z.date()),
+  updatedAt: z.string().or(z.date()),
+  isVerified: z.boolean().nullable().optional(),
 });
 
 type DealerRecord = z.infer<typeof dealerFrontendSchema>;
 
 const DEALER_LOCATIONS_API = `/api/dashboardPagesAPI/dealerManagement`;
-const DEALER_TYPES_API = `/api/dashboardPagesAPI/dealerManagement/dealer-types`;
 
 export default function ListDealersPage() {
   const [dealers, setDealers] = useState<DealerRecord[]>([]);
@@ -44,7 +52,7 @@ export default function ListDealersPage() {
   const [errorDealers, setErrorDealers] = useState<string | null>(null);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [dealerToDeleteId, setDealerToDeleteId] = useState<string | null>(null);
+  const [dealerToDeleteId, setDealerToDeleteId] = useState<number | null>(null);
 
   const [page, setPage] = useState(0);
   const [pageSize] = useState(500);
@@ -56,45 +64,14 @@ export default function ListDealersPage() {
 
   const [zoneFilters, setZoneFilters] = useState<string[]>([]);
   const [areaFilters, setAreaFilters] = useState<string[]>([]);
-  const [typeFilter, setTypeFilter] = useState<string>('all');
 
   // --- Backend Filter Options ---
   const { locations, loading: locationsLoading, error: locationsError } = useDealerLocations();
-  const [availableTypes, setAvailableTypes] = useState<string[]>([]);
-  const [loadingTypes, setLoadingTypes] = useState(true);
-  const [typesError, setTypesError] = useState<string | null>(null);
 
   // Reset page on filter change
   useEffect(() => {
     setPage(0);
-  }, [debouncedSearchQuery, zoneFilters, areaFilters, typeFilter]);
-
-  const fetchDealerTypes = useCallback(async () => {
-    setLoadingTypes(true);
-    setTypesError(null);
-    try {
-      const url = new URL(DEALER_TYPES_API, window.location.origin);
-      url.searchParams.append('_t', Date.now().toString());
-
-      const res = await fetch(url.toString(), {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json() as { type: string[] };
-      const safe = Array.isArray(data.type) ? data.type.filter(Boolean) : [];
-      setAvailableTypes(safe);
-    } catch (e: any) {
-      console.error('Failed to fetch dealer types:', e);
-      setTypesError('Failed to load dealer types.');
-    } finally {
-      setLoadingTypes(false);
-    }
-  }, []);
+  }, [debouncedSearchQuery, zoneFilters, areaFilters]);
 
   const fetchDealers = useCallback(async () => {
     setLoadingDealers(true);
@@ -108,9 +85,7 @@ export default function ListDealersPage() {
       
       // Join arrays for multi-select
       if (areaFilters.length > 0) url.searchParams.append('area', areaFilters.join(','));
-      if (zoneFilters.length > 0) url.searchParams.append('region', zoneFilters.join(','));
-      
-      if (typeFilter !== 'all') url.searchParams.append('type', typeFilter);
+      if (zoneFilters.length > 0) url.searchParams.append('zone', zoneFilters.join(',')); // Changed 'region' to 'zone' to match DB
 
       url.searchParams.append('_t', Date.now().toString());
 
@@ -123,9 +98,12 @@ export default function ListDealersPage() {
       });
 
       const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to fetch');
+
       const rawData = result.data || result; 
       setTotalCount(result.totalCount || 0);
 
+      // Will confidently parse now
       const validatedDealers = z.array(dealerFrontendSchema).parse(rawData);
       setDealers(validatedDealers);
     } catch (e: any) {
@@ -138,23 +116,15 @@ export default function ListDealersPage() {
     } finally {
       setLoadingDealers(false);
     }
-  }, [page, pageSize, debouncedSearchQuery, zoneFilters, areaFilters, typeFilter]);
+  }, [page, pageSize, debouncedSearchQuery, zoneFilters, areaFilters]);
 
   useEffect(() => {
     fetchDealers();
   }, [fetchDealers]);
 
-  useEffect(() => {
-    fetchDealerTypes();
-  }, [fetchDealerTypes]);
-
   // --- Map raw string arrays to `{ label, value }` Options ---
-  const zoneOptions = useMemo(() => (locations.regions || []).filter(Boolean).sort().map(r => ({ label: r, value: r })), [locations.regions]);
+  const zoneOptions = useMemo(() => (locations.zones || []).filter(Boolean).sort().map(r => ({ label: r, value: r })), [locations.zones]);
   const areaOptions = useMemo(() => (locations.areas || []).filter(Boolean).sort().map(a => ({ label: a, value: a })), [locations.areas]);
-  const typeOptions = useMemo(() => [
-    { label: 'All Dealer Types', value: 'all' },
-    ...availableTypes.map(t => ({ label: t, value: t }))
-  ], [availableTypes]);
 
   const handleDelete = async () => {
     if (!dealerToDeleteId) return;
@@ -175,18 +145,20 @@ export default function ListDealersPage() {
   };
 
   const getGoogleMapsLink = (lat?: number | null, lng?: number | null) => {
-    if (lat == null || lng == null) return null;
-    return `https://www.google.com/maps?q=${lat},${lng}`;
+    if (!lat || !lng) return null;
+    return `http://googleusercontent.com/maps.google.com/?q=${lat},${lng}`;
   };
 
+  // 2. PERFECTLY ALIGNED COLUMNS
   const dealerColumns: ColumnDef<DealerRecord>[] = [
-    { accessorKey: 'name', header: 'Name', cell: info => <span className="font-semibold">{info.getValue() as string}</span> },
-    { accessorKey: 'type', header: 'Type' },
+    { accessorKey: 'dealerPartyName', header: 'Party / Business Name', cell: info => <span className="font-semibold text-[15px]">{info.getValue() as string}</span> },
+    { accessorKey: 'contactPersonName', header: 'Contact Person', cell: info => info.getValue() || '-' },
+    { accessorKey: 'contactPersonNumber', header: 'Phone No.', cell: info => info.getValue() || '-' },
     {
       header: 'Location',
       accessorKey: 'address', 
       cell: ({ row }) => {
-        const { zone, area, pinCode, latitude, longitude } = row.original;
+        const { zone, area, latitude, longitude } = row.original;
         const mapLink = getGoogleMapsLink(latitude, longitude);
 
         return (
@@ -205,34 +177,23 @@ export default function ListDealersPage() {
                 <ExternalLink className="h-3 w-3" /> View on Map
               </a>
             ) : (
-               <span className="text-gray-400 italic text-[10px]">No Coords</span>
+               <span className="text-gray-400 italic text-[10px]">No GPS Coords</span>
             )}
           </div>
         );
       }
     },
-    { accessorKey: 'parentDealerName', header: 'Parent', cell: info => info.getValue() || '-' },
-    { accessorKey: 'nameOfFirm', header: 'Firm Name' },
-    { accessorKey: 'underSalesPromoterName', header: 'SP Name' },
-    { accessorKey: 'phoneNo', header: 'Phone No.' },
-   {
-      header: 'Business Info',
+    { accessorKey: 'gstNo', header: 'GST Number', cell: info => info.getValue() || '-' },
+    {
+      accessorKey: 'isVerified',
+      header: 'Status',
       cell: ({ row }) => {
-        const total = Number(row.original.totalPotential || 0);
-        const best = Number(row.original.bestPotential || 0);
-        return (
-          <div className="flex flex-col text-xs space-y-1 min-w-[120px]">
-            <div>
-              Total: <span className="font-medium">{total.toFixed(2)}</span>
-            </div>
-            <div>
-              Best: <span className="font-medium">{best.toFixed(2)}</span>
-            </div>
-          </div>
-        );
+        return row.original.isVerified 
+          ? <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 shadow-none">Verified</Badge>
+          : <Badge variant="secondary" className="shadow-none">Pending</Badge>;
       }
     },
-    { accessorKey: 'createdAt', header: 'Added On', cell: info => new Date(info.getValue() as string).toLocaleDateString() },
+    { accessorKey: 'createdAt', header: 'Added On', cell: info => new Date(info.getValue() as string).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) },
   ];
 
   if (loadingDealers && dealers.length === 0) {
@@ -244,8 +205,8 @@ export default function ListDealersPage() {
     );
   }
   
-  if (errorDealers || locationsError || typesError) {
-    return <div className="text-center text-red-500 min-h-screen pt-10">Error: {errorDealers || locationsError || typesError}</div>;
+  if (errorDealers || locationsError) {
+    return <div className="text-center text-red-500 min-h-screen pt-10">Error: {errorDealers || locationsError}</div>;
   }
 
   return (
@@ -280,23 +241,20 @@ export default function ListDealersPage() {
       <div className="w-full mb-6 relative z-50">
         <GlobalFilterBar 
           showSearch={true}
-          showRole={true} // Re-using Role slot for "Dealer Type"
+          showRole={false} // Removed because "type" doesn't exist
           showZone={true}
           showArea={true}
           showDateRange={false}
           showStatus={false}
 
           searchVal={searchQuery}
-          roleVal={typeFilter}
           zoneVals={zoneFilters}
           areaVals={areaFilters}
 
-          roleOptions={typeOptions}
           zoneOptions={zoneOptions}
           areaOptions={areaOptions}
 
           onSearchChange={setSearchQuery}
-          onRoleChange={setTypeFilter}
           onZoneChange={setZoneFilters}
           onAreaChange={setAreaFilters}
         />
