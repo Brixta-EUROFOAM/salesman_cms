@@ -3,7 +3,7 @@ import 'server-only';
 import { NextResponse, NextRequest } from 'next/server';
 import { db } from '@/lib/drizzle';
 import { users, permanentJourneyPlans, dealers } from '../../../../../../drizzle/schema';
-import { eq, or, asc, aliasedTable, getTableColumns } from 'drizzle-orm';
+import { eq, or, asc, aliasedTable, getTableColumns, ilike } from 'drizzle-orm';
 import { verifySession, hasPermission } from '@/lib/auth';
 
 const getISTDate = (date: string | Date | null) => {
@@ -31,8 +31,8 @@ async function getPendingPJPs() {
         .leftJoin(dealers, eq(permanentJourneyPlans.dealerId, dealers.id))
         .where(
             or(
-                eq(permanentJourneyPlans.status, 'PENDING'),
-                eq(permanentJourneyPlans.verificationStatus, 'PENDING')
+                ilike(permanentJourneyPlans.status, 'pending'),
+                ilike(permanentJourneyPlans.verificationStatus, 'pending')
             )
         )
         .orderBy(asc(permanentJourneyPlans.planDate));

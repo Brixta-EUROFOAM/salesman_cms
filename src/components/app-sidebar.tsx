@@ -42,7 +42,6 @@ const menuItems: MenuItem[] = [
       {
         title: "Custom Report Generator",
         url: "/home/customReportGenerator",
-        requiredPerm: ['READ']
       },
     ],
   },
@@ -54,7 +53,6 @@ const menuItems: MenuItem[] = [
       {
         title: "Users & Team",
         url: "/dashboard/usersAndTeam",
-        requiredPerm: ['READ', 'WRITE', 'UPDATE'],
         requiredJobRole: ['Admin']
       },
       {
@@ -65,28 +63,22 @@ const menuItems: MenuItem[] = [
       {
         title: "Reports",
         url: "/dashboard/reports",
-        requiredPerm: ['READ']
       },
       {
         title: "PJPs", 
         url: "/dashboard/permanentJourneyPlan",
-        requiredPerm: ['READ', 'WRITE', 'UPDATE'],
-        requiredJobRole: ['Technical-Sales', 'Reports-MIS']
       },
       {
         title: "Salesman Geotracking",
         url: "/dashboard/slmGeotracking",
-        requiredPerm: ['READ']
       },
       {
         title: "Salesman Leaves",
         url: "/dashboard/slmLeaves",
-        requiredPerm: ['READ', 'WRITE', 'UPDATE']
       },
       {
         title: "Salesman Attendance",
         url: "/dashboard/slmAttendance",
-        requiredPerm: ['READ']
       },
     ],
   },

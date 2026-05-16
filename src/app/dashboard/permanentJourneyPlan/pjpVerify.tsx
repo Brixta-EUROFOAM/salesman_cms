@@ -6,12 +6,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { ColumnDef } from '@tanstack/react-table';
 import {
-  Loader2,
-  Check,
-  ChevronsUpDown,
-  ClipboardCheck,
-  Store,
-  HardHat,
+  Loader2, Check, ChevronsUpDown, ClipboardCheck, Store
 } from 'lucide-react';
 import { DateRange } from "react-day-picker";
 
@@ -26,53 +21,41 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/components/ui/command";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+  Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 
-import { selectPermanentJourneyPlanSchema } from '../../../../drizzle/zodSchemas';
-
-// --- EXTEND THE DRIZZLE SCHEMA ---
-const extendedVerificationSchema = selectPermanentJourneyPlanSchema.extend({
-  salesmanName: z.string().optional().catch("Unknown"),
-  salesmanRegion: z.string().optional().catch("Unknown"),
-  visitDealerName: z.string().nullable().optional(),
-  influencerName: z.string().nullable().optional(),
-  influencerPhone: z.string().nullable().optional(),
-  activityType: z.string().nullable().optional(),
+// Fallback schema (assumes you have a base schema in drizzle/zodSchemas)
+// If you don't, you can replace this with a standard z.object({...})
+const verificationSchema = z.object({
+  id: z.string(),
+  planDate: z.string().or(z.date()),
+  areaToBeVisited: z.string(),
   route: z.string().nullable().optional(),
   additionalVisitRemarks: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
-  noOfConvertedBags: z.coerce.number().optional().catch(0),
-  noOfMasonPcSchemes: z.coerce.number().optional().catch(0),
-  plannedNewSiteVisits: z.coerce.number().optional().catch(0),
-  plannedFollowUpSiteVisits: z.coerce.number().optional().catch(0),
-  plannedNewDealerVisits: z.coerce.number().optional().catch(0),
-  plannedInfluencerVisits: z.coerce.number().optional().catch(0),
+  status: z.string(),
+  verificationStatus: z.string().nullable().optional(),
+  dealerId: z.number().nullable().optional(),
+  
+  // Joined fields from backend route
+  salesmanName: z.string().optional().catch("Unknown"),
+  salesmanZone: z.string().nullable().optional(),
+  salesmanArea: z.string().nullable().optional(),
+  visitDealerName: z.string().nullable().optional(),
+  createdByName: z.string().optional().catch("Unknown"),
 });
 
-type PermanentJourneyPlanVerification = z.infer<typeof extendedVerificationSchema>;
+type PermanentJourneyPlanVerification = z.infer<typeof verificationSchema>;
 interface PJPModificationState extends PermanentJourneyPlanVerification { id: string; }
 
 interface OptionItem {
@@ -80,19 +63,9 @@ interface OptionItem {
   name: string;
   address?: string;
   area?: string;
-  region?: string;
 }
 
-// SearchableSelect kept for the Review Modal
-interface SearchableSelectProps {
-  options: OptionItem[];
-  value: string;
-  onChange: (id: string, address?: string) => void;
-  placeholder: string;
-  isLoading?: boolean;
-}
-
-const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }: SearchableSelectProps) => {
+const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }: { options: OptionItem[], value: string, onChange: (id: string, address?: string) => void, placeholder: string, isLoading?: boolean }) => {
   const [open, setOpen] = useState(false);
   const selectedItem = options.find((item) => String(item.id) === value);
 
@@ -123,7 +96,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder, isLoading }: 
                     setOpen(false);
                   }}
                 >
-                  <Check className={cn("mr-2 h-4 w-4", option.id === value ? "opacity-100" : "opacity-0")} />
+                  <Check className={cn("mr-2 h-4 w-4", String(option.id) === value ? "opacity-100" : "opacity-0")} />
                   {option.name} {option.area ? `(${option.area})` : ''}
                 </CommandItem>
               ))}
@@ -141,12 +114,10 @@ export default function PJPVerifyPage() {
 
   // Dependency Data
   const [allDealers, setAllDealers] = useState<OptionItem[]>([]);
-  const [allSites, setAllSites] = useState<OptionItem[]>([]);
 
-  // --- Standardized Filter State ---
+  // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
-
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -155,32 +126,9 @@ export default function PJPVerifyPage() {
   const [pjpToModify, setPjpToModify] = useState<PJPModificationState | null>(null);
   const [isPatching, setIsPatching] = useState(false);
   const [selectedDealerId, setSelectedDealerId] = useState<string>('null');
-  const [selectedSiteId, setSelectedSiteId] = useState<string>('null');
 
   const API_BASE = `/api/dashboardPagesAPI/permanent-journey-plan`;
-  const OPTIONS_API = `/api/dashboardPagesAPI/masonpc-side/mason-pc/form-options`;
   const BULK_VERIFY = `/api/dashboardPagesAPI/permanent-journey-plan/pjp-verification/bulk-verify`;
-
-  const fetchDependencies = useCallback(async () => {
-    try {
-      const url = new URL(OPTIONS_API, window.location.origin);
-      url.searchParams.append('_t', Date.now().toString());
-
-      const res = await fetch(url.toString(), {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setAllDealers(data.dealers || []);
-        setAllSites(data.sites || []);
-      }
-    } catch (e) { console.error("Error loading dependencies"); }
-  }, []);
 
   const fetchPendingPJPs = useCallback(async () => {
     setLoading(true);
@@ -188,22 +136,30 @@ export default function PJPVerifyPage() {
       const url = new URL(`${API_BASE}/pjp-verification`, window.location.origin);
       url.searchParams.append('_t', Date.now().toString());
 
-      const response = await fetch(url.toString(), {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-      
+      const response = await fetch(url.toString(), { cache: 'no-store' });
       const data = await response.json();
-      setPendingPJPs(z.array(extendedVerificationSchema).parse(data.plans || data));
+      setPendingPJPs(z.array(verificationSchema).parse(data.plans || data));
     } catch (e: any) { toast.error("Error loading verification queue."); } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchPendingPJPs(); fetchDependencies(); }, [fetchPendingPJPs, fetchDependencies]);
+  // Fetch Dealers for the Select dropdown
+  const fetchDealers = useCallback(async () => {
+    try {
+      // Point this to your actual dealers endpoint if different
+      const res = await fetch(`/api/dashboardPagesAPI/dealerManagement?pageSize=1000`);
+      const data = await res.json();
+      if (data.data) {
+        setAllDealers(data.data.map((d: any) => ({ id: String(d.id), name: d.dealerPartyName, area: d.area, address: d.address })));
+      }
+    } catch (e) { console.error("Failed to fetch dealers", e); }
+  }, []);
 
-  // --- Client Side Filtering ---
+  useEffect(() => { 
+    fetchPendingPJPs(); 
+    fetchDealers();
+  }, [fetchPendingPJPs, fetchDealers]);
+
+  // Client Side Filtering
   const filteredPJPs = useMemo(() => {
     return pendingPJPs.filter(pjp => {
       const search = debouncedSearchQuery.toLowerCase();
@@ -227,7 +183,6 @@ export default function PJPVerifyPage() {
     });
   }, [pendingPJPs, debouncedSearchQuery, dateRange]);
 
-  // --- Handlers ---
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -238,11 +193,8 @@ export default function PJPVerifyPage() {
   };
 
   const selectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      setSelectedIds(new Set(filteredPJPs.map(p => p.id)));
-    } else {
-      setSelectedIds(new Set());
-    }
+    if (e.target.checked) setSelectedIds(new Set(filteredPJPs.map(p => p.id)));
+    else setSelectedIds(new Set());
   };
 
   const handleBulkVerify = async () => {
@@ -262,11 +214,7 @@ export default function PJPVerifyPage() {
         setSelectedIds(new Set());
         fetchPendingPJPs();
       }
-    } catch (error) {
-      toast.error("Bulk verification failed");
-    } finally {
-      setIsPatching(false);
-    }
+    } catch (error) { toast.error("Bulk verification failed"); } finally { setIsPatching(false); }
   };
 
   const openModificationDialog = (pjp: PermanentJourneyPlanVerification) => {
@@ -276,6 +224,7 @@ export default function PJPVerifyPage() {
       description: pjp.description ?? '',
       additionalVisitRemarks: pjp.additionalVisitRemarks ?? '',
     });
+    setSelectedDealerId(pjp.dealerId ? String(pjp.dealerId) : 'null');
     setIsModificationDialogOpen(true);
   };
 
@@ -286,8 +235,7 @@ export default function PJPVerifyPage() {
     try {
       const payload = {
         ...pjpToModify,
-        dealerId: selectedDealerId === 'null' ? null : selectedDealerId,
-        siteId: selectedSiteId === 'null' ? null : selectedSiteId,
+        dealerId: selectedDealerId === 'null' ? null : Number(selectedDealerId),
       };
       const res = await fetch(`${API_BASE}/pjp-verification/${pjpToModify.id}`, {
         method: 'PATCH',
@@ -309,13 +257,10 @@ export default function PJPVerifyPage() {
       accessorKey: 'visitDealerName',
       header: 'Visiting',
       cell: ({ row }) => (
-        <div className="flex flex-col">
-          <span className="font-bold">{row.original.visitDealerName || 'N/A'}</span>
-          <span className="text-[10px] text-muted-foreground uppercase">{row.original.siteId ? 'Site' : 'Dealer'}</span>
-        </div>
+        <span className="font-bold">{row.original.visitDealerName || 'N/A'}</span>
       )
     },
-    { accessorKey: 'salesmanRegion', header: 'Region' },
+    { accessorKey: 'salesmanZone', header: 'Zone' },
     {
       id: 'actions',
       header: 'Actions',
@@ -361,7 +306,7 @@ export default function PJPVerifyPage() {
           </div>
         </div>
 
-        {/* --- BULK ACTION BAR --- */}
+        {/* BULK ACTION BAR */}
         {selectedIds.size > 0 && (
           <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200 rounded-xl animate-in fade-in slide-in-from-top-2">
             <div className="flex items-center gap-4">
@@ -374,32 +319,19 @@ export default function PJPVerifyPage() {
               </div>
             </div>
             <div className="flex gap-3">
-              <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())} className="text-amber-800 hover:bg-amber-100">
-                Cancel
-              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())} className="text-amber-800 hover:bg-amber-100">Cancel</Button>
               <Button onClick={handleBulkVerify} disabled={isPatching} className="bg-amber-600 hover:bg-amber-700 text-white font-bold">
-                {isPatching ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
-                Verify Selected PJPs
+                {isPatching ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />} Verify Selected PJPs
               </Button>
             </div>
           </div>
         )}
 
-        {/* --- Unified Global Filter Bar --- */}
         <div className="w-full relative z-50">
           <GlobalFilterBar 
-            showSearch={true}
-            showRole={false} 
-            showZone={false} 
-            showArea={false}
-            showDateRange={true}
-            showStatus={false}
-
-            searchVal={searchQuery}
-            dateRangeVal={dateRange}
-
-            onSearchChange={setSearchQuery}
-            onDateRangeChange={setDateRange}
+            showSearch={true} showRole={false} showZone={false} showArea={false} showDateRange={true} showStatus={false}
+            searchVal={searchQuery} dateRangeVal={dateRange}
+            onSearchChange={setSearchQuery} onDateRangeChange={setDateRange}
           />
         </div>
 
@@ -410,58 +342,46 @@ export default function PJPVerifyPage() {
                <p className="text-muted-foreground">Loading verification queue...</p>
             </div>
           ) : filteredPJPs.length === 0 ? (
-            <div className="text-center text-muted-foreground py-12">
-               No pending plans found matching the filters.
-            </div>
+            <div className="text-center text-muted-foreground py-12">No pending plans found matching the filters.</div>
           ) : (
             <DataTableReusable columns={pjpVerificationColumns} data={filteredPJPs} />
           )}
         </div>
       </div>
 
+      {/* MODIFICATION DIALOG */}
       <Dialog open={isModificationDialogOpen} onOpenChange={setIsModificationDialogOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-background">
+        <DialogContent className="sm:max-w-xl bg-background">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><ClipboardCheck className="text-primary" /> Review & Link PJP</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handlePatchPJP} className="space-y-6 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1"><Store className="w-3 h-3" /> Link Dealer</Label>
-                <SearchableSelect
-                  options={allDealers}
-                  value={selectedDealerId}
-                  placeholder="Search Dealers..."
-                  onChange={(id, address) => {
-                    setSelectedDealerId(id);
-                    setSelectedSiteId('null');
-                    if (address) setPjpToModify(p => p ? { ...p, route: address } : null);
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1"><HardHat className="w-3 h-3" /> Link Site</Label>
-                <SearchableSelect
-                  options={allSites}
-                  value={selectedSiteId}
-                  placeholder="Search Sites..."
-                  onChange={(id, address) => {
-                    setSelectedSiteId(id);
-                    setSelectedDealerId('null');
-                    if (address) setPjpToModify(p => p ? { ...p, route: address } : null);
-                  }}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1"><Store className="w-3 h-3" /> Link Dealer (Optional)</Label>
+              <SearchableSelect
+                options={allDealers}
+                value={selectedDealerId}
+                placeholder="Search Dealers..."
+                onChange={(id, address) => {
+                  setSelectedDealerId(id);
+                  if (address) setPjpToModify(p => p ? { ...p, route: address } : null);
+                }}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1"><Label className="text-xs">Plan Date</Label><Input type="date" value={pjpToModify?.planDate ?? ''} onChange={e => setPjpToModify(p => p ? { ...p, planDate: e.target.value } : null)} className="bg-muted/50" /></div>
+              <div className="space-y-1"><Label className="text-xs">Plan Date</Label><Input type="date" value={typeof pjpToModify?.planDate === 'string' ? pjpToModify.planDate.split('T')[0] : ''} onChange={e => setPjpToModify(p => p ? { ...p, planDate: e.target.value } : null)} className="bg-muted/50" /></div>
               <div className="space-y-1"><Label className="text-xs">Route Address</Label><Input value={pjpToModify?.route ?? ''} onChange={e => setPjpToModify(p => p ? { ...p, route: e.target.value } : null)} className="bg-muted/50 text-xs font-mono" /></div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs">Verification Remarks</Label>
+              <Label className="text-xs">Salesman Description</Label>
+              <div className="p-3 bg-secondary/30 rounded-md text-sm border italic text-muted-foreground">{pjpToModify?.description || 'No description provided.'}</div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs">Verification Remarks (Admin)</Label>
               <Textarea placeholder="Verification Remarks..." value={pjpToModify?.additionalVisitRemarks ?? ''} onChange={e => setPjpToModify(p => p ? { ...p, additionalVisitRemarks: e.target.value } : null)} className="bg-muted/50 h-20" />
             </div>
 
