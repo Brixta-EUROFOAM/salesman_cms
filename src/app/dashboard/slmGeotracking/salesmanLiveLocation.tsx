@@ -177,7 +177,7 @@ export function SalesmanLiveLocation() {
     { label: 'All Roles', value: 'all' },
     ...ORG_ROLES.map(r => ({ label: r, value: r }))
   ], []);
-  const zoneOptions = useMemo(() => (dynamicLocations?.regions || []).sort().map(r => ({ label: r, value: r })), [dynamicLocations]);
+  const zoneOptions = useMemo(() => (dynamicLocations?.zones || []).sort().map(r => ({ label: r, value: r })), [dynamicLocations]);
   const areaOptions = useMemo(() => (dynamicLocations?.areas || []).sort().map(a => ({ label: a, value: a })), [dynamicLocations]);
 
   // --- Client Side Filtering ---
